@@ -1,29 +1,33 @@
 /* ==========================================================================
    R-FIT V2 | CLIENTE HTTP DO PORTAL DO ALUNO
-   01. Configuração central da API
-   02. Verificação de saúde do Worker e do D1
-   Regra: as chamadas HTTP deste portal ficam centralizadas neste arquivo.
-   Não duplicar fetches em componentes; criar funções nomeadas nesta seção.
+   01. Base de API same-origin
+   02. Login e sessão
+   Todas as chamadas HTTP do portal ficam centralizadas aqui.
    ========================================================================== */
 
-/* 01. CONFIGURAÇÃO CENTRAL DA API */
-const API_BASE_URL = ''; // Mesmo domínio do portal; evita endpoints duplicados.
+const API_BASE_URL = '';
 
-/* 02. VERIFICAÇÃO DA API
-   Endpoint: GET /api/health
-   Origem dos dados: Worker Cloudflare + consulta SELECT 1 no D1.
-   Resposta esperada: { ok, service, database }.
-*/
-export async function getHealth() {
-  const response = await fetch(`${API_BASE_URL}/api/health`, {
-    method: 'GET',
+/* POST /auth/student/login — valida credenciais no servidor e cria cookie HttpOnly. */
+export async function loginStudent(email, password) {
+  const response = await fetch(`${API_BASE_URL}/auth/student/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'same-origin',
+    cache: 'no-store',
+    body: JSON.stringify({ email, password })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'login_failed');
+  return result;
+}
+
+/* GET /api/auth/me — retorna somente os dados básicos da sessão atual. */
+export async function getCurrentUser() {
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
     headers: { Accept: 'application/json' },
+    credentials: 'same-origin',
     cache: 'no-store'
   });
-
-  if (!response.ok) {
-    throw new Error('API indisponível');
-  }
-
+  if (!response.ok) throw new Error('unauthenticated');
   return response.json();
 }
