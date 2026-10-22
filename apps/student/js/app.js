@@ -1,0 +1,2 @@
+import { getHealth } from './api-client.js';
+document.addEventListener('DOMContentLoaded', () => { const link=document.querySelector('a[href="/api/health"]'); link?.addEventListener('click', async (event)=>{event.preventDefault();try{const result=await getHealth();window.alert(`API: ${result.status}; banco: ${result.database}`);}catch{window.alert('Não foi possível verificar a API agora.');}}); });
