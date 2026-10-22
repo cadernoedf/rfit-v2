@@ -1,0 +1,1 @@
+.eyebrow{display:inline-block;color:var(--color-accent);font-size:.75rem;font-weight:700;letter-spacing:.12em}h1{margin:.5rem 0;font-size:clamp(2.5rem,8vw,4rem);line-height:1.05}p{color:var(--color-muted)}.notice{padding:1rem;border:1px solid var(--color-border);border-radius:.75rem}a{color:var(--color-text)}
