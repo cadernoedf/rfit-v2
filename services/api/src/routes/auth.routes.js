@@ -23,7 +23,15 @@ function cookieHeader(name, value, maxAge, extra = "") {
 }
 
 function redirect(url, headers = {}) {
-  return new Response(null, { status: 302, headers: { Location: url, "Cache-Control": "no-store", ...headers } });
+  const responseHeaders = new Headers({ Location: url, "Cache-Control": "no-store" });
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() === "set-cookie" && Array.isArray(value)) {
+      for (const cookie of value) responseHeaders.append("Set-Cookie", cookie);
+    } else {
+      responseHeaders.set(name, value);
+    }
+  }
+  return new Response(null, { status: 302, headers: responseHeaders });
 }
 
 async function sign(value, secret) {
@@ -131,7 +139,7 @@ export async function authRoutes(request, env, url) {
         "Set-Cookie": [
           cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS),
           cookieHeader(COOKIE_STATE, "", 0)
-        ].join(", ")
+        ]
       });
     } catch {
       return authError("auth_database_error", 503);
