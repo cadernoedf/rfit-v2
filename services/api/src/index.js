@@ -7,6 +7,7 @@
 
 /* 01. IMPORTS */
 import { healthRoutes } from './routes/health.routes.js';
+import { authRoutes } from './routes/auth.routes.js';
 
 /* 02. RESPONSE / SECURITY HELPERS */
 const json = (data, status = 200) => Response.json(data, {
@@ -28,6 +29,9 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204 });
     }
+
+    const auth = await authRoutes(request, env, url);
+    if (auth) return auth;
 
     if (url.pathname.startsWith('/api/')) {
       const health = await healthRoutes(request, env, url);
