@@ -1,72 +1,90 @@
 /* ==========================================================================
-   R-FIT V2 | AUTENTICAÇÃO GOOGLE
-   01. Cookies e assinaturas
-   02. Início do OAuth com state
-   03. Callback, validação de identidade e autorização
-   04. Encerramento de sessão
-   Segurança: exige GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, PROFESSOR_EMAIL
-   e SESSION_SECRET como variáveis/segredos do Worker.
+   R-FIT V2 | AUTENTICAÇÃO E SESSÕES
+   01. Cookies e tokens assinados
+   02. Verificação de senha PBKDF2
+   03. Login de aluno
+   04. Login Google e callback de professor
+   05. Sessão atual e logout
+   As rotas protegidas são validadas no Worker, não apenas na interface.
    ========================================================================== */
 
 const COOKIE_STATE = "rfit_oauth_state";
 const COOKIE_SESSION = "rfit_session";
 const SESSION_SECONDS = 60 * 60 * 8;
+const encoder = new TextEncoder();
 
+function base64url(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function decodeBase64url(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+}
 function cookieValue(request, name) {
   const header = request.headers.get("Cookie") || "";
   const item = header.split(";").map((part) => part.trim()).find((part) => part.startsWith(name + "="));
   return item ? decodeURIComponent(item.slice(name.length + 1)) : null;
 }
-
-function cookieHeader(name, value, maxAge, extra = "") {
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}${extra}`;
+function cookieHeader(name, value, maxAge) {
+  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 }
-
-function redirect(url, headers = {}) {
-  const responseHeaders = new Headers({ Location: url, "Cache-Control": "no-store" });
-  for (const [name, value] of Object.entries(headers)) {
-    if (name.toLowerCase() === "set-cookie" && Array.isArray(value)) {
-      for (const cookie of value) responseHeaders.append("Set-Cookie", cookie);
-    } else {
-      responseHeaders.set(name, value);
-    }
-  }
-  return new Response(null, { status: 302, headers: responseHeaders });
+function redirect(url, cookies = []) {
+  const headers = new Headers({ Location: url, "Cache-Control": "no-store" });
+  for (const cookie of cookies) headers.append("Set-Cookie", cookie);
+  return new Response(null, { status: 302, headers });
 }
-
-async function sign(value, secret) {
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-  );
-  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value)));
-  return btoa(String.fromCharCode(...bytes)).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
-}
-
-async function makeSession(user, secret) {
-  const payload = btoa(JSON.stringify({
-    sub: user.id,
-    email: user.email,
-    role: user.role,
-    name: user.full_name,
-    exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS
-  })).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
-  return `${payload}.${await sign(payload, secret)}`;
-}
-
 function authError(message, status = 400) {
   return Response.json({ ok: false, error: message }, {
     status,
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
   });
 }
+async function sign(value, secret) {
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return base64url(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))));
+}
+async function makeSession(user, secret) {
+  const payload = base64url(encoder.encode(JSON.stringify({
+    sub: user.id, email: user.email, role: user.role, name: user.full_name,
+    exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS
+  })));
+  return `${payload}.${await sign(payload, secret)}`;
+}
+async function readSession(request, secret) {
+  if (!secret) return null;
+  const token = cookieValue(request, COOKIE_SESSION);
+  if (!token || !token.includes(".")) return null;
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature || signature !== await sign(payload, secret)) return null;
+  try {
+    const data = JSON.parse(new TextDecoder().decode(decodeBase64url(payload)));
+    if (!data.sub || !data.exp || data.exp < Math.floor(Date.now() / 1000)) return null;
+    return data;
+  } catch { return null; }
+}
+async function verifyPassword(password, stored) {
+  /* Formato no banco: pbkdf2-sha256$iterações$salt_base64url$hash_base64url */
+  const [algorithm, iterationsText, saltText, hashText] = String(stored || "").split("$");
+  const iterations = Number(iterationsText);
+  if (algorithm !== "pbkdf2-sha256" || !Number.isInteger(iterations) || iterations < 100000 || iterations > 1000000 || !saltText || !hashText) return false;
+  const material = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const actual = new Uint8Array(await crypto.subtle.deriveBits({
+    name: "PBKDF2", hash: "SHA-256", salt: decodeBase64url(saltText), iterations
+  }, material, 256));
+  const expected = decodeBase64url(hashText);
+  if (actual.length !== expected.length) return false;
+  let difference = 0;
+  for (let i = 0; i < actual.length; i++) difference |= actual[i] ^ expected[i];
+  return difference === 0;
+}
 
 export async function authRoutes(request, env, url) {
-  /* 01. CONFIGURAÇÃO OBRIGATÓRIA */
-  const configured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.PROFESSOR_EMAIL && env.SESSION_SECRET);
-
-  /* 02. INÍCIO DO OAUTH */
+  /* 01. INÍCIO DO LOGIN GOOGLE */
   if (url.pathname === "/auth/google" && request.method === "GET") {
-    if (!configured) return authError("auth_not_configured", 503);
+    if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.PROFESSOR_EMAIL || !env.SESSION_SECRET) return authError("auth_not_configured", 503);
     const state = crypto.randomUUID() + crypto.randomUUID();
     const callback = new URL("/auth/google/callback", url.origin).toString();
     const google = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -76,32 +94,22 @@ export async function authRoutes(request, env, url) {
     google.searchParams.set("scope", "openid email profile");
     google.searchParams.set("state", state);
     google.searchParams.set("prompt", "select_account");
-    return redirect(google.toString(), {
-      "Set-Cookie": cookieHeader(COOKIE_STATE, state, 600)
-    });
+    return redirect(google.toString(), [cookieHeader(COOKIE_STATE, state, 600)]);
   }
 
-  /* 03. CALLBACK, IDENTIDADE E AUTORIZAÇÃO */
+  /* 02. CALLBACK GOOGLE: APENAS O E-MAIL AUTORIZADO PODE SER PROFESSOR */
   if (url.pathname === "/auth/google/callback" && request.method === "GET") {
-    if (!configured) return authError("auth_not_configured", 503);
+    if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.PROFESSOR_EMAIL || !env.SESSION_SECRET) return authError("auth_not_configured", 503);
     const state = url.searchParams.get("state");
     const savedState = cookieValue(request, COOKIE_STATE);
     const code = url.searchParams.get("code");
-    if (!state || !savedState || state !== savedState || !code) {
-      return authError("oauth_state_or_code_invalid", 400);
-    }
+    if (!state || !savedState || state !== savedState || !code) return authError("oauth_state_or_code_invalid", 400);
 
     const callback = new URL("/auth/google/callback", url.origin).toString();
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams({
-        code,
-        client_id: env.GOOGLE_CLIENT_ID,
-        client_secret: env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: callback,
-        grant_type: "authorization_code"
-      })
+      body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: callback, grant_type: "authorization_code" })
     });
     if (!tokenResponse.ok) return authError("google_token_exchange_failed", 502);
     const tokenData = await tokenResponse.json();
@@ -112,46 +120,58 @@ export async function authRoutes(request, env, url) {
     });
     if (!profileResponse.ok) return authError("google_profile_fetch_failed", 502);
     const profile = await profileResponse.json();
-
     const email = String(profile.email || "").trim().toLowerCase();
-    const allowedEmail = String(env.PROFESSOR_EMAIL || "").trim().toLowerCase();
-    if (!profile.sub || !email || profile.email_verified !== true || email !== allowedEmail) {
-      return authError("google_account_not_authorized", 403);
-    }
+    const allowedEmail = String(env.PROFESSOR_EMAIL).trim().toLowerCase();
+    if (!profile.sub || email !== allowedEmail || profile.email_verified !== true) return authError("google_account_not_authorized", 403);
 
     const id = `google:${profile.sub}`;
-    const fullName = String(profile.name || email).slice(0, 160);
     try {
       await env.RFIT_DB.prepare(
-        "INSERT INTO users (id, email, google_subject, full_name, avatar_url, role, email_verified_at, status) VALUES (?, ?, ?, ?, ?, 'professor', CURRENT_TIMESTAMP, 'active') ON CONFLICT(email) DO UPDATE SET google_subject = excluded.google_subject, full_name = excluded.full_name, avatar_url = excluded.avatar_url, updated_at = CURRENT_TIMESTAMP WHERE users.role IN ('professor','admin')"
-      ).bind(id, email, profile.sub, fullName, profile.picture || null).run();
-
-      const user = await env.RFIT_DB.prepare(
-        "SELECT id, email, full_name, role, status FROM users WHERE email = ? AND google_subject = ? LIMIT 1"
-      ).bind(email, profile.sub).first();
-
-      if (!user || user.status !== "active" || !["professor", "admin"].includes(user.role)) {
-        return authError("google_account_not_authorized", 403);
-      }
-
+        "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'professor',CURRENT_TIMESTAMP,'active') ON CONFLICT(email) DO UPDATE SET google_subject=excluded.google_subject,full_name=excluded.full_name,avatar_url=excluded.avatar_url,updated_at=CURRENT_TIMESTAMP WHERE users.role IN ('professor','admin')"
+      ).bind(id, email, profile.sub, String(profile.name || email).slice(0,160), profile.picture || null).run();
+      const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status FROM users WHERE email=? AND google_subject=? LIMIT 1").bind(email, profile.sub).first();
+      if (!user || user.status !== "active" || !["professor","admin"].includes(user.role)) return authError("google_account_not_authorized", 403);
       const session = await makeSession(user, env.SESSION_SECRET);
-      return redirect(new URL("/professor/", url.origin).toString(), {
-        "Set-Cookie": [
-          cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS),
-          cookieHeader(COOKIE_STATE, "", 0)
-        ]
-      });
-    } catch {
-      return authError("auth_database_error", 503);
-    }
+      return redirect(new URL("/professor/", url.origin).toString(), [
+        cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
+      ]);
+    } catch { return authError("auth_database_error", 503); }
   }
 
-  /* 04. ENCERRAMENTO DE SESSÃO */
+  /* 03. LOGIN DE ALUNO POR E-MAIL E SENHA */
+  if (url.pathname === "/auth/student/login" && request.method === "POST") {
+    if (!env.SESSION_SECRET) return authError("auth_not_configured", 503);
+    const origin = request.headers.get("Origin");
+    if (origin && origin !== url.origin) return authError("origin_not_allowed", 403);
+    let body;
+    try { body = await request.json(); } catch { return authError("invalid_json", 400); }
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
+    if (!email || !password || email.length > 254 || password.length > 128) return authError("invalid_credentials", 400);
+    try {
+      const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status,password_hash FROM users WHERE email=? LIMIT 1").bind(email).first();
+      const valid = user && user.role === "student" && user.status === "active" && await verifyPassword(password, user.password_hash);
+      if (!valid) return authError("invalid_credentials", 401);
+      const session = await makeSession(user, env.SESSION_SECRET);
+      return Response.json({ ok: true, redirect: "/student/dashboard.html" }, {
+        headers: { "Cache-Control": "no-store", "Set-Cookie": cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), "X-Content-Type-Options": "nosniff" }
+      });
+    } catch { return authError("auth_database_error", 503); }
+  }
+
+  /* 04. SESSÃO ATUAL E LOGOUT */
+  if (url.pathname === "/api/auth/me" && request.method === "GET") {
+    const session = await readSession(request, env.SESSION_SECRET);
+    if (!session) return authError("unauthenticated", 401);
+    return Response.json({ ok: true, user: { id: session.sub, email: session.email, name: session.name, role: session.role } }, { headers: { "Cache-Control": "no-store" } });
+  }
   if (url.pathname === "/auth/logout" && request.method === "POST") {
-    return redirect(new URL("/student/", url.origin).toString(), {
-      "Set-Cookie": cookieHeader(COOKIE_SESSION, "", 0)
-    });
+    return redirect(new URL("/student/", url.origin).toString(), [cookieHeader(COOKIE_SESSION, "", 0)]);
   }
 
   return null;
+}
+
+export async function getSession(request, env) {
+  return readSession(request, env.SESSION_SECRET);
 }
