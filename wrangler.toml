@@ -1,0 +1,17 @@
+name = "rfit-v2"
+main = "services/api/src/index.js"
+compatibility_date = "2026-10-22"
+
+[[d1_databases]]
+binding = "RFIT_DB"
+database_name = "rfit-v2-db"
+database_id = "774b6263-f4c5-44a1-9e1e-5eec61a4765e"
+migrations_dir = "database/migrations"
+
+[assets]
+directory = "./apps"
+binding = "ASSETS"
+not_found_handling = "404-page"
+
+[observability]
+enabled = true
