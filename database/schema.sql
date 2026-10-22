@@ -1,0 +1,2 @@
+-- Fonte de implantação: migrations/0001_initial_schema.sql
+-- Mantenha a migração versionada como fonte principal do esquema.
