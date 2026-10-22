@@ -4,10 +4,15 @@
 - Repositório: `cadernoedf/rfit-v2`.
 - Worker novo: `rfit-v2`.
 - D1 novo: `rfit-v2-db`.
-- Recursos legados `rfit`, `rfit-api`, `rfit-db` não devem ser alterados por este projeto.
+- Recursos legados `rfit`, `rfit-api`, `rfit-db` permanecem fora do escopo.
+
+## Visual
+- Os dois portais usam apenas `apps/shared/css/rfit.css`.
+- Folhas de estilo antigas e suas referências foram removidas.
+- Os HTMLs pré-carregam o CSS principal para reduzir flash de estilo.
 
 ## Fase atual
-Estrutura inicial e endpoint de saúde. Ainda faltam autenticação, autorização por papel, cadastro, OAuth Google, cobrança, expiração de planos, anamnese, prescrição, telas funcionais e testes completos.
+Base inicial com portais de apresentação e endpoint de saúde. Autenticação, OAuth, cadastro, cobrança, anamnese, planos personalizados, controle de acesso e testes de ponta a ponta ainda faltam.
 
-## Regra de segurança
-Não publicar como pronto para alunos nem inserir dados reais até implementar e testar autenticação, autorização server-side, recuperação de senha, validação de pagamentos, privacidade e auditoria.
+## Segurança
+Não usar com dados reais nem divulgar como pronto para alunos antes de concluir autenticação, autorização server-side, pagamentos, privacidade e testes.
