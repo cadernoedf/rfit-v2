@@ -88,9 +88,9 @@ async function verifyPassword(password, stored) {
     "raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]
   );
   const actual = new Uint8Array(await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: { name: "SHA-256" }, salt, iterations },
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
     material,
-    expected.length * 8
+    256
   ));
 
   let difference = actual.length ^ expected.length;
