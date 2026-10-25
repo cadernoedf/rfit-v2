@@ -284,3 +284,10 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 .student-footer { padding:24px 0 0; color:var(--rfit-muted); text-align:center; font-size:.78rem; }
 @media(max-width:760px) { .student-grid { grid-template-columns:1fr; } .student-hero { align-items:flex-start; } .student-mark { font-size:2rem; } }
 @media(max-width:480px) { .student-shell { width:calc(100% - 24px); padding-top:16px; } .student-steps li { grid-template-columns:34px minmax(0,1fr); gap:10px; } .student-steps li b { grid-column:2; text-align:left; } .student-panel { padding:18px; } }
+
+
+/* R-FIT ADMIN: planos e configurações */
+.plans-list{display:grid;gap:10px;margin:16px 0}
+.plan-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--border-color,#333);border-radius:12px;background:var(--panel-bg,#111)}
+.plan-row>div{display:grid;gap:4px}.plan-row small{opacity:.75}.admin-form{display:grid;gap:14px;margin-top:20px;padding:20px;border:1px solid var(--border-color,#333);border-radius:14px;background:var(--panel-bg,#111)}
+.admin-form h3{margin:0 0 4px}.admin-form>label{display:grid;gap:6px;font-size:.92rem}.admin-form input:not([type=checkbox]),.admin-form textarea{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #555;background:#090a0d;color:inherit;font:inherit}.admin-form textarea{min-height:84px;resize:vertical}.form-checks{display:flex;flex-wrap:wrap;gap:16px}.form-checks label{display:flex;align-items:center;gap:8px}
