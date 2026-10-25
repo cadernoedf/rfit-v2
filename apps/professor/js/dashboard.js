@@ -148,3 +148,35 @@ document.addEventListener('DOMContentLoaded', function(){
   $('#load-plans') && $('#load-plans').addEventListener('click',loadPlans);
   $('#load-settings') && $('#load-settings').addEventListener('click',loadSettings);
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+  const buttons = document.querySelectorAll('[data-view]');
+  const panels = document.querySelectorAll('[data-view-panel]');
+  const title = document.querySelector('.admin-title');
+  const names = { overview: 'Visão geral', students: 'Alunos', plans: 'Planos da consultoria', settings: 'Configurações' };
+  function showView(view) {
+    panels.forEach(function (panel) {
+      panel.hidden = panel.dataset.viewPanel !== view;
+      panel.classList.toggle('is-visible', !panel.hidden);
+    });
+    buttons.forEach(function (button) {
+      const active = button.dataset.view === view;
+      button.classList.toggle('is-active', active);
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+    if (title) {
+      title.textContent = names[view] || 'Painel';
+      const accent = document.createElement('span');
+      accent.textContent = '.';
+      title.appendChild(accent);
+    }
+    if (view === 'plans') loadPlans();
+    if (view === 'settings') loadSettings();
+    if (view === 'students') loadDashboard();
+  }
+  buttons.forEach(function (button) {
+    button.addEventListener('click', function () { showView(button.dataset.view); });
+  });
+  showView('overview');
+});
