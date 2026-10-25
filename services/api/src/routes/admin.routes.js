@@ -8,7 +8,7 @@ export async function adminRoutes(request, env, url) {
   if (!url.pathname.startsWith('/api/professor/')) return null;
   const isSettings = url.pathname === '/api/professor/settings';
   const isPlanCollection = url.pathname === '/api/professor/plans';
-  const planMatch = url.pathname.match(/^\\/api\\/professor\\/plans\\/([^/]+)$/);
+  const planMatch = url.pathname.match(/^\/api\/professor\/plans\/([^/]+)$/);
   const isPlanItem = Boolean(planMatch);
   const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
   if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
@@ -26,7 +26,7 @@ export async function adminRoutes(request, env, url) {
     if (isSettings && request.method === 'PUT') {
       const body = await request.json();
       const allowed = new Set(['consultancy_name','login_title','login_message','registration_enabled','maintenance_mode']);
-      const entries = Object.entries(body.settings || {});
+      const entries = Object.entries(body.settings || {}).map(([key,value]) => [key, typeof value === 'boolean' ? String(value) : value]);
       if (!entries.length || entries.some(([key,value])=>!allowed.has(key) || typeof value !== 'string' || value.length > 1000)) return Response.json({ok:false,error:'invalid_settings'},{status:400,headers:noStore});
       for (const [key,value] of entries) await env.RFIT_DB.prepare('INSERT INTO portal_settings(setting_key,setting_value,updated_by,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP').bind(key,value,session.sub).run();
       await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,metadata_json) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'settings.updated','portal_settings',JSON.stringify({keys:entries.map(([key])=>key)})).run();
