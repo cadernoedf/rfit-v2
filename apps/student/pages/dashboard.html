@@ -1,12 +1,37 @@
 <!doctype html>
-<html lang="pt-BR"><head>
+<html lang="pt-BR">
+<head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090a0d"><title>R-Fit — Área do Aluno</title>
+<meta name="theme-color" content="#090a0d"><title>R-Fit — Meu painel</title>
 <link rel="stylesheet" href="../../shared/css/rfit.css">
 <script type="module" src="../js/dashboard.js"></script>
-</head><body><main class="shell">
-<span class="eyebrow">R-FIT V2 · ÁREA DO ALUNO</span><h1 class="login-title">Bem-vindo ao R-Fit.</h1>
-<p id="student-welcome">Validando sua sessão…</p>
-<div class="notice">Esta área protegida receberá treinos, dieta, medidas e evolução em etapas separadas.</div>
-<button id="logout" class="primary-button" type="button">Sair da conta</button>
-</main></body></html>
+</head>
+<body class="student-body">
+<main class="student-shell">
+<header class="student-topbar">
+  <div><span class="eyebrow">R-FIT · ÁREA DO ALUNO</span><h1 class="student-title">Sua evolução<span>.</span></h1><p id="student-welcome">Validando sua sessão segura…</p></div>
+  <button id="logout" class="secondary-button student-logout" type="button">Sair</button>
+</header>
+<section class="student-hero">
+  <div><span class="section-kicker">SEU PRÓXIMO NÍVEL</span><h2>Constância gera resultado.</h2><p>Seu espaço para acompanhar o plano, organizar a rotina e registrar sua evolução.</p></div>
+  <div class="student-mark" aria-hidden="true">R<span>FIT</span></div>
+</section>
+<section class="student-grid" aria-label="Resumo do aluno">
+  <article class="student-panel"><span class="panel-icon">▤</span><span class="section-kicker">MEU PLANO</span><h3 id="student-plan">Aguardando plano</h3><p id="student-plan-note">O plano será exibido aqui após a contratação.</p></article>
+  <article class="student-panel"><span class="panel-icon">✓</span><span class="section-kicker">PRÓXIMA ETAPA</span><h3 id="student-next-step">Completar seu perfil</h3><p id="student-next-note">Preencha suas informações iniciais para orientar seu acompanhamento.</p></article>
+  <article class="student-panel"><span class="panel-icon">↗</span><span class="section-kicker">EVOLUÇÃO</span><h3>Seu progresso</h3><p>Medidas, check-ins e registros de evolução ficarão reunidos nesta área.</p></article>
+</section>
+<section class="student-panel student-checklist">
+  <div class="section-heading"><div><span class="section-kicker">COMECE POR AQUI</span><h2>Seu caminho no R-Fit</h2></div><span id="student-status" class="count-pill">Sessão ativa</span></div>
+  <ol class="student-steps">
+    <li class="step-current"><span>01</span><div><strong>Acesso à conta</strong><p>Sessão validada com segurança.</p></div><b>Concluído</b></li>
+    <li><span>02</span><div><strong>Escolher seu plano</strong><p>A seleção e a contratação serão habilitadas no próximo módulo.</p></div><b id="step-plan-status">Pendente</b></li>
+    <li><span>03</span><div><strong>Preencher a anamnese</strong><p>Informações de saúde, objetivos e rotina de treino.</p></div><b id="step-anamnesis-status">Pendente</b></li>
+    <li><span>04</span><div><strong>Acessar seu acompanhamento</strong><p>Treinos, orientações nutricionais e registros pessoais.</p></div><b>Em preparação</b></li>
+  </ol>
+  <p id="student-message" class="form-message" role="status" aria-live="polite">Carregando seus dados…</p>
+</section>
+<footer class="student-footer">R-Fit · Treino com método. Evolução com acompanhamento.</footer>
+</main>
+</body>
+</html>
