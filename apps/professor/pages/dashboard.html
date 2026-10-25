@@ -9,7 +9,7 @@
   <script type="module" src="../js/dashboard.js"></script>
 </head>
 <body class="admin-body">
-  <div class="portal-layout"><aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav"><a class="portal-nav-link is-active" href="#overview-title"><span>▦</span> Visão geral</a><a class="portal-nav-link" href="#students-title"><span>♙</span> Alunos</a><a class="portal-nav-link" href="#plans-title"><span>▤</span> Planos</a><a class="portal-nav-link" href="#settings-title"><span>⚙</span> Configurações</a></nav><div class="sidebar-bottom"><span class="sidebar-dot"></span> Sistema R-Fit</div></aside><main class="admin-shell portal-main">
+  <div class="portal-layout"><aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav"><button class="portal-nav-link is-active" type="button" data-view="overview"><span>▦</span> Visão geral</button><button class="portal-nav-link" type="button" data-view="students"><span>♙</span> Alunos</button><button class="portal-nav-link" type="button" data-view="plans"><span>▤</span> Planos</button><button class="portal-nav-link" type="button" data-view="settings"><span>⚙</span> Configurações</button></nav><div class="sidebar-bottom"><span class="sidebar-dot"></span> Sistema R-Fit</div></aside><main class="admin-shell portal-main">
     <header class="admin-topbar">
       <div>
         <span class="eyebrow">R-FIT · CENTRAL PROFISSIONAL</span>
@@ -19,7 +19,7 @@
       <button id="professor-logout" class="secondary-button admin-logout" type="button">Sair</button>
     </header>
 
-    <section class="admin-section" aria-labelledby="overview-title">
+    <section class="admin-section portal-view is-visible" data-view-panel="overview" aria-labelledby="overview-title">
       <div class="section-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="overview-title">Seu portal em números</h2></div><button id="refresh-dashboard" class="text-button" type="button">↻ Atualizar</button></div>
       <p id="dashboard-message" class="form-message" role="status" aria-live="polite">Carregando dados do banco…</p>
       <div class="metric-grid">
@@ -30,7 +30,7 @@
       </div>
     </section>
 
-    <section class="admin-section" aria-labelledby="students-title">
+    <section class="admin-section portal-view" data-view-panel="students" aria-labelledby="students-title">
       <div class="section-heading"><div><span class="section-kicker">GESTÃO DE ALUNOS</span><h2 id="students-title">Alunos recentes</h2></div><span id="student-count" class="count-pill">0 alunos</span></div>
       <div class="student-tools">
         <label class="search-field"><span class="sr-only">Buscar aluno</span><span aria-hidden="true">⌕</span><input id="student-search" type="search" placeholder="Buscar por nome ou e-mail"></label>
@@ -52,7 +52,7 @@
       <p class="table-note">Os indicadores e a lista serão exibidos somente quando a API autenticada responder com dados reais.</p>
     </section>
 
-    <section class="admin-section" aria-labelledby="plans-title">
+    <section class="admin-section portal-view" data-view-panel="plans" aria-labelledby="plans-title">
       <div class="section-heading"><div><span class="section-kicker">PRODUTO</span><h2 id="plans-title">Planos da consultoria</h2></div><button id="load-plans" class="text-button" type="button">↻ Atualizar planos</button></div>
       <p id="plans-message" class="form-message" role="status">Carregando planos…</p>
       <div id="plans-list" class="plans-list"></div>
@@ -66,7 +66,7 @@
         <button class="primary-button" type="submit">Criar plano</button>
       </form>
     </section>
-    <section class="admin-section" aria-labelledby="settings-title">
+    <section class="admin-section portal-view" data-view-panel="settings" aria-labelledby="settings-title">
       <div class="section-heading"><div><span class="section-kicker">PERSONALIZAÇÃO</span><h2 id="settings-title">Configurações gerais</h2></div><button id="load-settings" class="text-button" type="button">↻ Recarregar</button></div>
       <p id="settings-message" class="form-message" role="status">Carregando configurações…</p>
       <form id="settings-form" class="admin-form">
@@ -77,7 +77,7 @@
         <button class="primary-button" type="submit">Salvar configurações</button>
       </form>
     </section>
-    <section class="admin-section admin-next" aria-label="Próximas integrações">
+    <section class="admin-section admin-next portal-view" data-view-panel="settings" aria-label="Próximas integrações">
       <div><span class="section-kicker">PRÓXIMAS INTEGRAÇÕES</span><h2>Pagamentos, notificações e auditoria.</h2><p>As operações administrativas já registram alterações de status e configurações; integração financeira e envio de notificações precisam de credenciais e testes próprios.</p></div>
       <div class="module-chips"><span>Pagamentos</span><span>Notificações</span><span>Auditoria</span></div>
     </section>
