@@ -15,8 +15,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     welcome.textContent = 'Olá, ' + (user.name || user.email) + '. Seu espaço de acompanhamento está pronto.';
     message.textContent = 'Sua sessão está segura. Os próximos módulos serão liberados conforme o cadastro for integrado.';
     message.dataset.state = 'success';
-  } catch {
-    window.location.replace('/student/pages/login.html');
+  } catch (error) {
+    if (welcome) welcome.textContent = 'Não foi possível validar sua sessão.';
+    if (message) {
+      message.textContent = 'A sessão não foi reconhecida pelo servidor. Saia e entre novamente. Se persistir, informe o código: student_session_validation_failed.';
+      message.dataset.state = 'error';
+    }
+    console.error('student_session_validation_failed', error);
     return;
   }
   document.querySelector('#logout')?.addEventListener('click', async () => {
