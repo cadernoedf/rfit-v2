@@ -148,15 +148,30 @@ export async function authRoutes(request, env, url) {
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
     if (!email || !password || email.length > 254 || password.length > 128) return authError("invalid_credentials", 400);
+    let user;
     try {
-      const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status,password_hash FROM users WHERE email=? LIMIT 1").bind(email).first();
-      const valid = user && user.role === "student" && user.status === "active" && await verifyPassword(password, user.password_hash);
-      if (!valid) return authError("invalid_credentials", 401);
+      user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status,password_hash FROM users WHERE email=? LIMIT 1").bind(email).first();
+    } catch (error) {
+      console.error("student_login_database_error", error?.name || "Error", error?.message || "unknown");
+      return authError("auth_database_error", 503);
+    }
+    let valid = false;
+    try {
+      valid = Boolean(user && user.role === "student" && user.status === "active" && await verifyPassword(password, user.password_hash));
+    } catch (error) {
+      console.error("student_login_password_verification_error", error?.name || "Error", error?.message || "unknown");
+      return authError("password_verification_error", 503);
+    }
+    if (!valid) return authError("invalid_credentials", 401);
+    try {
       const session = await makeSession(user, env.SESSION_SECRET);
       return Response.json({ ok: true, redirect: "/student/dashboard.html" }, {
         headers: { "Cache-Control": "no-store", "Set-Cookie": cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), "X-Content-Type-Options": "nosniff" }
       });
-    } catch { return authError("auth_database_error", 503); }
+    } catch (error) {
+      console.error("student_login_session_error", error?.name || "Error", error?.message || "unknown");
+      return authError("session_creation_error", 503);
+    }
   }
 
   /* 04. SESSÃO ATUAL E LOGOUT */
