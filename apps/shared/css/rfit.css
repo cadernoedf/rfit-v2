@@ -332,3 +332,11 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 
 /* 16. VIEWS INDEPENDENTES DO MENU */
 .portal-view[hidden]{display:none!important}.portal-view.is-visible{display:block}.portal-nav-link{width:100%;text-align:left;cursor:pointer;font-family:inherit}.portal-nav button{appearance:none}
+
+/* 17. ÁREA DO ALUNO — TREINO, DIETA E SUPORTE */
+.student-detail-list{display:grid;gap:12px;margin-top:16px}
+.student-detail-card,.support-item{display:flex;align-items:flex-start;gap:14px;padding:16px;background:#f8f9fb;border:1px solid #e2e6ed;border-radius:12px}
+.student-detail-card strong,.support-item strong{display:block;color:#18202d}
+.student-detail-card p,.support-item p{margin:4px 0 0;font-size:.86rem}
+.support-list{display:grid;gap:10px;margin-top:16px}
+.support-item>span{display:grid;flex:0 0 36px;width:36px;height:36px;place-items:center;border-radius:10px;background:#fff0f2;color:#e32e43;font-weight:850}
