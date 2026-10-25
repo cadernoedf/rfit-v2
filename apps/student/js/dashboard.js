@@ -51,3 +51,25 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   showStudentView('home');
 });
+
+/* Menu do aluno: telas independentes para treino, dieta e suporte. */
+document.addEventListener('DOMContentLoaded', function () {
+  const buttons = document.querySelectorAll('[data-student-view]');
+  const panels = document.querySelectorAll('[data-student-panel]');
+  function showStudentView(view) {
+    panels.forEach(function (panel) {
+      panel.hidden = panel.dataset.studentPanel !== view;
+      panel.classList.toggle('is-visible', !panel.hidden);
+    });
+    buttons.forEach(function (button) {
+      const active = button.dataset.studentView === view;
+      button.classList.toggle('is-active', active);
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+  }
+  buttons.forEach(function (button) {
+    button.addEventListener('click', function () { showStudentView(button.dataset.studentView); });
+  });
+  showStudentView('home');
+});
