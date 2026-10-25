@@ -2,6 +2,10 @@ name = "rfit-v2"
 main = "services/api/src/index.js"
 compatibility_date = "2026-10-22"
 
+[vars]
+GOOGLE_CLIENT_ID = "384449655230-4fl88v81sf576jg0451l0btargntsfas.apps.googleusercontent.com"
+PROFESSOR_EMAIL = "raynnerb@gmail.com"
+
 [[d1_databases]]
 binding = "RFIT_DB"
 database_name = "rfit-v2-db"
