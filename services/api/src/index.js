@@ -60,7 +60,7 @@ export default {
     if (blocked) return blocked;
 
     /* Route the root to the student login. The single CSS remains shared. */
-    if (url.pathname === '/') return Response.redirect(new URL('/student/', url.origin), 302);
+    if (url.pathname === '/') return Response.redirect(new URL('/student/pages/login.html', url.origin), 302);
 
     return env.ASSETS
       ? env.ASSETS.fetch(request)
