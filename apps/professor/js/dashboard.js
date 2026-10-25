@@ -106,3 +106,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#student-filter')?.addEventListener('change', renderStudents);
   await loadDashboard();
 });
+
+async function loadPlans() {
+  const message = $('#plans-message'); if (!message) return;
+  try {
+    const response = await fetch('/api/professor/plans', {credentials:'same-origin',cache:'no-store'});
+    const data = await response.json(); if (!response.ok) throw new Error(data.error || 'plans_unavailable');
+    const list = $('#plans-list');
+    list.innerHTML = (data.plans || []).map(function(plan) {
+      return '<article class="plan-row"><div><strong>' + escapeHtml(plan.name) + '</strong><small>' + escapeHtml(plan.description || '') + '</small></div><span>' + new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(plan.price_cents || 0)/100) + '</span><span class="status-pill">' + (plan.is_active ? 'Ativo' : 'Inativo') + '</span></article>';
+    }).join('') || '<p>Nenhum plano cadastrado.</p>';
+    message.textContent = 'Planos carregados do banco R-Fit.'; message.dataset.state='success';
+  } catch (error) { message.textContent = 'Falha ao carregar planos. Confira se a migração do D1 foi aplicada.'; message.dataset.state='error'; }
+}
+async function loadSettings() {
+  const message = $('#settings-message'); if (!message) return;
+  try {
+    const response = await fetch('/api/professor/settings',{credentials:'same-origin',cache:'no-store'});
+    const data = await response.json(); if (!response.ok) throw new Error(data.error || 'settings_unavailable');
+    const form=$('#settings-form');
+    ['consultancy_name','login_title','login_message'].forEach(function(key){form.elements[key].value=(data.settings && data.settings[key] && data.settings[key].value) || '';});
+    ['registration_enabled','maintenance_mode'].forEach(function(key){const fallback=key==='registration_enabled';form.elements[key].checked=((data.settings && data.settings[key] && data.settings[key].value) || String(fallback))==='true';});
+    message.textContent='Configurações carregadas do D1.'; message.dataset.state='success';
+  } catch (error) { message.textContent='Falha ao carregar configurações. Confira a migração do D1.'; message.dataset.state='error'; }
+}
+document.addEventListener('DOMContentLoaded', function(){
+  const settingsForm=$('#settings-form');
+  if(settingsForm) settingsForm.addEventListener('submit',async function(event){
+    event.preventDefault(); const message=$('#settings-message'); const form=event.currentTarget;
+    const settings={consultancy_name:form.elements.consultancy_name.value,login_title:form.elements.login_title.value,login_message:form.elements.login_message.value,registration_enabled:String(form.elements.registration_enabled.checked),maintenance_mode:String(form.elements.maintenance_mode.checked)};
+    try { const response=await fetch('/api/professor/settings',{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings:settings})}); const data=await response.json(); if(!response.ok) throw new Error(data.error || 'save_failed'); message.textContent='Configurações salvas no D1.'; message.dataset.state='success'; }
+    catch(error){message.textContent='Não foi possível salvar as configurações.';message.dataset.state='error';}
+  });
+  const planForm=$('#create-plan-form');
+  if(planForm) planForm.addEventListener('submit',async function(event){
+    event.preventDefault(); const form=event.currentTarget; const message=$('#plans-message');
+    const payload={name:form.elements.name.value,description:form.elements.description.value,price_cents:Math.round(Number(form.elements.price.value)*100),duration_days:form.elements.lifetime.checked?null:Number(form.elements.duration_days.value),lifetime:form.elements.lifetime.checked,includes_training:form.elements.includes_training.checked,includes_nutrition:form.elements.includes_nutrition.checked};
+    try { const response=await fetch('/api/professor/plans',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const data=await response.json(); if(!response.ok) throw new Error(data.error || 'create_failed'); message.textContent='Plano criado no D1.'; message.dataset.state='success'; form.reset(); await loadPlans(); }
+    catch(error){message.textContent='Não foi possível criar o plano.';message.dataset.state='error';}
+  });
+  $('#load-plans') && $('#load-plans').addEventListener('click',loadPlans);
+  $('#load-settings') && $('#load-settings').addEventListener('click',loadSettings);
+});
