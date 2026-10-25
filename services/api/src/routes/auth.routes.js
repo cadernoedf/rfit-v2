@@ -110,7 +110,7 @@ async function verifyPassword(password, stored) {
 }
 
 export async function authRoutes(request, env, url) {
-  /* 01. INÍCIO DO LOGIN GOOGLE */
+  /* 01. INÍCIO DO LOGIN GOOGLE — diagnóstico de configuração incluído */
   if (url.pathname === "/auth/google" && request.method === "GET") {
     const missingGoogleConfig = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "PROFESSOR_EMAIL", "SESSION_SECRET"].filter((name) => !String(env[name] || "").trim());
     if (missingGoogleConfig.length) {
