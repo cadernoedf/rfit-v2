@@ -8,8 +8,10 @@ export async function adminRoutes(request, env, url) {
   if (!url.pathname.startsWith('/api/professor/')) return null;
   const isSettings = url.pathname === '/api/professor/settings';
   const isPlanCollection = url.pathname === '/api/professor/plans';
+  const planMatch = url.pathname.match(/^\\/api\\/professor\\/plans\\/([^/]+)$/);
+  const isPlanItem = Boolean(planMatch);
   const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
-  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isPlanCollection)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -43,6 +45,22 @@ export async function adminRoutes(request, env, url) {
       await env.RFIT_DB.prepare('INSERT INTO plans(id,code,name,description,price_cents,duration_days,lifetime,includes_training,includes_nutrition,is_active) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,code,name,description,price,days,body.lifetime?1:0,body.includes_training?1:0,body.includes_nutrition?1:0,body.is_active===false?0:1).run();
       await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'plan.created','plan',id,JSON.stringify({name,price_cents:price})).run();
       return Response.json({ok:true,id},{status:201,headers:noStore});
+    }
+    if (isPlanItem && request.method === 'PATCH') {
+      const id = decodeURIComponent(planMatch[1]);
+      const body = await request.json();
+      const current = await env.RFIT_DB.prepare('SELECT id,name,description,price_cents,duration_days,lifetime,includes_training,includes_nutrition,is_active FROM plans WHERE id=?').bind(id).first();
+      if (!current) return Response.json({ok:false,error:'plan_not_found'},{status:404,headers:noStore});
+      const name = body.name === undefined ? current.name : String(body.name).trim().slice(0,120);
+      const description = body.description === undefined ? current.description : String(body.description).trim().slice(0,1000);
+      const price = body.price_cents === undefined ? current.price_cents : Number(body.price_cents);
+      const days = body.duration_days === undefined ? current.duration_days : (body.duration_days === null ? null : Number(body.duration_days));
+      const lifetime = body.lifetime === undefined ? current.lifetime : (body.lifetime ? 1 : 0);
+      const active = body.is_active === undefined ? current.is_active : (body.is_active ? 1 : 0);
+      if (!name || !Number.isInteger(price) || price < 0 || (days !== null && (!Number.isInteger(days) || days < 1))) return Response.json({ok:false,error:'invalid_plan'},{status:400,headers:noStore});
+      await env.RFIT_DB.prepare('UPDATE plans SET name=?,description=?,price_cents=?,duration_days=?,lifetime=?,includes_training=?,includes_nutrition=?,is_active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(name,description,price,days,lifetime,body.includes_training===undefined?current.includes_training:(body.includes_training?1:0),body.includes_nutrition===undefined?current.includes_nutrition:(body.includes_nutrition?1:0),active,id).run();
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'plan.updated','plan',id,JSON.stringify({name,price_cents:price,is_active:active})).run();
+      return Response.json({ok:true},{headers:noStore});
     }
     if (isStudentStatus && request.method === 'PATCH') {
       const id=decodeURIComponent(url.pathname.split('/')[4]); const body=await request.json();
