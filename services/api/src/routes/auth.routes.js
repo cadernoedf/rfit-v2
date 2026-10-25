@@ -94,7 +94,7 @@ async function verifyPassword(password, stored) {
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(password),
-    "PBKDF2",
+    { name: "PBKDF2" },
     false,
     ["deriveBits"]
   );
