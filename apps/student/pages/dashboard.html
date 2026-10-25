@@ -7,7 +7,7 @@
 <script type="module" src="../js/dashboard.js"></script>
 </head>
 <body class="student-body">
-<div class="portal-layout"><aside class="portal-sidebar" aria-label="Menu do aluno"><a class="portal-brand" href="/student/"><span class="brand-mark">R</span><span>R-FIT<small>ÁREA DO ALUNO</small></span></a><nav class="portal-nav"><button class="portal-nav-link is-active" type="button" data-student-view="home"><span>▦</span> Meu painel</button><button class="portal-nav-link" type="button" data-student-view="plan"><span>▤</span> Meu plano</button><button class="portal-nav-link" type="button" data-student-view="journey"><span>✓</span> Minha jornada</button><button class="portal-nav-link" type="button" data-student-view="progress"><span>↗</span> Evolução</button></nav><div class="sidebar-bottom"><span class="sidebar-dot"></span> Sistema R-Fit</div></aside><main class="student-shell portal-main">
+<div class="portal-layout"><aside class="portal-sidebar" aria-label="Menu do aluno"><a class="portal-brand" href="/student/"><span class="brand-mark">R</span><span>R-FIT<small>ÁREA DO ALUNO</small></span></a><nav class="portal-nav"><button class="portal-nav-link is-active" type="button" data-student-view="home"><span>▦</span> Meu painel</button><button class="portal-nav-link" type="button" data-student-view="plan"><span>▤</span> Meu plano</button><button class="portal-nav-link" type="button" data-student-view="training"><span>🏋</span> Meu treino</button><button class="portal-nav-link" type="button" data-student-view="diet"><span>🥗</span> Minha dieta</button><button class="portal-nav-link" type="button" data-student-view="journey"><span>✓</span> Minha jornada</button><button class="portal-nav-link" type="button" data-student-view="progress"><span>↗</span> Evolução</button><button class="portal-nav-link" type="button" data-student-view="support"><span>☏</span> Suporte</button></nav><div class="sidebar-bottom"><span class="sidebar-dot"></span> Sistema R-Fit</div></aside><main class="student-shell portal-main">
 <header class="student-topbar" id="student-overview">
   <div><span class="eyebrow">R-FIT · ÁREA DO ALUNO</span><h1 class="student-title">Sua evolução<span>.</span></h1><p id="student-welcome">Validando sua sessão segura…</p></div>
   <button id="logout" class="secondary-button student-logout" type="button">Sair</button>
@@ -17,7 +17,7 @@
   <div class="student-mark" aria-hidden="true">R<span>FIT</span></div>
 </section>
 <section class="student-grid student-view" data-student-panel="home" aria-label="Resumo do aluno">
-  <article class="student-panel student-view" data-student-panel="plan"><span class="panel-icon">▤</span><span class="section-kicker">MEU PLANO</span><h3 id="student-plan">Aguardando plano</h3><p id="student-plan-note">O plano será exibido aqui após a contratação.</p></article>
+  <article class="student-panel"><span class="panel-icon">▤</span><span class="section-kicker">MEU PLANO</span><h3 id="student-plan">Aguardando plano</h3><p id="student-plan-note">O plano será exibido aqui após a contratação.</p></article>
   <article class="student-panel"><span class="panel-icon">✓</span><span class="section-kicker">PRÓXIMA ETAPA</span><h3 id="student-next-step">Completar seu perfil</h3><p id="student-next-note">Preencha suas informações iniciais para orientar seu acompanhamento.</p></article>
   <article class="student-panel student-view" id="student-progress" data-student-panel="progress"><span class="panel-icon">↗</span><span class="section-kicker">EVOLUÇÃO</span><h3>Seu progresso</h3><p>Medidas, check-ins e registros de evolução ficarão reunidos nesta área.</p></article>
 </section>
@@ -31,7 +31,29 @@
   </ol>
   <p id="student-message" class="form-message" role="status" aria-live="polite">Carregando seus dados…</p>
 </section>
-<footer class="student-footer">R-Fit · Treino com método. Evolução com acompanhamento.</footer>
+
+<section class="student-panel student-view" data-student-panel="training" hidden>
+  <div class="section-heading"><div><span class="section-kicker">PRESCRIÇÃO</span><h2>Meu treino</h2></div><span class="count-pill">Treinamento</span></div>
+  <p id="student-training-message" class="form-message" role="status">Carregando seu treino…</p>
+  <div id="student-training-content" class="student-detail-list"><p>Seu treino individual será exibido aqui quando estiver vinculado à sua conta.</p></div>
+</section>
+<section class="student-panel student-view" data-student-panel="diet" hidden>
+  <div class="section-heading"><div><span class="section-kicker">ORIENTAÇÃO NUTRICIONAL</span><h2>Minha dieta</h2></div><span class="count-pill">Nutrição</span></div>
+  <p id="student-diet-message" class="form-message" role="status">Carregando sua dieta…</p>
+  <div id="student-diet-content" class="student-detail-list"><p>Seu plano alimentar será exibido aqui quando estiver vinculado à sua conta.</p></div>
+</section>
+<section class="student-panel student-view" data-student-panel="support" hidden>
+  <div class="section-heading"><div><span class="section-kicker">PRECISA DE AJUDA?</span><h2>Suporte</h2></div><span class="count-pill">Atendimento</span></div>
+  <p>Consulte os assuntos abaixo para organizar sua solicitação.</p>
+  <div class="support-list">
+    <article class="support-item"><span>01</span><div><strong>Dúvidas sobre treino</strong><p>Execução dos exercícios, séries, repetições e ajustes.</p></div></article>
+    <article class="support-item"><span>02</span><div><strong>Dúvidas sobre dieta</strong><p>Orientações e esclarecimentos sobre o plano alimentar.</p></div></article>
+    <article class="support-item"><span>03</span><div><strong>Plano e pagamentos</strong><p>Acesso, renovação e informações da assinatura.</p></div></article>
+    <article class="support-item"><span>04</span><div><strong>Problemas de acesso</strong><p>Login, dados do perfil e funcionamento do portal.</p></div></article>
+  </div>
+  <p id="student-support-message" class="form-message" role="status">A lista de assuntos está disponível. O envio de chamados será conectado quando a API de suporte estiver habilitada.</p>
+</section>
+\n<footer class="student-footer">R-Fit · Treino com método. Evolução com acompanhamento.</footer>
 </main>
 </body>
 </html>
