@@ -159,8 +159,9 @@ export async function authRoutes(request, env, url) {
     try {
       valid = Boolean(user && user.role === "student" && user.status === "active" && await verifyPassword(password, user.password_hash));
     } catch (error) {
-      console.error("student_login_password_verification_error", error?.name || "Error", error?.message || "unknown");
-      return authError("password_verification_error", 503);
+      const errorName = String(error?.name || "Error").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 40);
+      console.error("student_login_password_verification_error", errorName, error?.message || "unknown");
+      return authError(`password_verification_error:${errorName}`, 503);
     }
     if (!valid) return authError("invalid_credentials", 401);
     try {
