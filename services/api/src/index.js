@@ -26,7 +26,7 @@ const json = (data, status = 200) => Response.json(data, {
 /* 03. ROUTE PROTECTION
    Protect private HTML entry points at the server, not only in browser JS. */
 async function protectPortal(request, env, url) {
-  const isStudentPage = url.pathname === '/student/dashboard.html';
+  const isStudentPage = url.pathname === '/student/dashboard.html' || url.pathname.startsWith('/student/pages/portal/');
   const isProfessorPage = url.pathname === '/professor/' || url.pathname === '/professor' || url.pathname === '/professor/index.html';
   if (!isStudentPage && !isProfessorPage) return null;
 
