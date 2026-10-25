@@ -291,3 +291,41 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 .plan-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--border-color,#333);border-radius:12px;background:var(--panel-bg,#111)}
 .plan-row>div{display:grid;gap:4px}.plan-row small{opacity:.75}.admin-form{display:grid;gap:14px;margin-top:20px;padding:20px;border:1px solid var(--border-color,#333);border-radius:14px;background:var(--panel-bg,#111)}
 .admin-form h3{margin:0 0 4px}.admin-form>label{display:grid;gap:6px;font-size:.92rem}.admin-form input:not([type=checkbox]),.admin-form textarea{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #555;background:#090a0d;color:inherit;font:inherit}.admin-form textarea{min-height:84px;resize:vertical}.form-checks{display:flex;flex-wrap:wrap;gap:16px}.form-checks label{display:flex;align-items:center;gap:8px}
+
+
+/* 15. NAVEGAÇÃO LATERAL E ÁREA DE TRABALHO CLARA — PROFESSOR E ALUNO */
+.portal-layout{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh;background:#f4f6f9;color:#18202d}
+.portal-sidebar{position:sticky;top:0;display:flex;flex-direction:column;gap:32px;height:100vh;min-height:560px;padding:26px 16px;background:#111318;color:#f7f8fb;border-right:1px solid #252832}
+.portal-brand{display:flex;align-items:center;gap:11px;padding:4px 8px;font-size:1.1rem;font-weight:900;letter-spacing:.04em}
+.portal-brand small{display:block;margin-top:1px;color:#9ba2af;font-size:.62rem;letter-spacing:.16em}
+.brand-mark{display:grid;width:42px;height:42px;place-items:center;background:#ff3348;border-radius:12px;color:white;font-size:1.45rem;font-weight:950}
+.portal-nav{display:grid;gap:7px}
+.portal-nav-link{display:flex;align-items:center;gap:12px;min-height:46px;padding:11px 13px;color:#b7bdc8;border:1px solid transparent;border-radius:10px;font-size:.9rem;font-weight:650;transition:background .15s ease,color .15s ease}
+.portal-nav-link>span{display:inline-grid;width:22px;place-items:center;font-size:1.08rem}
+.portal-nav-link:hover,.portal-nav-link.is-active{color:#fff;background:#282b34;border-color:#373b46}
+.portal-nav-link.is-active{box-shadow:inset 3px 0 #ff3348}
+.sidebar-bottom{display:flex;align-items:center;gap:9px;margin-top:auto;padding:14px 9px 0;border-top:1px solid #2b2e38;color:#9ba2af;font-size:.78rem}
+.sidebar-dot{width:8px;height:8px;border-radius:50%;background:#46ce82;box-shadow:0 0 10px #46ce8260}
+.portal-main{width:100%;min-width:0;max-width:none;margin:0;padding:30px clamp(20px,3vw,44px) 54px;background:#f4f6f9;color:#18202d}
+.portal-main p{color:#657084}
+.portal-main .admin-topbar,.portal-main .student-topbar{border-color:#e1e5ec}
+.portal-main .admin-title,.portal-main .student-title{color:#18202d}
+.portal-main .admin-topbar .eyebrow,.portal-main .student-topbar .eyebrow{color:#e32e43}
+.portal-main .admin-section{padding:23px;background:#fff;border:1px solid #e2e6ed;border-radius:16px;box-shadow:0 5px 18px #17203308}
+.portal-main .metric-card,.portal-main .table-wrap,.portal-main .admin-next,.portal-main .student-hero,.portal-main .student-panel{background:#fff;color:#18202d;border-color:#e2e6ed;box-shadow:0 5px 18px #17203308}
+.portal-main .metric-card>span,.portal-main .metric-card small,.portal-main .student-table th,.portal-main .module-chips span{color:#657084}
+.portal-main .metric-card strong,.portal-main .section-heading h2,.portal-main .admin-next h2,.portal-main .student-panel h3,.portal-main .student-hero h2,.portal-main .student-steps strong{color:#18202d}
+.portal-main .count-pill,.portal-main .module-chips span,.portal-main .text-button,.portal-main .secondary-button{background:#f7f8fb;color:#344054;border-color:#dfe4ec}
+.portal-main .search-field,.portal-main .student-tools select{background:#fff;color:#344054;border-color:#d8dee8}
+.portal-main .search-field input,.portal-main .admin-form input:not([type=checkbox]),.portal-main .admin-form textarea{background:#fff;color:#18202d;border-color:#d8dee8}
+.portal-main .admin-form{background:#fbfcfe;border-color:#e2e6ed}
+.portal-main .admin-form label{color:#344054}
+.portal-main .student-table th{background:#f7f8fb}
+.portal-main .student-table td{border-color:#edf0f4}
+.portal-main .student-steps li{border-color:#e6eaf0}
+.portal-main .student-steps li>span{background:#f0f2f6;color:#596579}
+.portal-main .student-mark{color:#18202d}
+.portal-main .panel-icon{color:#e32e43;background:#fff0f2;border-color:#ffd6dc}
+.portal-main .student-footer{color:#657084}
+@media(max-width:850px){.portal-layout{grid-template-columns:76px minmax(0,1fr)}.portal-sidebar{align-items:center;padding:22px 9px;gap:28px}.portal-brand{padding:0}.portal-brand>span:last-child,.portal-nav-link:not(.is-active){font-size:0}.portal-brand small{display:none}.portal-nav{width:100%}.portal-nav-link{justify-content:center;padding:10px 4px;font-size:0}.portal-nav-link>span{font-size:1.2rem}.portal-nav-link.is-active{font-size:0}.sidebar-bottom{justify-content:center;padding:14px 0 0;font-size:0}.portal-main{padding:22px 16px 40px}}
+@media(max-width:560px){.portal-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}.portal-sidebar{position:sticky;z-index:10;top:0;display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:100%;height:auto;min-height:0;padding:10px 14px;gap:12px}.portal-brand{gap:8px}.portal-brand>span:last-child{display:block;font-size:.9rem}.portal-brand small{display:block;font-size:.52rem}.brand-mark{width:34px;height:34px;font-size:1.15rem}.portal-nav{display:flex;gap:3px;width:auto}.portal-nav-link,.portal-nav-link:not(.is-active){display:grid;min-width:36px;min-height:38px;place-items:center;padding:6px;font-size:0}.portal-nav-link>span{font-size:1rem}.sidebar-bottom{display:none}.portal-main{padding:14px 12px 30px}.portal-main .admin-section{padding:16px}.portal-main .admin-topbar,.portal-main .student-topbar{padding-top:8px}.portal-main .student-hero{padding:18px}}
