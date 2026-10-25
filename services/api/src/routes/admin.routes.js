@@ -6,7 +6,10 @@ const noStore = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 
 export async function adminRoutes(request, env, url) {
   if (!url.pathname.startsWith('/api/professor/')) return null;
-  if (request.method !== 'GET') return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  const isSettings = url.pathname === '/api/professor/settings';
+  const isPlanCollection = url.pathname === '/api/professor/plans';
+  const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
+  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isPlanCollection)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -14,6 +17,42 @@ export async function adminRoutes(request, env, url) {
   }
 
   try {
+    if (isSettings && request.method === 'GET') {
+      const rows = await env.RFIT_DB.prepare('SELECT setting_key,setting_value,updated_at FROM portal_settings ORDER BY setting_key').all();
+      return Response.json({ok:true,settings:Object.fromEntries((rows.results||[]).map(r=>[r.setting_key,{value:r.setting_value,updated_at:r.updated_at}]))},{headers:noStore});
+    }
+    if (isSettings && request.method === 'PUT') {
+      const body = await request.json();
+      const allowed = new Set(['consultancy_name','login_title','login_message','registration_enabled','maintenance_mode']);
+      const entries = Object.entries(body.settings || {});
+      if (!entries.length || entries.some(([key,value])=>!allowed.has(key) || typeof value !== 'string' || value.length > 1000)) return Response.json({ok:false,error:'invalid_settings'},{status:400,headers:noStore});
+      for (const [key,value] of entries) await env.RFIT_DB.prepare('INSERT INTO portal_settings(setting_key,setting_value,updated_by,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP').bind(key,value,session.sub).run();
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,metadata_json) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'settings.updated','portal_settings',JSON.stringify({keys:entries.map(([key])=>key)})).run();
+      return Response.json({ok:true},{headers:noStore});
+    }
+    if (isPlanCollection && request.method === 'GET') {
+      const rows=await env.RFIT_DB.prepare('SELECT id,code,name,description,price_cents,duration_days,lifetime,includes_training,includes_nutrition,is_active,created_at,updated_at FROM plans ORDER BY created_at').all();
+      return Response.json({ok:true,plans:rows.results||[]},{headers:noStore});
+    }
+    if (isPlanCollection && request.method === 'POST') {
+      const body=await request.json();
+      const name=String(body.name||'').trim().slice(0,120); const description=String(body.description||'').trim().slice(0,1000);
+      const price=Number(body.price_cents); const days=body.duration_days===null?null:Number(body.duration_days);
+      if (!name || !Number.isInteger(price) || price<0 || (days!==null && (!Number.isInteger(days)||days<1))) return Response.json({ok:false,error:'invalid_plan'},{status:400,headers:noStore});
+      const id=crypto.randomUUID(); const code=String(body.code||name.toLowerCase().replace(/[^a-z0-9]+/g,'-')).slice(0,80);
+      await env.RFIT_DB.prepare('INSERT INTO plans(id,code,name,description,price_cents,duration_days,lifetime,includes_training,includes_nutrition,is_active) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,code,name,description,price,days,body.lifetime?1:0,body.includes_training?1:0,body.includes_nutrition?1:0,body.is_active===false?0:1).run();
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'plan.created','plan',id,JSON.stringify({name,price_cents:price})).run();
+      return Response.json({ok:true,id},{status:201,headers:noStore});
+    }
+    if (isStudentStatus && request.method === 'PATCH') {
+      const id=decodeURIComponent(url.pathname.split('/')[4]); const body=await request.json();
+      if (!['active','pending','suspended'].includes(body.status)) return Response.json({ok:false,error:'invalid_status'},{status:400,headers:noStore});
+      const old=await env.RFIT_DB.prepare("SELECT id,status FROM users WHERE id=? AND role='student'").bind(id).first();
+      if (!old) return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      await env.RFIT_DB.prepare('UPDATE users SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(body.status,id).run();
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'student.status_changed','user',id,JSON.stringify({from:old.status,to:body.status})).run();
+      return Response.json({ok:true},{headers:noStore});
+    }
     if (url.pathname === '/api/professor/overview') {
       const [users, plans, subscriptions, anamneses] = await Promise.all([
         env.RFIT_DB.prepare(`SELECT COUNT(*) AS total,
