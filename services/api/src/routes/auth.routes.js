@@ -112,7 +112,14 @@ async function verifyPassword(password, stored) {
 export async function authRoutes(request, env, url) {
   /* 01. INÍCIO DO LOGIN GOOGLE */
   if (url.pathname === "/auth/google" && request.method === "GET") {
-    if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.PROFESSOR_EMAIL || !env.SESSION_SECRET) return authError("auth_not_configured", 503);
+    const missingGoogleConfig = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "PROFESSOR_EMAIL", "SESSION_SECRET"].filter((name) => !String(env[name] || "").trim());
+    if (missingGoogleConfig.length) {
+      console.error("google_auth_missing_configuration", missingGoogleConfig.join(","));
+      return Response.json({ ok: false, error: "auth_not_configured", missing: missingGoogleConfig }, {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
+      });
+    }
     const state = crypto.randomUUID() + crypto.randomUUID();
     const callback = new URL("/auth/google/callback", url.origin).toString();
     const google = new URL("https://accounts.google.com/o/oauth2/v2/auth");
