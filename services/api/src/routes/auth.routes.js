@@ -66,12 +66,12 @@ async function readSession(request, secret) {
   } catch { return null; }
 }
 async function verifyPassword(password, stored) {
-  /* Formato: pbkdf2-sha256$iterações$salt_base64url$hash_base64url */
+  /* PBKDF2-SHA256 verification using WebCrypto supported by Cloudflare Workers. */
   const parts = String(stored || "").split("$");
   if (parts.length !== 4) return false;
   const [algorithm, iterationsText, saltText, hashText] = parts;
   const iterations = Number(iterationsText);
-  if (algorithm !== "pbkdf2-sha256" || !Number.isInteger(iterations) || iterations < 100000 || iterations > 1000000 || !saltText || !hashText) return false;
+  if (algorithm !== "pbkdf2-sha256" || !Number.isInteger(iterations) || iterations < 100000 || iterations > 1000000) return false;
 
   const decode = (value) => {
     const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -80,19 +80,30 @@ async function verifyPassword(password, stored) {
     return Uint8Array.from(binary, (char) => char.charCodeAt(0));
   };
 
-  const salt = decode(saltText);
-  const expected = decode(hashText);
+  let salt;
+  let expected;
+  try {
+    salt = decode(saltText);
+    expected = decode(hashText);
+  } catch {
+    return false;
+  }
   if (salt.length < 8 || expected.length !== 32) return false;
 
-  const material = await crypto.subtle.importKey(
-    "raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]
+  // Pass the WebCrypto algorithm identifier as a string at importKey time.
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
   );
-  const actual = new Uint8Array(await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
-    material,
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: iterations },
+    key,
     256
-  ));
-
+  );
+  const actual = new Uint8Array(derived);
   let difference = actual.length ^ expected.length;
   for (let i = 0; i < expected.length; i++) difference |= actual[i] ^ expected[i];
   return difference === 0;
