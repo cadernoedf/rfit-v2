@@ -85,7 +85,7 @@ async function verifyPassword(password, stored) {
   if (salt.length < 8 || expected.length !== 32) return false;
 
   const material = await crypto.subtle.importKey(
-    "raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]
+    "raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]
   );
   const actual = new Uint8Array(await crypto.subtle.deriveBits(
     { name: "PBKDF2", hash: "SHA-256", salt, iterations },
