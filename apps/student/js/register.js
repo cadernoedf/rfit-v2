@@ -1,0 +1,44 @@
+/* R-FIT V2 | CADASTRO DE ALUNO */
+import { registerStudent } from '../../shared/js/api-client.js';
+
+const messages = {
+  email_already_registered: 'Este e-mail já possui cadastro. Entre pela tela de login.',
+  registration_invalid: 'Confira o nome, o e-mail e a senha (mínimo de 8 caracteres).',
+  registration_failed: 'Não foi possível criar a conta agora. Tente novamente.',
+  auth_not_configured: 'O servidor está sem configuração de autenticação.',
+  origin_not_allowed: 'Origem não autorizada pelo servidor.'
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.querySelector('#student-register');
+  const message = document.querySelector('#register-message');
+  if (!form || !message) return;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    const name = String(data.get('name') || '').trim();
+    const email = String(data.get('email') || '').trim();
+    const password = String(data.get('password') || '');
+    const confirmation = String(data.get('confirm-password') || '');
+    if (password !== confirmation) {
+      message.textContent = 'As senhas não coincidem.';
+      message.dataset.state = 'error';
+      return;
+    }
+    button.disabled = true;
+    message.textContent = 'Criando sua conta…';
+    message.dataset.state = 'pending';
+    try {
+      await registerStudent(name, email, password);
+      message.textContent = 'Cadastro criado! Redirecionando para o login…';
+      message.dataset.state = 'success';
+      window.setTimeout(() => window.location.assign('/student/pages/login.html'), 1200);
+    } catch (error) {
+      const code = String(error?.message || 'registration_failed');
+      message.textContent = messages[code] || 'Não foi possível concluir o cadastro. Tente novamente.';
+      message.dataset.state = 'error';
+      button.disabled = false;
+    }
+  });
+});
