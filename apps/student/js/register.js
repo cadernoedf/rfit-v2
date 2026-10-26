@@ -32,9 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     message.dataset.state = 'pending';
     try {
       await registerStudent(name, phone, email, password);
-      message.textContent = 'Cadastro criado! Redirecionando para o login…';
+      message.textContent = 'Cadastro criado! Redirecionando para a escolha do plano…';
       message.dataset.state = 'success';
-      window.setTimeout(() => window.location.assign('/student/pages/login.html'), 700);
+      window.setTimeout(() => window.location.assign('/student/pages/portal/plan/index.html'), 400);
     } catch (error) {
       const code = String(error?.message || 'registration_failed');
       message.textContent = error?.detail ? `Falha no servidor: ${error.detail}` : (messages[code] || 'Não foi possível concluir o cadastro. Tente novamente.');
