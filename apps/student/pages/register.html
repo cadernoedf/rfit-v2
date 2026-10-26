@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090a0d"><title>R-Fit — Criar cadastro</title>
+<link rel="stylesheet" href="../../shared/css/rfit.css">
+<script type="module" src="../js/register.js"></script>
+</head>
+<body>
+<main class="shell login-shell register-shell">
+<a class="register-back" href="/student/pages/login.html">← Voltar ao login</a>
+<span class="eyebrow">R-FIT V2 · NOVA CONTA</span>
+<h1 class="login-title">Crie sua conta.</h1>
+<p>Cadastre-se para começar sua jornada no R-Fit.</p>
+<form id="student-register" class="login-form" novalidate>
+<label for="name">Nome completo</label><input id="name" name="name" type="text" autocomplete="name" placeholder="Seu nome" required minlength="2" maxlength="160>
+<label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="email" placeholder="voce@email.com" required maxlength="254">
+<label for="password">Senha (mínimo 8 caracteres)</label><input id="password" name="password" type="password" autocomplete="new-password" placeholder="Crie uma senha" required minlength="8" maxlength="128">
+<label for="confirm-password">Confirmar senha</label><input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" placeholder="Digite a senha novamente" required minlength="8" maxlength="128">
+<button type="submit" class="primary-button">Criar cadastro</button><p id="register-message" class="form-message" role="status" aria-live="polite"></p>
+</form>
+<p class="login-register-link">Já tem uma conta? <a href="/student/pages/login.html">Entrar</a></p>
+</main>
+</body>
+</html>
