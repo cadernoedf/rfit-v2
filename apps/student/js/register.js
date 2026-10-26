@@ -3,7 +3,7 @@ import { registerStudent } from '../../shared/js/api-client.js';
 
 const messages = {
   email_already_registered: 'Este e-mail já possui cadastro. Entre pela tela de login.',
-  registration_invalid: 'Confira o nome, o e-mail e a senha (mínimo de 8 caracteres).',
+  registration_invalid: 'Confira o nome, o e-mail, o celular com DDD e preencha a senha.',
   registration_failed: 'Não foi possível criar a conta agora. Tente novamente.',
   auth_not_configured: 'O servidor está sem configuração de autenticação.',
   origin_not_allowed: 'Origem não autorizada pelo servidor.'
