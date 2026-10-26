@@ -390,3 +390,6 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 .register-back { display: inline-block; margin-bottom: 18px; color: var(--rfit-muted); font-size: .85rem; }
 .register-back:hover { color: var(--rfit-text); }
 .register-shell .login-register-link { margin: 14px 0 0; }
+
+/* Cadastro: orientação do campo obrigatório de celular */
+.register-phone-help { display:block; margin-top:-2px; color:var(--rfit-muted); font-size:.75rem; line-height:1.4; }
