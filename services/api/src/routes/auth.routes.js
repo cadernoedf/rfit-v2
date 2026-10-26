@@ -173,7 +173,35 @@ export async function authRoutes(request, env, url) {
     } catch { return authError("auth_database_error", 503); }
   }
 
-  /* 03. LOGIN DE ALUNO POR E-MAIL E SENHA */
+  /* 03. CADASTRO DE ALUNO */
+  if (url.pathname === "/auth/student/register" && request.method === "POST") {
+    if (!env.SESSION_SECRET) return authError("auth_not_configured", 503);
+    const origin = request.headers.get("Origin");
+    if (origin && origin !== url.origin) return authError("origin_not_allowed", 403);
+    let body;
+    try { body = await request.json(); } catch { return authError("invalid_json", 400); }
+    const name = String(body.name || "").trim().replace(/\\s+/g, " ");
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
+    if (name.length < 2 || name.length > 160 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254 || password.length < 8 || password.length > 128) return authError("registration_invalid", 400);
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const key = await crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
+    const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 210000 }, key, 256));
+    const encode = (bytes) => base64url(bytes);
+    const passwordHash = `pbkdf2-sha256$210000${encode(salt)}${encode(bits)}`;
+    const id = crypto.randomUUID();
+    try {
+      await env.RFIT_DB.prepare("INSERT INTO users (id,email,full_name,password_hash,role,status) VALUES (?,?,?,?,'student','active')").bind(id,email,name,passwordHash).run();
+      await env.RFIT_DB.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").bind(id).run();
+      return Response.json({ ok: true, message: "Cadastro criado. Agora entre com seu e-mail e senha." }, { status: 201, headers: { ...headers, "Cache-Control": "no-store" } });
+    } catch (error) {
+      if (String(error?.message || "").toLowerCase().includes("unique")) return authError("email_already_registered", 409);
+      console.error("student_registration_failed", error?.message || "unknown");
+      return authError("registration_failed", 503);
+    }
+  }
+
+  /* 04. LOGIN DE ALUNO POR E-MAIL E SENHA */
   if (url.pathname === "/auth/student/login" && request.method === "POST") {
     if (!env.SESSION_SECRET) return authError("auth_not_configured", 503);
     const origin = request.headers.get("Origin");
@@ -210,7 +238,7 @@ export async function authRoutes(request, env, url) {
     }
   }
 
-  /* 04. SESSÃO ATUAL E LOGOUT */
+  /* 05. SESSÃO ATUAL E LOGOUT */
   if (url.pathname === "/api/auth/me" && request.method === "GET") {
     const session = await readSession(request, env.SESSION_SECRET);
     if (!session) return authError("unauthenticated", 401);
