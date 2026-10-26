@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090a0d"><title>R-Fit — Completar cadastro</title>
+<link rel="stylesheet" href="../../shared/css/rfit.css">
+<script type="module" src="../js/google-complete.js"></script>
+</head>
+<body>
+<main class="shell login-shell register-shell">
+<span class="eyebrow">R-FIT V2 · QUASE LÁ</span>
+<h1 class="login-title">Complete seu cadastro.</h1>
+<p>Para continuar para a escolha do plano, informe seu celular com DDD. Não é necessária confirmação por e-mail.</p>
+<form id="google-complete-form" class="login-form" novalidate>
+<label for="phone">Celular com DDD</label>
+<input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999" required minlength="10" maxlength="20">
+<button type="submit" class="primary-button">Continuar para os planos</button>
+<p id="google-complete-message" class="form-message" role="status" aria-live="polite"></p>
+</form>
+</main>
+</body>
+</html>
