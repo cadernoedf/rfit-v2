@@ -190,7 +190,7 @@ export async function authRoutes(request, env, url) {
     const key = await crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
     const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 210000 }, key, 256));
     const encode = (bytes) => base64url(bytes);
-    const passwordHash = `pbkdf2-sha256$210000${encode(salt)}${encode(bits)}`;
+    const passwordHash = `pbkdf2-sha256$210000$${encode(salt)}$${encode(bits)}`;
     const id = crypto.randomUUID();
     try {
       await env.RFIT_DB.prepare("INSERT INTO users (id,email,full_name,phone,password_hash,role,status) VALUES (?,?,?,?,?,'student','active')").bind(id,email,name,phone,passwordHash).run();
