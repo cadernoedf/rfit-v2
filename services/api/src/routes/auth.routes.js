@@ -185,7 +185,7 @@ export async function authRoutes(request, env, url) {
     const phone = String(body.phone || "").trim();
     const normalizedPhone = phone.replace(/\D/g, "");
     const password = String(body.password || "");
-    if (name.length < 2 || name.length > 160 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254 || normalizedPhone.length < 10 || normalizedPhone.length > 13 || password.length < 8 || password.length > 128) return authError("registration_invalid", 400);
+    if (name.length < 2 || name.length > 160 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254 || normalizedPhone.length < 10 || normalizedPhone.length > 13) return authError("registration_invalid", 400);
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const key = await crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
     const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 210000 }, key, 256));
