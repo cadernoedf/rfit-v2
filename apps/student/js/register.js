@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = new FormData(form);
     const name = String(data.get('name') || '').trim();
     const email = String(data.get('email') || '').trim();
+    const phone = String(data.get('phone') || '').trim();
     const password = String(data.get('password') || '');
     const confirmation = String(data.get('confirm-password') || '');
     if (password !== confirmation) {
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     message.textContent = 'Criando sua conta…';
     message.dataset.state = 'pending';
     try {
-      await registerStudent(name, email, password);
+      await registerStudent(name, phone, email, password);
       message.textContent = 'Cadastro criado! Redirecionando para o login…';
       message.dataset.state = 'success';
       window.setTimeout(() => window.location.assign('/student/pages/login.html'), 1200);
