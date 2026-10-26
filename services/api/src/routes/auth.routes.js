@@ -186,19 +186,24 @@ export async function authRoutes(request, env, url) {
     const normalizedPhone = phone.replace(/\D/g, "");
     const password = String(body.password || "");
     if (name.length < 2 || name.length > 160 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || normalizedPhone.length < 10 || normalizedPhone.length > 13) return authError("registration_invalid", 400);
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const key = await crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
-    const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 210000 }, key, 256));
-    const encode = (bytes) => base64url(bytes);
-    const passwordHash = `pbkdf2-sha256$210000$${encode(salt)}$${encode(bits)}`;
-    const id = crypto.randomUUID();
     try {
-      await env.RFIT_DB.prepare("INSERT INTO users (id,email,full_name,phone,password_hash,role,status) VALUES (?,?,?,?,?,'student','active')").bind(id,email,name,phone,passwordHash).run();
-      await env.RFIT_DB.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").bind(id).run();
-      return Response.json({ ok: true, message: "Cadastro criado. Agora entre com seu e-mail e senha." }, { status: 201, headers: { ...headers, "Cache-Control": "no-store" } });
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const key = await crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
+      const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 210000 }, key, 256));
+      const encode = (bytes) => base64url(bytes);
+      const passwordHash = `pbkdf2-sha256$210000$${encode(salt)}$${encode(bits)}`;
+      const id = crypto.randomUUID();
+      try {
+        await env.RFIT_DB.prepare("INSERT INTO users (id,email,full_name,phone,password_hash,role,status) VALUES (?,?,?,?,?,'student','active')").bind(id,email,name,phone,passwordHash).run();
+        await env.RFIT_DB.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").bind(id).run();
+        return Response.json({ ok: true, message: "Cadastro criado. Agora entre com seu e-mail e senha." }, { status: 201, headers: { ...headers, "Cache-Control": "no-store" } });
+      } catch (error) {
+        if (String(error?.message || "").toLowerCase().includes("unique")) return authError("email_already_registered", 409);
+        console.error("student_registration_failed", error?.message || "unknown");
+        return authError("registration_failed", 503);
+      }
     } catch (error) {
-      if (String(error?.message || "").toLowerCase().includes("unique")) return authError("email_already_registered", 409);
-      console.error("student_registration_failed", error?.message || "unknown");
+      console.error("student_registration_failed", error?.name || "Error", error?.message || "unknown");
       return authError("registration_failed", 503);
     }
   }
