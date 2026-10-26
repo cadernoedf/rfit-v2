@@ -196,7 +196,16 @@ export async function authRoutes(request, env, url) {
       try {
         await env.RFIT_DB.prepare("INSERT INTO users (id,email,full_name,phone,password_hash,role,status) VALUES (?,?,?,?,?,'student','active')").bind(id,email,name,phone,passwordHash).run();
         await env.RFIT_DB.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").bind(id).run();
-        return Response.json({ ok: true, message: "Cadastro criado. Entre com seu e-mail e senha para continuar." }, { status: 201, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
+        const user = { id, email, full_name: name, role: "student" };
+        const session = await makeSession(user, env.SESSION_SECRET);
+        return Response.json({ ok: true, message: "Cadastro criado. Redirecionando para a escolha do plano.", redirect: "/student/pages/portal/plan/index.html" }, {
+          status: 201,
+          headers: {
+            "Cache-Control": "no-store",
+            "Set-Cookie": cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS),
+            "X-Content-Type-Options": "nosniff"
+          }
+        });
       } catch (error) {
         if (String(error?.message || "").toLowerCase().includes("unique")) return authError("email_already_registered", 409);
         console.error("student_registration_failed", error?.message || "unknown");
