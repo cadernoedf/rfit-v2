@@ -166,10 +166,10 @@ export async function authRoutes(request, env, url) {
     try {
       if (isOwner) {
         await env.RFIT_DB.prepare(
-          "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'professor',CURRENT_TIMESTAMP,'active') ON CONFLICT(email) DO UPDATE SET google_subject=excluded.google_subject,full_name=excluded.full_name,avatar_url=excluded.avatar_url,updated_at=CURRENT_TIMESTAMP WHERE users.role='professor'"
+          "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'professor',CURRENT_TIMESTAMP,'active') ON CONFLICT(email) DO UPDATE SET google_subject=excluded.google_subject,full_name=excluded.full_name,avatar_url=excluded.avatar_url,updated_at=CURRENT_TIMESTAMP WHERE users.role IN ('professor','admin')"
         ).bind(id, email, profile.sub, String(profile.name || email).slice(0,160), profile.picture || null).run();
         const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status FROM users WHERE email=? AND google_subject=? LIMIT 1").bind(email, profile.sub).first();
-        if (!user || user.status !== "active" || user.role !== "professor") return authError("google_account_not_authorized", 403);
+        if (!user || user.status !== "active" || !["professor","admin"].includes(user.role)) return authError("google_account_not_authorized", 403);
         const session = await makeSession(user, env.SESSION_SECRET);
         return redirect(new URL("/professor/", url.origin).toString(), [
           cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
