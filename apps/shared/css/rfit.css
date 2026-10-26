@@ -1,342 +1,37 @@
-/* ==========================================================================
-   R-FIT V2 | CSS OFICIAL ÚNICO
-   Edite esta folha no lugar. Não crie arquivos CSS alternativos.
-   SUMÁRIO
-   01. Tokens e identidade visual
-   02. Reset e acessibilidade
-   03. Estrutura geral da página
-   04. Tipografia
-   05. Componentes compartilhados
-   06. Botões e links
-   07. Área de autenticação (futura)
-   08. Menu e navegação (futuro)
-   09. Portal do aluno (futuro)
-   10. Portal do professor (futuro)
-   11. Responsividade
-   12. Movimento reduzido
-   ========================================================================== */
 
-/* 01. TOKENS E IDENTIDADE VISUAL
-   Alterar cores, espaçamentos e raios globais somente nesta seção. */
-:root {
-  color-scheme: dark;
-  --rfit-bg: #090a0d;
-  --rfit-surface: #121419;
-  --rfit-surface-raised: #191c23;
-  --rfit-text: #f7f8fb;
-  --rfit-muted: #a9afbc;
-  --rfit-red: #ff3348;
-  --rfit-red-hover: #d91f35;
-  --rfit-border: #2b303a;
-  --rfit-radius: 20px;
-  --rfit-shadow: 0 24px 80px rgba(0, 0, 0, .42);
-  --rfit-content-width: 980px;
-  --rfit-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-family: var(--rfit-font);
-  background: var(--rfit-bg);
-  color: var(--rfit-text);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-}
-
-/* 02. RESET E ACESSIBILIDADE */
-* { box-sizing: border-box; }
-html { min-height: 100%; background: var(--rfit-bg); scroll-behavior: smooth; }
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(ellipse at 50% -18%, rgba(255, 51, 72, .16), transparent 42%), var(--rfit-bg);
-  color: var(--rfit-text);
-  font-family: var(--rfit-font);
-  font-size: 16px;
-  line-height: 1.65;
-}
-a { color: inherit; text-decoration: none; }
-button, input, select, textarea { font: inherit; }
-a:focus-visible, button:focus-visible, input:focus-visible,
-select:focus-visible, textarea:focus-visible {
-  outline: 2px solid var(--rfit-red);
-  outline-offset: 3px;
-}
-
-/* 03. ESTRUTURA GERAL DA PÁGINA */
-.shell {
-  position: relative;
-  overflow: hidden;
-  width: min(calc(100% - 32px), var(--rfit-content-width));
-  margin: clamp(28px, 9vh, 100px) auto;
-  padding: clamp(24px, 6vw, 64px);
-  background: linear-gradient(145deg, rgba(255, 255, 255, .035), transparent 55%), var(--rfit-surface);
-  border: 1px solid var(--rfit-border);
-  border-radius: var(--rfit-radius);
-  box-shadow: var(--rfit-shadow);
-}
-.shell::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, var(--rfit-red), #ff7b52, transparent 82%);
-  content: "";
-}
-
-/* 04. TIPOGRAFIA */
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: #ff6474;
-  font-size: .75rem;
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-.eyebrow::before {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--rfit-red);
-  box-shadow: 0 0 16px rgba(255, 51, 72, .7);
-  content: "";
-}
-h1 {
-  margin: 18px 0 12px;
-  font-size: clamp(3rem, 9vw, 6.2rem);
-  font-weight: 900;
-  line-height: .98;
-  letter-spacing: -.075em;
-}
-p { max-width: 65ch; margin: 12px 0; color: var(--rfit-muted); }
-.shell > p:first-of-type { font-size: clamp(1.05rem, 2vw, 1.3rem); }
-
-/* 05. COMPONENTES COMPARTILHADOS */
-.notice {
-  margin: 28px 0;
-  padding: 17px 19px;
-  color: #dce0e8;
-  background: var(--rfit-surface-raised);
-  border: 1px solid var(--rfit-border);
-  border-left: 3px solid var(--rfit-red);
-  border-radius: 12px;
-}
-
-/* 06. BOTÕES E LINKS */
-a[href="/api/health"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  margin-top: 10px;
-  padding: 12px 19px;
-  color: #fff;
-  background: var(--rfit-red);
-  border: 1px solid var(--rfit-red);
-  border-radius: 12px;
-  font-weight: 800;
-  box-shadow: 0 8px 24px rgba(255, 51, 72, .18);
-  transition: background .15s ease, transform .15s ease;
-}
-a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: translateY(-1px); }
-
-/* 07. ÁREA DE AUTENTICAÇÃO — login do aluno e entrada Google do professor */
-.login-shell { max-width: 700px; }
-.login-title { font-size: clamp(2.8rem, 8vw, 5.3rem); }
-.login-form { display: grid; gap: 9px; margin-top: 28px; }
-.login-form label { margin-top: 7px; color: var(--rfit-text); font-size: .9rem; font-weight: 700; }
-.login-form input {
-  width: 100%; min-height: 50px; padding: 12px 14px; color: var(--rfit-text);
-  background: #0c0e12; border: 1px solid var(--rfit-border); border-radius: 11px;
-}
-.login-form input::placeholder { color: #727988; }
-.primary-button, .secondary-button {
-  display: inline-flex; align-items: center; justify-content: center; width: 100%;
-  min-height: 49px; margin-top: 12px; padding: 12px 18px; border-radius: 11px;
-  font-weight: 800; cursor: pointer; transition: background .15s ease, transform .15s ease;
-}
-.primary-button { color: #fff; background: var(--rfit-red); border: 1px solid var(--rfit-red); }
-.primary-button:hover { background: var(--rfit-red-hover); transform: translateY(-1px); }
-.primary-button:disabled { opacity: .65; cursor: wait; }
-.secondary-button { color: var(--rfit-text); background: var(--rfit-surface-raised); border: 1px solid var(--rfit-border); }
-.secondary-button:hover { border-color: var(--rfit-red); }
-.form-message { min-height: 1.5em; margin: 5px 0 0; font-size: .9rem; }
-.form-message[data-state="error"] { color: #ff7c88; }
-.form-message[data-state="success"] { color: #7be0a3; }
-.login-divider { display: flex; align-items: center; gap: 14px; margin: 25px 0 0; color: var(--rfit-muted); font-size: .72rem; font-weight: 800; letter-spacing: .12em; }
-.login-divider::before, .login-divider::after { height: 1px; flex: 1; background: var(--rfit-border); content: ""; }
-.login-footnote { margin-top: 24px; font-size: .8rem; }
-
-/* 08. MENU E NAVEGAÇÃO
-   Reservado para navegação compartilhada. Não duplicar estilos por portal. */
-
-/* 09. PORTAL DO ALUNO
-   Reservado para componentes específicos do aluno quando forem implementados. */
-
-/* 10. PORTAL DO PROFESSOR
-   Reservado para componentes administrativos quando forem implementados. */
-
-/* 11. RESPONSIVIDADE */
-@media (max-width: 520px) {
-  .shell {
-    width: calc(100% - 24px);
-    margin: 20px auto;
-    padding: 26px 21px;
-    border-radius: 16px;
-  }
-  .notice { padding: 14px; }
-}
-
-/* 12. MOVIMENTO REDUZIDO */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
-/* ==========================================================================
-   13. PAINEL ADMINISTRATIVO DO PROFESSOR
-   Componentes isolados por classe; mantém uma única folha CSS oficial.
-   ========================================================================== */
-.admin-body { background: radial-gradient(ellipse at 80% -20%, rgba(255,51,72,.12), transparent 40%), var(--rfit-bg); }
-.admin-shell { width: min(calc(100% - 36px), 1320px); margin: 0 auto; padding: 34px 0 64px; }
-.admin-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; padding:24px 0 30px; border-bottom:1px solid var(--rfit-border); }
-.admin-title { margin:14px 0 4px; font-size:clamp(2.8rem,6vw,5rem); }
-.admin-title span { color:var(--rfit-red); }
-.admin-topbar p { margin-top:8px; }
-.admin-logout { width:auto; min-width:100px; margin-top:8px; }
-.admin-section { margin-top:34px; }
-.section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:18px; }
-.section-heading h2,.admin-next h2 { margin:5px 0 0; font-size:clamp(1.35rem,3vw,2rem); line-height:1.2; letter-spacing:-.04em; }
-.section-kicker { color:#ff6474; font-size:.7rem; font-weight:850; letter-spacing:.15em; }
-.text-button { color:var(--rfit-text); background:var(--rfit-surface-raised); border:1px solid var(--rfit-border); border-radius:10px; padding:10px 14px; cursor:pointer; }
-.text-button:hover { border-color:var(--rfit-red); }
-.metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
-.metric-card { min-width:0; padding:20px; background:linear-gradient(145deg,rgba(255,255,255,.035),transparent 70%),var(--rfit-surface); border:1px solid var(--rfit-border); border-radius:16px; }
-.metric-card > span { display:block; color:var(--rfit-muted); font-size:.86rem; }
-.metric-card strong { display:block; margin:10px 0 5px; font-size:clamp(2rem,4vw,3rem); line-height:1.1; letter-spacing:-.06em; }
-.metric-card small { color:var(--rfit-muted); font-size:.78rem; }
-.count-pill { padding:6px 10px; color:var(--rfit-muted); background:var(--rfit-surface-raised); border:1px solid var(--rfit-border); border-radius:999px; white-space:nowrap; font-size:.8rem; }
-.student-tools { display:flex; gap:12px; margin-bottom:14px; }
-.search-field { display:flex; align-items:center; gap:10px; flex:1; min-width:0; padding:0 13px; background:#0c0e12; border:1px solid var(--rfit-border); border-radius:11px; color:var(--rfit-muted); }
-.search-field input { width:100%; min-width:0; height:46px; color:var(--rfit-text); background:transparent; border:0; outline:none; }
-.student-tools select { min-width:190px; max-width:100%; padding:0 12px; color:var(--rfit-text); background:#0c0e12; border:1px solid var(--rfit-border); border-radius:11px; }
-.table-wrap { overflow:auto; background:var(--rfit-surface); border:1px solid var(--rfit-border); border-radius:15px; }
-.student-table { width:100%; border-collapse:collapse; text-align:left; }
-.student-table th { padding:13px 16px; color:var(--rfit-muted); background:rgba(255,255,255,.025); font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
-.student-table td { padding:15px 16px; border-top:1px solid var(--rfit-border); font-size:.87rem; vertical-align:middle; }
-.student-table tbody tr:hover { background:rgba(255,255,255,.018); }
-.student-identity { display:flex; align-items:center; gap:11px; min-width:210px; }
-.student-identity strong,.student-identity small { display:block; }
-.student-identity strong { color:var(--rfit-text); font-weight:750; }
-.student-identity small { max-width:220px; overflow:hidden; color:var(--rfit-muted); text-overflow:ellipsis; }
-.student-avatar { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; border-radius:50%; object-fit:cover; background:#252a34; border:1px solid var(--rfit-border); }
-.avatar-fallback { color:#fff; background:linear-gradient(135deg,#a91f32,#252a34); font-size:.8rem; font-weight:800; }
-.status-pill { display:inline-flex; align-items:center; padding:5px 9px; border:1px solid var(--rfit-border); border-radius:999px; font-size:.73rem; line-height:1.3; white-space:nowrap; }
-.status-active { color:#8ee3ad; background:rgba(51,180,102,.09); border-color:rgba(51,180,102,.25); }
-.status-pending_payment,.status-pending { color:#ffd18a; background:rgba(255,183,77,.08); border-color:rgba(255,183,77,.25); }
-.status-anamnesis { color:#9fc6ff; background:rgba(87,148,255,.08); border-color:rgba(87,148,255,.25); }
-.status-inactive { color:#ff9ba4; background:rgba(255,51,72,.08); border-color:rgba(255,51,72,.25); }
-.plain-status { font-size:.8rem; white-space:nowrap; }
-.plain-status.done { color:#8ee3ad; }
-.plain-status.waiting { color:var(--rfit-muted); }
-.empty-state { padding:30px!important; text-align:center; color:var(--rfit-muted); }
-.table-note { margin-top:10px; font-size:.78rem; }
-.admin-next { display:flex; align-items:center; justify-content:space-between; gap:28px; padding:24px; background:var(--rfit-surface); border:1px solid var(--rfit-border); border-radius:16px; }
-.admin-next p { margin-bottom:0; font-size:.9rem; }
-.module-chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
-.module-chips span { padding:8px 11px; color:var(--rfit-muted); background:var(--rfit-surface-raised); border:1px solid var(--rfit-border); border-radius:9px; font-size:.78rem; white-space:nowrap; }
-.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-.form-message[data-state="pending"] { color:var(--rfit-muted); }
-.form-message[data-state="success"] { color:#8ee3ad; }
-.form-message[data-state="error"] { color:#ff9ba4; }
-@media (max-width:900px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-next { align-items:flex-start; flex-direction:column; } .module-chips { justify-content:flex-start; } }
-@media (max-width:600px) { .admin-shell { width:calc(100% - 24px); padding-top:18px; } .admin-topbar { gap:12px; } .admin-logout { width:auto; min-width:72px; } .metric-grid { gap:9px; } .metric-card { padding:14px; } .metric-card strong { font-size:2rem; } .section-heading { align-items:flex-start; } .student-tools { flex-direction:column; } .student-tools select { min-height:46px; width:100%; } .student-table th,.student-table td { padding:12px; } .admin-next { padding:18px; } }
-
-/* 14. PORTAL DO ALUNO */
-.student-body { background:radial-gradient(ellipse at 80% -15%,rgba(255,51,72,.13),transparent 42%),var(--rfit-bg); }
-.student-shell { width:min(calc(100% - 36px),1180px); margin:0 auto; padding:30px 0 44px; }
-.student-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:18px 0 28px; border-bottom:1px solid var(--rfit-border); }
-.student-title { margin:12px 0 4px; font-size:clamp(2.8rem,7vw,5rem); }
-.student-title span { color:var(--rfit-red); }
-.student-logout { width:auto; min-width:90px; margin-top:8px; }
-.student-hero { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:26px; padding:clamp(22px,5vw,42px); background:linear-gradient(120deg,rgba(255,51,72,.12),transparent 70%),var(--rfit-surface); border:1px solid var(--rfit-border); border-radius:18px; }
-.student-hero h2 { margin:8px 0; font-size:clamp(1.7rem,4vw,2.6rem); letter-spacing:-.05em; }
-.student-hero p { margin-bottom:0; }
-.student-mark { color:#fff; font-size:clamp(2.2rem,6vw,4rem); font-weight:950; letter-spacing:-.09em; white-space:nowrap; }
-.student-mark span { color:var(--rfit-red); }
-.student-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:16px; }
-.student-panel { min-width:0; padding:22px; background:var(--rfit-surface); border:1px solid var(--rfit-border); border-radius:16px; }
-.student-panel h3 { margin:12px 0 4px; font-size:1.2rem; letter-spacing:-.025em; }
-.student-panel p { margin:5px 0 0; font-size:.88rem; }
-.panel-icon { display:grid; width:38px; height:38px; place-items:center; margin-bottom:18px; color:#fff; background:rgba(255,51,72,.12); border:1px solid rgba(255,51,72,.25); border-radius:11px; font-size:1.2rem; }
-.student-checklist { margin-top:16px; }
-.student-steps { display:grid; gap:0; margin:10px 0 20px; padding:0; list-style:none; }
-.student-steps li { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:13px; padding:16px 0; border-bottom:1px solid var(--rfit-border); }
-.student-steps li:last-child { border-bottom:0; }
-.student-steps li > span { display:grid; width:34px; height:34px; place-items:center; color:var(--rfit-muted); background:var(--rfit-surface-raised); border-radius:10px; font-size:.78rem; font-weight:800; }
-.student-steps strong { display:block; font-size:.94rem; }
-.student-steps p { margin:2px 0 0; font-size:.82rem; }
-.student-steps b { color:var(--rfit-muted); font-size:.76rem; font-weight:650; text-align:right; }
-.student-steps .step-current > span { color:#fff; background:var(--rfit-red); }
-.student-steps .step-current b { color:#8ee3ad; }
-.student-footer { padding:24px 0 0; color:var(--rfit-muted); text-align:center; font-size:.78rem; }
-@media(max-width:760px) { .student-grid { grid-template-columns:1fr; } .student-hero { align-items:flex-start; } .student-mark { font-size:2rem; } }
-@media(max-width:480px) { .student-shell { width:calc(100% - 24px); padding-top:16px; } .student-steps li { grid-template-columns:34px minmax(0,1fr); gap:10px; } .student-steps li b { grid-column:2; text-align:left; } .student-panel { padding:18px; } }
-
-
-/* R-FIT ADMIN: planos e configurações */
-.plans-list{display:grid;gap:10px;margin:16px 0}
-.plan-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--border-color,#333);border-radius:12px;background:var(--panel-bg,#111)}
-.plan-row>div{display:grid;gap:4px}.plan-row small{opacity:.75}.admin-form{display:grid;gap:14px;margin-top:20px;padding:20px;border:1px solid var(--border-color,#333);border-radius:14px;background:var(--panel-bg,#111)}
-.admin-form h3{margin:0 0 4px}.admin-form>label{display:grid;gap:6px;font-size:.92rem}.admin-form input:not([type=checkbox]),.admin-form textarea{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #555;background:#090a0d;color:inherit;font:inherit}.admin-form textarea{min-height:84px;resize:vertical}.form-checks{display:flex;flex-wrap:wrap;gap:16px}.form-checks label{display:flex;align-items:center;gap:8px}
-
-
-/* 15. NAVEGAÇÃO LATERAL E ÁREA DE TRABALHO CLARA — PROFESSOR E ALUNO */
-.portal-layout{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh;background:#f4f6f9;color:#18202d}
-.portal-sidebar{position:sticky;top:0;display:flex;flex-direction:column;gap:32px;height:100vh;min-height:560px;padding:26px 16px;background:#111318;color:#f7f8fb;border-right:1px solid #252832}
-.portal-brand{display:flex;align-items:center;gap:11px;padding:4px 8px;font-size:1.1rem;font-weight:900;letter-spacing:.04em}
-.portal-brand small{display:block;margin-top:1px;color:#9ba2af;font-size:.62rem;letter-spacing:.16em}
-.brand-mark{display:grid;width:42px;height:42px;place-items:center;background:#ff3348;border-radius:12px;color:white;font-size:1.45rem;font-weight:950}
-.portal-nav{display:grid;gap:7px}
-.portal-nav-link{display:flex;align-items:center;gap:12px;min-height:46px;padding:11px 13px;color:#b7bdc8;border:1px solid transparent;border-radius:10px;font-size:.9rem;font-weight:650;transition:background .15s ease,color .15s ease}
-.portal-nav-link>span{display:inline-grid;width:22px;place-items:center;font-size:1.08rem}
-.portal-nav-link:hover,.portal-nav-link.is-active{color:#fff;background:#282b34;border-color:#373b46}
-.portal-nav-link.is-active{box-shadow:inset 3px 0 #ff3348}
-.sidebar-bottom{display:flex;align-items:center;gap:9px;margin-top:auto;padding:14px 9px 0;border-top:1px solid #2b2e38;color:#9ba2af;font-size:.78rem}
-.sidebar-dot{width:8px;height:8px;border-radius:50%;background:#46ce82;box-shadow:0 0 10px #46ce8260}
-.portal-main{width:100%;min-width:0;max-width:none;margin:0;padding:30px clamp(20px,3vw,44px) 54px;background:#f4f6f9;color:#18202d}
-.portal-main p{color:#657084}
-.portal-main .admin-topbar,.portal-main .student-topbar{border-color:#e1e5ec}
-.portal-main .admin-title,.portal-main .student-title{color:#18202d}
-.portal-main .admin-topbar .eyebrow,.portal-main .student-topbar .eyebrow{color:#e32e43}
-.portal-main .admin-section{padding:23px;background:#fff;border:1px solid #e2e6ed;border-radius:16px;box-shadow:0 5px 18px #17203308}
-.portal-main .metric-card,.portal-main .table-wrap,.portal-main .admin-next,.portal-main .student-hero,.portal-main .student-panel{background:#fff;color:#18202d;border-color:#e2e6ed;box-shadow:0 5px 18px #17203308}
-.portal-main .metric-card>span,.portal-main .metric-card small,.portal-main .student-table th,.portal-main .module-chips span{color:#657084}
-.portal-main .metric-card strong,.portal-main .section-heading h2,.portal-main .admin-next h2,.portal-main .student-panel h3,.portal-main .student-hero h2,.portal-main .student-steps strong{color:#18202d}
-.portal-main .count-pill,.portal-main .module-chips span,.portal-main .text-button,.portal-main .secondary-button{background:#f7f8fb;color:#344054;border-color:#dfe4ec}
-.portal-main .search-field,.portal-main .student-tools select{background:#fff;color:#344054;border-color:#d8dee8}
-.portal-main .search-field input,.portal-main .admin-form input:not([type=checkbox]),.portal-main .admin-form textarea{background:#fff;color:#18202d;border-color:#d8dee8}
-.portal-main .admin-form{background:#fbfcfe;border-color:#e2e6ed}
-.portal-main .admin-form label{color:#344054}
-.portal-main .student-table th{background:#f7f8fb}
-.portal-main .student-table td{border-color:#edf0f4}
-.portal-main .student-steps li{border-color:#e6eaf0}
-.portal-main .student-steps li>span{background:#f0f2f6;color:#596579}
-.portal-main .student-mark{color:#18202d}
-.portal-main .panel-icon{color:#e32e43;background:#fff0f2;border-color:#ffd6dc}
-.portal-main .student-footer{color:#657084}
-@media(max-width:850px){.portal-layout{grid-template-columns:76px minmax(0,1fr)}.portal-sidebar{align-items:center;padding:22px 9px;gap:28px}.portal-brand{padding:0}.portal-brand>span:last-child,.portal-nav-link:not(.is-active){font-size:0}.portal-brand small{display:none}.portal-nav{width:100%}.portal-nav-link{justify-content:center;padding:10px 4px;font-size:0}.portal-nav-link>span{font-size:1.2rem}.portal-nav-link.is-active{font-size:0}.sidebar-bottom{justify-content:center;padding:14px 0 0;font-size:0}.portal-main{padding:22px 16px 40px}}
-@media(max-width:560px){.portal-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}.portal-sidebar{position:sticky;z-index:10;top:0;display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:100%;height:auto;min-height:0;padding:10px 14px;gap:12px}.portal-brand{gap:8px}.portal-brand>span:last-child{display:block;font-size:.9rem}.portal-brand small{display:block;font-size:.52rem}.brand-mark{width:34px;height:34px;font-size:1.15rem}.portal-nav{display:flex;gap:3px;width:auto}.portal-nav-link,.portal-nav-link:not(.is-active){display:grid;min-width:36px;min-height:38px;place-items:center;padding:6px;font-size:0}.portal-nav-link>span{font-size:1rem}.sidebar-bottom{display:none}.portal-main{padding:14px 12px 30px}.portal-main .admin-section{padding:16px}.portal-main .admin-topbar,.portal-main .student-topbar{padding-top:8px}.portal-main .student-hero{padding:18px}}
-
-/* 16. VIEWS INDEPENDENTES DO MENU */
-.portal-view[hidden]{display:none!important}.portal-view.is-visible{display:block}.portal-nav-link{width:100%;text-align:left;cursor:pointer;font-family:inherit}.portal-nav button{appearance:none}
-
-/* 17. ÁREA DO ALUNO — TREINO, DIETA E SUPORTE */
-.student-detail-list{display:grid;gap:12px;margin-top:16px}
-.student-detail-card,.support-item{display:flex;align-items:flex-start;gap:14px;padding:16px;background:#f8f9fb;border:1px solid #e2e6ed;border-radius:12px}
-.student-detail-card strong,.support-item strong{display:block;color:#18202d}
-.student-detail-card p,.support-item p{margin:4px 0 0;font-size:.86rem}
-.support-list{display:grid;gap:10px;margin-top:16px}
-.support-item>span{display:grid;flex:0 0 36px;width:36px;height:36px;place-items:center;border-radius:10px;background:#fff0f2;color:#e32e43;font-weight:850}
+/* 18. CATÁLOGO DE PLANOS DO ALUNO */
+.plan-intro{padding:30px 0 20px}
+.plan-intro h2{margin:9px 0 8px;color:#18202d;font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.12;letter-spacing:-.055em}
+.plan-intro>p{max-width:760px}
+.plan-trust-row{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:18px;color:#526074;font-size:.83rem;font-weight:650}
+.plan-trust-row span{display:inline-flex;align-items:center;gap:7px}
+.plan-trust-row span::first-letter{color:#169b59}
+.plan-catalog{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:14px;margin:18px 0 22px}
+.plan-loading{grid-column:1/-1;padding:28px;background:#fff;border:1px solid #e2e6ed;border-radius:16px;color:#657084;text-align:center}
+.plan-card{position:relative;display:flex;flex-direction:column;min-width:0;padding:22px 18px 18px;background:#fff;border:1px solid #e0e5ed;border-radius:17px;box-shadow:0 8px 24px #17203308;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.plan-card:hover{transform:translateY(-3px);border-color:#ff9aa5;box-shadow:0 14px 30px #17203312}
+.plan-card.is-featured{border:2px solid #ff3348;box-shadow:0 12px 34px #ff33481a}
+.plan-card.is-selected{outline:3px solid #ff33482e;border-color:#ff3348}
+.plan-ribbon{position:absolute;top:-1px;right:15px;padding:6px 10px;color:#fff;background:#ff3348;border-radius:0 0 8px 8px;font-size:.62rem;font-weight:900;letter-spacing:.08em}
+.plan-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:17px}
+.plan-icon{display:grid;width:42px;height:42px;place-items:center;background:#fff0f2;border:1px solid #ffd6dc;border-radius:12px;font-size:1.2rem}
+.plan-type{color:#7a8494;font-size:.59rem;font-weight:850;letter-spacing:.09em;text-align:right}
+.plan-card h3{margin:0;color:#18202d;font-size:1.16rem;letter-spacing:-.035em}
+.plan-description{min-height:58px;margin:8px 0 14px;color:#657084;font-size:.79rem;line-height:1.5}
+.plan-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;margin:2px 0 18px}
+.plan-price strong{color:#18202d;font-size:clamp(1.65rem,2.3vw,2.1rem);line-height:1.1;letter-spacing:-.06em}
+.plan-price span{color:#657084;font-size:.76rem}
+.plan-benefits{display:grid;gap:12px;margin:0 0 22px;padding:17px 0 0;border-top:1px solid #edf0f4;list-style:none}
+.plan-benefits li{display:flex;align-items:flex-start;gap:8px;color:#465267;font-size:.79rem;line-height:1.45}
+.plan-benefits li span{flex:0 0 auto;color:#149653;font-weight:900}
+.plan-choose-button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:46px;margin-top:auto;padding:11px 12px;color:#263246;background:#f7f8fb;border:1px solid #dfe4ec;border-radius:10px;font-size:.8rem;font-weight:800;cursor:pointer}
+.plan-choose-button:hover{border-color:#ff3348;color:#d9273d}
+.plan-choose-button.is-primary{color:#fff;background:#ff3348;border-color:#ff3348}
+.plan-choose-button.is-primary:hover{background:#d91f35}
+.plan-selection-note{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:20px 0;padding:22px;background:#fff;border:1px solid #ffd0d6;border-left:4px solid #ff3348;border-radius:15px;box-shadow:0 8px 24px #17203308}
+.plan-selection-note[hidden]{display:none}
+.plan-selection-note h2{margin:5px 0;color:#18202d;font-size:1.25rem}
+.plan-selection-note p{margin:4px 0 0;font-size:.88rem}
+.plan-selection-note .primary-button{width:auto;min-width:235px;margin:0}
+@media(max-width:1100px){.plan-catalog{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-description{min-height:0}}
+@media(max-width:600px){.plan-intro{padding-top:22px}.plan-catalog{grid-template-columns:1fr;gap:12px}.plan-card{padding:20px}.plan-card-head{margin-bottom:12px}.plan-description{min-height:0}.plan-selection-note{align-items:stretch;flex-direction:column;padding:18px}.plan-selection-note .primary-button{width:100%;min-width:0}.plan-price strong{font-size:2rem}}
