@@ -184,8 +184,9 @@ export async function authRoutes(request, env, url) {
           "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'student',CURRENT_TIMESTAMP,'pending')"
         ).bind(id, email, profile.sub, String(profile.name || email).slice(0,160), profile.picture || null).run();
         await env.RFIT_DB.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").bind(id).run();
+        const pendingSession = await makeSession({ id, email, full_name: String(profile.name || email).slice(0,160), role: "student" }, env.SESSION_SECRET);
         return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [
-          cookieHeader(COOKIE_STATE, "", 0)
+          cookieHeader(COOKIE_SESSION, pendingSession, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
         ]);
       }
 
@@ -208,7 +209,33 @@ export async function authRoutes(request, env, url) {
     }
   }
 
-  /* 03. CADASTRO DE ALUNO */
+  /* 03. CONCLUSÃO DO CADASTRO GOOGLE: celular obrigatório antes de escolher plano */
+  if (url.pathname === "/auth/student/google-complete" && request.method === "POST") {
+    const origin = request.headers.get("Origin");
+    if (origin && origin !== url.origin) return authError("origin_not_allowed", 403);
+    const session = await readSession(request, env.SESSION_SECRET);
+    if (!session || session.role !== "student") return authError("unauthenticated", 401);
+    let body;
+    try { body = await request.json(); } catch { return authError("invalid_json", 400); }
+    const phone = String(body.phone || "").trim();
+    const digits = phone.replace(/\\D/g, "");
+    if (digits.length < 10 || digits.length > 13) return authError("registration_invalid", 400);
+    try {
+      const result = await env.RFIT_DB.prepare("UPDATE users SET phone=?,status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student' AND google_subject IS NOT NULL").bind(phone, session.sub).run();
+      if (!result.meta?.changes) return authError("google_student_not_found", 404);
+      const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status FROM users WHERE id=? AND role='student'").bind(session.sub).first();
+      if (!user || user.status !== "active") return authError("google_student_not_found", 404);
+      const nextSession = await makeSession(user, env.SESSION_SECRET);
+      return Response.json({ ok: true, redirect: "/student/pages/portal/plan/index.html" }, {
+        headers: { "Cache-Control": "no-store", "Set-Cookie": cookieHeader(COOKIE_SESSION, nextSession, SESSION_SECONDS), "X-Content-Type-Options": "nosniff" }
+      });
+    } catch (error) {
+      console.error("google_student_completion_failed", error?.message || "unknown");
+      return authError("registration_failed", 503);
+    }
+  }
+
+  /* 04. CADASTRO DE ALUNO */
   if (url.pathname === "/auth/student/register" && request.method === "POST") {
     if (!env.SESSION_SECRET) return authError("auth_not_configured", 503);
     const origin = request.headers.get("Origin");
