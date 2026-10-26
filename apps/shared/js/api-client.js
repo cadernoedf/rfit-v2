@@ -26,6 +26,6 @@ export async function registerStudent(name, phone, email, password) {
     credentials: 'same-origin', cache: 'no-store', body: JSON.stringify({ name, phone, email, password })
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || 'registration_failed');
+  if (!response.ok) { const error = new Error(result.error || 'registration_failed'); error.detail = result.detail; throw error; }
   return result;
 }
