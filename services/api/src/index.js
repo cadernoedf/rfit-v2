@@ -11,6 +11,7 @@ import { healthRoutes } from './routes/health.routes.js';
 import { authRoutes, getSession } from './routes/auth.routes.js';
 import { adminRoutes } from './routes/admin.routes.js';
 import { studentRoutes } from './routes/student.routes.js';
+import { paymentRoutes } from './routes/payment.routes.js';
 
 /* 02. RESPONSE / SECURITY HELPERS */
 const json = (data, status = 200) => Response.json(data, {
@@ -50,6 +51,9 @@ export default {
 
     const admin = await adminRoutes(request, env, url);
     if (admin) return admin;
+
+    const payment = await paymentRoutes(request, env, url);
+    if (payment) return payment;
 
     const student = await studentRoutes(request, env, url);
     if (student) return student;
