@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.setTimeout(() => window.location.assign('/student/pages/login.html'), 1200);
     } catch (error) {
       const code = String(error?.message || 'registration_failed');
-      message.textContent = code === 'registration_failed' && error?.detail ? `Falha no servidor: ${error.detail}` : (messages[code] || 'Não foi possível concluir o cadastro. Tente novamente.');
+      message.textContent = error?.detail ? `Falha no servidor: ${error.detail}` : (messages[code] || 'Não foi possível concluir o cadastro. Tente novamente.');
       message.dataset.state = 'error';
       button.disabled = false;
     }
