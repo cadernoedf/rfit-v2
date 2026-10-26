@@ -132,7 +132,9 @@ export async function authRoutes(request, env, url) {
     return redirect(google.toString(), [cookieHeader(COOKIE_STATE, state, 600)]);
   }
 
-  /* 02. CALLBACK GOOGLE: APENAS O E-MAIL AUTORIZADO PODE SER PROFESSOR */
+  /* 02. CALLBACK GOOGLE: somente o e-mail do proprietário é professor.
+     Qualquer outra conta Google verificada é aluno e segue para escolha de plano.
+     Para aluno novo, exige celular via etapa de conclusão do cadastro. */
   if (url.pathname === "/auth/google/callback" && request.method === "GET") {
     if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.PROFESSOR_EMAIL || !env.SESSION_SECRET) return authError("auth_not_configured", 503);
     const state = url.searchParams.get("state");
@@ -157,20 +159,53 @@ export async function authRoutes(request, env, url) {
     const profile = await profileResponse.json();
     const email = String(profile.email || "").trim().toLowerCase();
     const allowedEmail = String(env.PROFESSOR_EMAIL).trim().toLowerCase();
-    if (!profile.sub || email !== allowedEmail || profile.email_verified !== true) return authError("google_account_not_authorized", 403);
+    if (!profile.sub || !email || profile.email_verified !== true) return authError("google_account_not_authorized", 403);
 
+    const isOwner = email === allowedEmail;
     const id = `google:${profile.sub}`;
     try {
-      await env.RFIT_DB.prepare(
-        "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'professor',CURRENT_TIMESTAMP,'active') ON CONFLICT(email) DO UPDATE SET google_subject=excluded.google_subject,full_name=excluded.full_name,avatar_url=excluded.avatar_url,updated_at=CURRENT_TIMESTAMP WHERE users.role IN ('professor','admin')"
-      ).bind(id, email, profile.sub, String(profile.name || email).slice(0,160), profile.picture || null).run();
-      const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status FROM users WHERE email=? AND google_subject=? LIMIT 1").bind(email, profile.sub).first();
-      if (!user || user.status !== "active" || !["professor","admin"].includes(user.role)) return authError("google_account_not_authorized", 403);
+      if (isOwner) {
+        await env.RFIT_DB.prepare(
+          "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'professor',CURRENT_TIMESTAMP,'active') ON CONFLICT(email) DO UPDATE SET google_subject=excluded.google_subject,full_name=excluded.full_name,avatar_url=excluded.avatar_url,updated_at=CURRENT_TIMESTAMP WHERE users.role='professor'"
+        ).bind(id, email, profile.sub, String(profile.name || email).slice(0,160), profile.picture || null).run();
+        const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,role,status FROM users WHERE email=? AND google_subject=? LIMIT 1").bind(email, profile.sub).first();
+        if (!user || user.status !== "active" || user.role !== "professor") return authError("google_account_not_authorized", 403);
+        const session = await makeSession(user, env.SESSION_SECRET);
+        return redirect(new URL("/professor/", url.origin).toString(), [
+          cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
+        ]);
+      }
+
+      let user = await env.RFIT_DB.prepare("SELECT id,email,full_name,phone,role,status,google_subject FROM users WHERE email=? LIMIT 1").bind(email).first();
+      if (user && user.role !== "student") return authError("google_account_not_authorized", 403);
+
+      if (!user) {
+        await env.RFIT_DB.prepare(
+          "INSERT INTO users (id,email,google_subject,full_name,avatar_url,role,email_verified_at,status) VALUES (?,?,?,?,?,'student',CURRENT_TIMESTAMP,'pending')"
+        ).bind(id, email, profile.sub, String(profile.name || email).slice(0,160), profile.picture || null).run();
+        await env.RFIT_DB.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").bind(id).run();
+        return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [
+          cookieHeader(COOKIE_STATE, "", 0)
+        ]);
+      }
+
+      if (user.status !== "active") {
+        return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [cookieHeader(COOKIE_STATE, "", 0)]);
+      }
+      if (!user.phone || String(user.phone).replace(/\\D/g, "").length < 10) {
+        const pendingSession = await makeSession(user, env.SESSION_SECRET);
+        return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [
+          cookieHeader(COOKIE_SESSION, pendingSession, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
+        ]);
+      }
       const session = await makeSession(user, env.SESSION_SECRET);
-      return redirect(new URL("/professor/", url.origin).toString(), [
+      return redirect(new URL("/student/pages/portal/plan/index.html", url.origin).toString(), [
         cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
       ]);
-    } catch { return authError("auth_database_error", 503); }
+    } catch (error) {
+      console.error("google_auth_database_error", error?.name || "Error", error?.message || "unknown");
+      return authError("auth_database_error", 503);
+    }
   }
 
   /* 03. CADASTRO DE ALUNO */
