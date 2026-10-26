@@ -20,3 +20,12 @@ export async function getCurrentUser() {
 export async function logout() {
   await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
 }
+export async function registerStudent(name, email, password) {
+  const response = await fetch(`${API_BASE_URL}/auth/student/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'same-origin', cache: 'no-store', body: JSON.stringify({ name, email, password })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'registration_failed');
+  return result;
+}
