@@ -200,7 +200,7 @@ export async function authRoutes(request, env, url) {
       } catch (error) {
         if (String(error?.message || "").toLowerCase().includes("unique")) return authError("email_already_registered", 409);
         console.error("student_registration_failed", error?.message || "unknown");
-        return authError("registration_failed", 503);
+        return Response.json({ ok: false, error: "registration_failed", detail: String(error?.message || error?.name || "unknown").slice(0, 180) }, { status: 503, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
       }
     } catch (error) {
       console.error("student_registration_failed", error?.name || "Error", error?.message || "unknown");
