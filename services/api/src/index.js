@@ -44,10 +44,8 @@ async function protectPortal(request, env, url) {
       "SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND (lifetime=1 OR expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) LIMIT 1"
     ).bind(session.sub).first().catch(() => null);
     if (!activePlan) return Response.redirect(new URL('/student/pages/plans.html', url.origin), 302);
-    if (!isHome && !isAnamnesis) {
-      const profile = await env.RFIT_DB.prepare('SELECT anamnesis_completed_at FROM student_profiles WHERE user_id=?').bind(session.sub).first().catch(() => null);
-      if (!profile?.anamnesis_completed_at) return Response.redirect(new URL('/student/pages/portal/anamnesis/index.html', url.origin), 302);
-    }
+    // Após pagamento confirmado, o aluno pode navegar no portal mesmo com a anamnese pendente.
+    // O painel mantém o lembrete até a conclusão; a anamnese não bloqueia a navegação.
   }
   return null;
 }
