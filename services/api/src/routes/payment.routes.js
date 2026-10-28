@@ -3,15 +3,17 @@
 import { getSession } from './auth.routes.js';
 
 const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+const mercadoPagoToken = env => env.MP_ACCESS_TOKEN || env.MERCADO_PAGO_ACCESS_TOKEN_TEST || '';
 const reply = (body, status = 200) => Response.json(body, { status, headers });
 const cents = value => Math.round(Number(value) * 100);
 
 async function mpRequest(env, path, options = {}) {
-  if (!env.MP_ACCESS_TOKEN) throw new Error('payment_provider_not_configured');
+  const accessToken = mercadoPagoToken(env);
+  if (!accessToken) throw new Error('payment_provider_not_configured');
   const response = await fetch('https://api.mercadopago.com' + path, {
     ...options,
     headers: {
-      Authorization: 'Bearer ' + env.MP_ACCESS_TOKEN,
+      Authorization: 'Bearer ' + accessToken,
       'Content-Type': 'application/json',
       ...(options.headers || {})
     }
@@ -68,7 +70,7 @@ export async function paymentRoutes(request, env, url) {
     const code = String(body.plan_code || '');
     const method = String(body.method || '');
     if (!['nutrition','training','combo','premium_lifetime'].includes(code) || !['pix','card'].includes(method)) return reply({ok:false,error:'invalid_checkout'},400);
-    if (!env.MP_ACCESS_TOKEN) return reply({ok:false,error:'payment_provider_not_configured'},503);
+    if (!mercadoPagoToken(env)) return reply({ok:false,error:'payment_provider_not_configured'},503);
     try {
       const plan = await env.RFIT_DB.prepare('SELECT id,code,name,price_cents,duration_days,lifetime FROM plans WHERE code=? AND is_active=1').bind(code).first();
       if (!plan || Number(plan.price_cents) < 1) return reply({ok:false,error:'plan_unavailable'},409);
