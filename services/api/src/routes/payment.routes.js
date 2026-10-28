@@ -20,8 +20,14 @@ async function mpRequest(env, path, options = {}) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    console.error('mercadopago_api_error', response.status, data?.message || data?.error || 'unknown');
-    throw new Error('payment_provider_error');
+    const providerMessage = String(data?.message || data?.error || 'unknown').replace(/[^a-zA-Z0-9 _.-]/g, '').slice(0, 120);
+    const providerCause = String(data?.cause?.[0]?.code || data?.cause?.[0]?.description || '').replace(/[^a-zA-Z0-9 _.-]/g, '').slice(0, 120);
+    console.error('mercadopago_api_error', response.status, providerMessage, providerCause);
+    const error = new Error('payment_provider_error');
+    error.providerStatus = response.status;
+    error.providerMessage = providerMessage;
+    error.providerCause = providerCause;
+    throw error;
   }
   return data;
 }
@@ -130,7 +136,7 @@ export async function paymentRoutes(request, env, url) {
           : reason === 'pix_generation_failed'
             ? 'pix_generation_failed'
             : 'checkout_creation_failed';
-      return reply({ok:false,error:publicError},503);
+      return reply({ok:false,error:publicError, ...(reason === 'payment_provider_error' ? {provider_status:Number(error?.providerStatus)||null,provider_message:String(error?.providerMessage||'').slice(0,120),provider_cause:String(error?.providerCause||'').slice(0,120)} : {})},503);
     }
   }
 
