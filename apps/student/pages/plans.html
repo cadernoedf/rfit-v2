@@ -79,5 +79,42 @@
 <p class="sales-note">Após escolher seu plano, crie sua conta para continuar para o processo de pagamento. O acesso ao portal deve ser liberado somente após a confirmação do pagamento.</p>
 <footer class="sales-foot">R-Fit · Treino com método. Evolução com acompanhamento.</footer>
 </main>
+<script>
+/* Ajusta a ação do cabeçalho conforme a sessão autenticada. */
+document.addEventListener('DOMContentLoaded', async () => {
+  const action = document.querySelector('.sales-login');
+  if (!action) return;
+  try {
+    const response = await fetch('/api/auth/me', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data?.user) return;
+    action.textContent = 'Sair';
+    action.href = '#logout';
+    action.setAttribute('aria-label', 'Sair da conta');
+    action.addEventListener('click', async (event) => {
+      event.preventDefault();
+      action.textContent = 'Saindo…';
+      action.style.pointerEvents = 'none';
+      try {
+        await fetch('/auth/logout', {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+      } finally {
+        window.location.replace('/student/pages/login.html');
+      }
+    }, { once: true });
+  } catch (error) {
+    /* Se não for possível confirmar a sessão, mantém "Já sou aluno". */
+  }
+});
+</script>
 </body>
 </html>
