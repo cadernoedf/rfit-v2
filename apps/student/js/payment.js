@@ -11,13 +11,22 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(current.user.id==='student-test-rfit-v2'){
    $('#test-activate').hidden=false;$('#test-note').hidden=false;
    $('#test-activate').addEventListener('click',async()=>{
-    const btn=$('#test-activate');btn.disabled=true;message('Ativando 30 dias de teste…');
+    const btn=$('#test-activate');
+    btn.disabled=true;btn.textContent='Ativando teste…';message('Solicitando ativação de teste ao servidor…');
     try{
-     const res=await fetch('/api/payments/test-activate',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({plan_code:planCode})});
-     const data=await res.json();if(!res.ok)throw new Error(data.error||'test_activation_failed');
+     const res=await fetch('/api/payments/test-activate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({plan_code:planCode})});
+     const data=await res.json().catch(()=>({}));
+     if(!res.ok)throw new Error(data.error||('http_'+res.status));
+     if(data.test_mode!==true)throw new Error('unexpected_response');
      message('Teste ativado por 30 dias. Redirecionando…');
+     btn.textContent='Teste ativado!';
      location.assign('/student/pages/portal/anamnesis/index.html');
-    }catch(e){message('Não foi possível ativar o teste. Nenhuma cobrança foi feita.',true);btn.disabled=false;}
+    }catch(e){
+     console.error('rfit_test_activation_failed',e);
+     const errors={unauthenticated:'Sua sessão expirou. Entre novamente na conta de teste.',test_account_only:'Esta sessão não corresponde à conta de teste autorizada.',plan_unavailable:'O plano não está ativo no banco de teste.',test_activation_failed:'O servidor não conseguiu gravar a assinatura de teste no D1.',origin_not_allowed:'A origem da página não foi autorizada.',unexpected_response:'O servidor respondeu sem confirmar o modo de teste.'};
+     message(errors[e.message]||('Falha ao ativar o teste ('+e.message+'). Nenhuma cobrança foi feita.'),true);
+     btn.disabled=false;btn.textContent='🧪 Teste: ativar 30 dias sem pagar';
+    }
    });
   }
  }
