@@ -6,7 +6,21 @@ const $=s=>document.querySelector(s);const message=(text,error=false)=>{$('#pay-
 document.addEventListener('DOMContentLoaded',async()=>{
  if(!labels[planCode]){message('Plano inválido. Volte à página de planos e escolha novamente.',true);$('#start-payment').disabled=true;return;}
  $('#pay-title').textContent=labels[planCode][0];$('#pay-plan').textContent=labels[planCode][1];
- try{const current=await getCurrentUser();if(current.user.role!=='student')location.replace('/professor/');}
+ try{const current=await getCurrentUser();if(current.user.role!=='student')location.replace('/professor/');
+  // Botão temporário restrito à conta de teste conhecida.
+  if(current.user.id==='student-test-rfit-v2'){
+   $('#test-activate').hidden=false;$('#test-note').hidden=false;
+   $('#test-activate').addEventListener('click',async()=>{
+    const btn=$('#test-activate');btn.disabled=true;message('Ativando 30 dias de teste…');
+    try{
+     const res=await fetch('/api/payments/test-activate',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({plan_code:planCode})});
+     const data=await res.json();if(!res.ok)throw new Error(data.error||'test_activation_failed');
+     message('Teste ativado por 30 dias. Redirecionando…');
+     location.assign('/student/pages/portal/anamnesis/index.html');
+    }catch(e){message('Não foi possível ativar o teste. Nenhuma cobrança foi feita.',true);btn.disabled=false;}
+   });
+  }
+ }
  catch{location.replace('/student/pages/login.html?next='+encodeURIComponent('/student/pages/payment.html?plan='+planCode));return;}
  document.querySelectorAll('[data-method]').forEach(b=>b.addEventListener('click',()=>{method=b.dataset.method;document.querySelectorAll('[data-method]').forEach(x=>x.classList.toggle('active',x===b));}));
  $('#start-payment').addEventListener('click',async()=>{
