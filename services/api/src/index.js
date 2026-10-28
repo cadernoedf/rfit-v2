@@ -78,8 +78,8 @@ export default {
     const blocked = await protectPortal(request, env, url);
     if (blocked) return blocked;
 
-    /* Route the root to the student login. The single CSS remains shared. */
-    if (url.pathname === '/') return Response.redirect(new URL('/student/pages/plans.html', url.origin), 302);
+    /* A página inicial deve sempre abrir o login; a proteção do portal decide o próximo passo após autenticar. */
+    if (url.pathname === '/') return Response.redirect(new URL('/student/pages/login.html', url.origin), 302);
 
     return env.ASSETS
       ? env.ASSETS.fetch(request)
