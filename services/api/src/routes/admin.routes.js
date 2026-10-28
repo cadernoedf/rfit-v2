@@ -11,7 +11,9 @@ export async function adminRoutes(request, env, url) {
   const planMatch = url.pathname.match(/^\/api\/professor\/plans\/([^/]+)$/);
   const isPlanItem = Boolean(planMatch);
   const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
-  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  const testAccessMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/test-access$/);
+  const isTestAccess = Boolean(testAccessMatch);
+  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -61,6 +63,31 @@ export async function adminRoutes(request, env, url) {
       await env.RFIT_DB.prepare('UPDATE plans SET name=?,description=?,price_cents=?,duration_days=?,lifetime=?,includes_training=?,includes_nutrition=?,is_active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(name,description,price,days,lifetime,body.includes_training===undefined?current.includes_training:(body.includes_training?1:0),body.includes_nutrition===undefined?current.includes_nutrition:(body.includes_nutrition?1:0),active,id).run();
       await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'plan.updated','plan',id,JSON.stringify({name,price_cents:price,is_active:active})).run();
       return Response.json({ok:true},{headers:noStore});
+    }
+    if (isTestAccess && request.method === 'POST') {
+      const id = decodeURIComponent(testAccessMatch[1]);
+      const student = await env.RFIT_DB.prepare("SELECT id,email FROM users WHERE id=? AND role='student'").bind(id).first();
+      if (!student) return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      // Temporário e restrito a contas claramente identificadas como teste.
+      if (!/(teste|test)/i.test(String(student.email || ''))) return Response.json({ok:false,error:'test_account_only'},{status:403,headers:noStore});
+      const plan = await env.RFIT_DB.prepare("SELECT id,duration_days FROM plans WHERE code='combo' AND is_active=1 LIMIT 1").first()
+        || await env.RFIT_DB.prepare("SELECT id,duration_days FROM plans WHERE is_active=1 ORDER BY created_at LIMIT 1").first();
+      if (!plan) return Response.json({ok:false,error:'plan_unavailable'},{status:409,headers:noStore});
+      const now = new Date();
+      const expires = new Date(now.getTime() + 30 * 86400000).toISOString();
+      const current = await env.RFIT_DB.prepare("SELECT id FROM subscriptions WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(id).first();
+      const subscriptionId = current?.id || crypto.randomUUID();
+      if (current) {
+        await env.RFIT_DB.prepare("UPDATE subscriptions SET plan_id=?,status='active',starts_at=?,expires_at=?,lifetime=0,payment_provider='manual_test',provider_subscription_id='temporary-30-day-test',updated_at=CURRENT_TIMESTAMP WHERE id=?")
+          .bind(plan.id,now.toISOString(),expires,subscriptionId).run();
+      } else {
+        await env.RFIT_DB.prepare("INSERT INTO subscriptions(id,user_id,plan_id,status,starts_at,expires_at,lifetime,payment_provider,provider_subscription_id) VALUES(?,?,?,'active',?,?,0,'manual_test','temporary-30-day-test')")
+          .bind(subscriptionId,id,plan.id,now.toISOString(),expires).run();
+      }
+      await env.RFIT_DB.prepare("UPDATE users SET status='active',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+      await env.RFIT_DB.prepare("INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)")
+        .bind(crypto.randomUUID(),session.sub,'temporary_test_access_granted','user',id,JSON.stringify({days:30,expires_at:expires,provider:'manual_test'})).run();
+      return Response.json({ok:true,expires_at:expires,days:30},{headers:noStore});
     }
     if (isStudentStatus && request.method === 'PATCH') {
       const id=decodeURIComponent(url.pathname.split('/')[4]); const body=await request.json();
