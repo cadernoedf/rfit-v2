@@ -94,6 +94,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!response.ok) return;
     const data = await response.json();
     if (!data?.user) return;
+    // Aluno autenticado escolhe o plano e segue para pagamento, sem novo cadastro.
+    document.querySelectorAll('.sales-choose[href*="/student/pages/register.html?plan="]').forEach((link) => {
+      const currentUrl = new URL(link.href, window.location.origin);
+      const plan = currentUrl.searchParams.get('plan');
+      if (['nutrition', 'training', 'combo', 'premium_lifetime'].includes(plan)) {
+        link.href = '/student/pages/payment.html?plan=' + encodeURIComponent(plan);
+      }
+    });
     action.textContent = 'Sair';
     action.href = '#logout';
     action.setAttribute('aria-label', 'Sair da conta');
