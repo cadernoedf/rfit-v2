@@ -3,7 +3,7 @@ name: Deploy R-Fit V2 to Cloudflare
 on:
   push:
     branches:
-      - main
+      - test-account-temporary-30day-button
     paths:
       - "apps/**"
       - "services/**"
