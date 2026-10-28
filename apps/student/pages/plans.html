@@ -33,6 +33,9 @@
 .sales-benefits li:before{content:'✓';color:#ff1744;font-weight:950}
 .sales-choose{display:block;text-align:center;margin-top:auto;padding:14px 10px;border-radius:12px;background:linear-gradient(100deg,#ff1744,#c90028);color:#fff;font-size:.88rem;font-weight:900;box-shadow:0 8px 20px #e4003030}
 .sales-choose:hover{filter:brightness(1.08)}
+.sales-test{display:none;width:100%;margin-top:10px;padding:12px 10px;border:1px dashed #e11d48;border-radius:12px;background:#fff1f3;color:#be123c;font-size:.82rem;font-weight:900;cursor:pointer}
+.sales-test:hover{background:#ffe4e9}.sales-test:disabled{opacity:.6;cursor:wait}
+.sales-test-note{display:none;margin-top:8px;color:#6b2334;font-size:.75rem;text-align:center}
 .sales-foot{text-align:center;color:#a3a4af;font-size:.82rem;margin:30px 0 0}
 .sales-note{margin:30px auto 0;text-align:center;color:#c4c4ce;font-size:.82rem;max-width:720px}
 @media(max-width:1000px){.sales-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-card.featured{transform:none}}
@@ -94,6 +97,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!response.ok) return;
     const data = await response.json();
     if (!data?.user) return;
+    // Botões de teste aparecem apenas na conta de demonstração, na própria escolha dos planos.
+    if (data.user.id === 'student-test-rfit-v2') {
+      document.querySelectorAll('.sales-card').forEach((card) => {
+        const choose = card.querySelector('.sales-choose');
+        if (!choose) return;
+        const target = new URL(choose.href, window.location.origin);
+        const plan = target.searchParams.get('plan');
+        if (!['nutrition', 'training', 'combo', 'premium_lifetime'].includes(plan)) return;
+        const testButton = document.createElement('button');
+        testButton.type = 'button';
+        testButton.className = 'sales-test';
+        testButton.style.display = 'block';
+        testButton.textContent = '🧪 Testar este plano por 30 dias';
+        const note = document.createElement('p');
+        note.className = 'sales-test-note';
+        note.style.display = 'block';
+        note.textContent = 'Somente teste · sem cobrança';
+        testButton.addEventListener('click', async () => {
+          testButton.disabled = true;
+          testButton.textContent = 'Ativando teste…';
+          try {
+            const response = await fetch('/api/payments/test-activate', {
+              method: 'POST', credentials: 'same-origin', cache: 'no-store',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ plan_code: plan })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'test_activation_failed');
+            testButton.textContent = 'Teste ativado!';
+            window.location.assign('/student/pages/portal/anamnesis/index.html');
+          } catch (error) {
+            testButton.disabled = false;
+            testButton.textContent = '🧪 Testar este plano por 30 dias';
+            window.alert('Não foi possível ativar o teste. Nenhuma cobrança foi feita.');
+          }
+        });
+        choose.insertAdjacentElement('afterend', testButton);
+        testButton.insertAdjacentElement('afterend', note);
+      });
+    }
     // Aluno autenticado escolhe o plano e segue para pagamento, sem novo cadastro.
     document.querySelectorAll('.sales-choose[href*="/student/pages/register.html?plan="]').forEach((link) => {
       const currentUrl = new URL(link.href, window.location.origin);
