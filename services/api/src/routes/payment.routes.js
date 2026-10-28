@@ -120,8 +120,17 @@ export async function paymentRoutes(request, env, url) {
         .bind(String(preference.id),preference.init_point,checkoutId).run();
       return reply({ok:true,checkout_id:checkoutId,method:'card',checkout_url:preference.init_point});
     } catch(error) {
-      console.error('payment_checkout_failed',error?.message||'unknown');
-      return reply({ok:false,error:error?.message==='payment_provider_not_configured'?'payment_provider_not_configured':'checkout_creation_failed'},503);
+      const reason = String(error?.message || 'unknown');
+      console.error('payment_checkout_failed', reason);
+      // Diferenciar falha do provedor para não esconder o motivo específico do PIX.
+      const publicError = reason === 'payment_provider_not_configured'
+        ? 'payment_provider_not_configured'
+        : reason === 'payment_provider_error'
+          ? 'payment_provider_error'
+          : reason === 'pix_generation_failed'
+            ? 'pix_generation_failed'
+            : 'checkout_creation_failed';
+      return reply({ok:false,error:publicError},503);
     }
   }
 
