@@ -54,7 +54,7 @@ function renderStudents() {
     return '<tr><td><div class="student-identity">' + avatar + '<div><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(text(student.email)) + '</small></div></div></td>' +
       '<td>' + escapeHtml(text(student.plan_name, 'Ainda não selecionado')) + '</td><td>' + badge(status) + '</td>' +
       '<td>' + (student.anamnesis_completed_at ? '<span class="plain-status done">Concluída</span>' : '<span class="plain-status waiting">Pendente</span>') + '</td>' +
-      '<td>' + date(student.created_at) + '</td></tr>';
+      '<td>' + date(student.created_at) + ((/teste|test/i.test(String(student.email || ''))) ? '<br><button type="button" class="text-button" data-test-access="' + escapeHtml(student.id) + '">Ativar 30 dias (teste)</button>' : '') + '</td></tr>';
   }).join('');
 }
 function escapeHtml(value) {
@@ -102,6 +102,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   $('#professor-logout')?.addEventListener('click', async () => { await logout(); window.location.replace('/student/'); });
   $('#refresh-dashboard')?.addEventListener('click', loadDashboard);
+  $('#student-rows')?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-test-access]');
+    if (!button) return;
+    const studentId = button.dataset.testAccess;
+    if (!confirm('Ativar 30 dias de acesso TEMPORÁRIO nesta conta de teste, sem cobrança?')) return;
+    button.disabled = true;
+    try {
+      const response = await fetch('/api/professor/students/' + encodeURIComponent(studentId) + '/test-access', {
+        method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'test_access_failed');
+      alert('Acesso de teste ativado por 30 dias. Nenhuma cobrança foi criada.');
+      await loadDashboard();
+    } catch (error) {
+      alert(error.message === 'test_account_only' ? 'Por segurança, esse botão só funciona em contas cujo e-mail contém “teste” ou “test”.' : 'Não foi possível ativar o acesso de teste. Verifique a publicação e tente novamente.');
+      button.disabled = false;
+    }
+  });
   $('#student-search')?.addEventListener('input', renderStudents);
   $('#student-filter')?.addEventListener('change', renderStudents);
   await loadDashboard();
