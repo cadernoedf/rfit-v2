@@ -34,11 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
       await registerStudent(name, phone, email, password);
       message.textContent = 'Cadastro criado! Redirecionando para a escolha do plano…';
       message.dataset.state = 'success';
-      const selectedPlan = new URLSearchParams(window.location.search).get('plan') || '';
-      const destination = ['nutrition','training','combo','premium_lifetime'].includes(selectedPlan)
-        ? '/student/pages/payment.html?plan=' + encodeURIComponent(selectedPlan)
-        : '/student/pages/plans.html';
-      window.setTimeout(() => window.location.assign(destination), 400);
+      // Cadastro não deve iniciar cobrança automaticamente.
+      // Todo aluno recém-cadastrado passa primeiro pela escolha do plano.
+      window.setTimeout(() => window.location.assign('/student/pages/plans.html'), 400);
     } catch (error) {
       const code = String(error?.message || 'registration_failed');
       message.textContent = error?.detail ? `Falha no servidor: ${error.detail}` : (messages[code] || 'Não foi possível concluir o cadastro. Tente novamente.');
