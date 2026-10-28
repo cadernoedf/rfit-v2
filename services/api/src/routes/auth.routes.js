@@ -307,7 +307,12 @@ export async function authRoutes(request, env, url) {
     if (!valid) return authError("invalid_credentials", 401);
     try {
       const session = await makeSession(user, env.SESSION_SECRET);
-      return Response.json({ ok: true, redirect: "/student/dashboard.html" }, {
+      // Login nunca concede acesso por si só: confirmar assinatura ativa no D1.
+      const activePlan = await env.RFIT_DB.prepare(
+        "SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND (lifetime=1 OR expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) LIMIT 1"
+      ).bind(user.id).first().catch(() => null);
+      const destination = activePlan ? "/student/dashboard.html" : "/student/pages/plans.html";
+      return Response.json({ ok: true, redirect: destination }, {
         headers: { "Cache-Control": "no-store", "Set-Cookie": cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), "X-Content-Type-Options": "nosniff" }
       });
     } catch (error) {
