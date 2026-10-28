@@ -93,9 +93,9 @@ export async function paymentRoutes(request, env, url) {
       const origin = url.origin;
       if (method === 'pix') {
         const user = await env.RFIT_DB.prepare('SELECT email,full_name FROM users WHERE id=? AND role=\'student\'').bind(session.sub).first();
-        // PIX durante validação usa exclusivamente credencial de TESTE.
-        // Nunca cair silenciosamente na credencial de produção nesse fluxo.
-        if (!env.MERCADO_PAGO_ACCESS_TOKEN_TEST) throw new Error('payment_provider_not_configured');
+        // PIX em produção usa a credencial privada de produção, igual ao fluxo de confirmação.
+        // Não usar credenciais de teste para gerar cobranças reais.
+        if (!env.MP_ACCESS_TOKEN) throw new Error('payment_provider_not_configured');
         const payment = await mpRequest(env, '/v1/payments', {
           method:'POST',
           headers:{'X-Idempotency-Key':checkoutId},
@@ -107,7 +107,7 @@ export async function paymentRoutes(request, env, url) {
             external_reference:checkoutId,
             notification_url:origin+'/api/payments/webhook'
           })
-        }, 'test');
+        });
         const tx = payment.point_of_interaction?.transaction_data || {};
         if (!payment.id || !tx.qr_code) throw new Error('pix_generation_failed');
         await env.RFIT_DB.prepare('UPDATE payment_checkouts SET provider_payment_id=?,pix_qr_base64=?,pix_copy_paste=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
