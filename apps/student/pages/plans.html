@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'test_activation_failed');
             testButton.textContent = 'Teste ativado!';
-            window.location.assign('/student/pages/portal/anamnesis/index.html');
+            window.location.assign('/student/pages/portal/home/index.html');
           } catch (error) {
             testButton.disabled = false;
             testButton.textContent = '🧪 Testar este plano por 30 dias';
