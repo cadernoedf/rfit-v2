@@ -3,7 +3,29 @@
 import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
 
 const formatBRL = (cents) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(cents || 0) / 100);
-async function loadCurrentSubscription() {\n  const panel=document.querySelector('#current-plan-panel');\n  try {\n    const response=await fetch('/api/student/subscription',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});\n    const data=await response.json().catch(()=>({}));\n    if(!response.ok) throw new Error('subscription_unavailable');\n    if(!data.subscription) { panel.hidden=false; document.querySelector('#current-plan-name').textContent='Nenhum plano ativo'; document.querySelector('#current-plan-details').textContent='Escolha um plano abaixo para começar seu acompanhamento.'; document.querySelector('#current-plan-days').textContent=''; document.querySelector('#current-plan-type').textContent=''; return; }\n    const s=data.subscription; panel.hidden=false;\n    document.querySelector('#current-plan-name').textContent=s.plan_name||'Seu plano R-Fit';\n    document.querySelector('#current-plan-details').textContent='Plano atual: '+(s.plan_name||'R-Fit')+'.';\n    document.querySelector('#current-plan-days').textContent=Number(s.lifetime)?'Acesso vitalício — não expira.':(s.days_remaining===null?'Validade não informada':`Restam ${s.days_remaining} ${s.days_remaining===1?'dia':'dias'} de acesso.`);\n    const type=Number(s.lifetime)?'Acesso vitalício':s.plan_code==='nutrition'?'Plano de dieta / nutrição':s.plan_code==='training'?'Plano de treino':s.plan_code==='combo'?'Plano completo: treino + dieta':(Number(s.includes_nutrition)&&Number(s.includes_training))?'Plano de treino + dieta':Number(s.includes_nutrition)?'Plano de dieta / nutrição':'Plano de treino';\n    document.querySelector('#current-plan-type').textContent=type;\n  } catch { panel.hidden=false; document.querySelector('#current-plan-name').textContent='Não foi possível consultar seu plano'; document.querySelector('#current-plan-details').textContent='Atualize a página para verificar sua assinatura e a validade.'; }\n}\n\nconst benefits = {
+async function loadCurrentSubscription() {
+  const panel=document.querySelector('#current-plan-panel');
+  const lifetimeBanner=document.querySelector('#lifetime-banner');
+  try {
+    const response=await fetch('/api/student/subscription',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error('subscription_unavailable');
+    if(!data.subscription){panel.hidden=false;document.querySelector('#current-plan-name').textContent='Nenhum plano ativo';document.querySelector('#current-plan-days').textContent='Sem acesso ativo';document.querySelector('#current-plan-expiry').textContent='Escolha um plano para começar';document.querySelector('#current-plan-type').textContent='';document.querySelector('#current-payment-method').textContent='—';document.querySelector('#current-payment-details').textContent='Nenhum pagamento aprovado';return null;}
+    const s=data.subscription;panel.hidden=false;
+    const special=Boolean(Number(s.lifetime)||['courtesy','personal_courtesy','complimentary'].includes(String(s.payment_provider||'').toLowerCase()));
+    document.querySelector('#current-plan-name').textContent=s.plan_name||'Plano R-Fit';
+    document.querySelector('#current-plan-days').textContent=Number(s.lifetime)?'Vitalício':s.days_remaining===null?'Sem prazo definido':String(s.days_remaining)+(s.days_remaining===1?' dia restante':' dias restantes');
+    document.querySelector('#current-plan-expiry').textContent=Number(s.lifetime)?'Não expira':s.expires_at?'Vencimento: '+new Date(s.expires_at).toLocaleDateString('pt-BR'):'Validade não informada';
+    document.querySelector('#current-plan-type').textContent=special?'👑 Acesso especial':(Number(s.includes_training)&&Number(s.includes_nutrition))?'Treino + dieta':Number(s.includes_nutrition)?'Nutrição / dieta':'Treinamento';
+    document.querySelector('#current-payment-method').textContent=s.last_payment_method==='pix'?'PIX':s.last_payment_method==='card'?'Cartão':special?'Cortesia / acesso especial':s.payment_provider==='test'?'Teste':'Não identificado';
+    document.querySelector('#current-payment-details').textContent=s.last_payment_date?'Último pagamento em '+new Date(s.last_payment_date).toLocaleDateString('pt-BR'):special?'Concedido pelo personal':s.last_payment_status==='approved'?'Pagamento aprovado':'Sem pagamento registrado';
+    if(lifetimeBanner)lifetimeBanner.hidden=!special;
+    if(special){panel.classList.add('is-special');panel.querySelectorAll('.plan-summary-card').forEach(card=>{card.style.borderColor='#e5d29a';card.style.background='#fffaf0'});}
+    return s;
+  } catch {panel.hidden=false;document.querySelector('#current-plan-name').textContent='Não foi possível consultar seu plano';document.querySelector('#current-plan-days').textContent='Tente novamente';document.querySelector('#current-plan-expiry').textContent='Atualize a página';return null;}
+}
+
+const benefits = {
   nutrition: ['Plano alimentar e orientação nutricional', 'Área de dieta no portal', 'Acompanhe sua jornada'],
   training: ['Fichas de treino no portal', 'Organização da rotina de treino', 'Acompanhe sua evolução'],
   combo: ['Tudo do plano Nutrição', 'Tudo do plano Treino', 'Treino e nutrição em um só lugar'],
@@ -43,7 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const result = await getCurrentUser();
     if (result.user.role !== 'student') { window.location.replace('/professor/'); return; }
-    welcome.textContent = 'Olá, ' + (result.user.name || result.user.email) + '.';\n    loadCurrentSubscription();
+    welcome.textContent = 'Olá, ' + (result.user.name || result.user.email) + '.';
+    loadCurrentSubscription();
   } catch {
     window.location.replace('/student/pages/login.html');
     return;
