@@ -7,7 +7,16 @@
   <title>R-Fit — Escolha seu plano</title>
   <link rel="stylesheet" href="../../../../shared/css/rfit.css">
   <script type="module" src="./page.js?build=20261029-plan-status"></script>
-<style>.portal-nav-link{display:flex;align-items:center;gap:12px;min-height:46px}.portal-nav-link .nav-icon{display:inline-flex;flex:0 0 22px;width:22px;height:22px;align-items:center;justify-content:center}.portal-nav-link .nav-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.portal-nav-link .nav-label{display:block;line-height:1.25}</style></head>
+<style>.portal-nav-link{display:flex;align-items:center;gap:12px;min-height:46px}.portal-nav-link .nav-icon{display:inline-flex;flex:0 0 22px;width:22px;height:22px;align-items:center;justify-content:center}.portal-nav-link .nav-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.portal-nav-link .nav-label{display:block;line-height:1.25}</style><style>
+.current-plan-panel{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.plan-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.plan-summary-card{display:grid;gap:6px;min-width:0;padding:16px;border:1px solid #e3e6ed;border-radius:14px;background:#fff}
+.plan-summary-icon{font-size:1.15rem}.plan-summary-card small{font-size:.62rem;letter-spacing:.1em;color:#737d8d;font-weight:850}.plan-summary-card strong{font-size:1.08rem;color:#202735}.plan-summary-card span:last-child{font-size:.72rem;color:#748093;line-height:1.35}
+.lifetime-banner{display:flex;align-items:center;gap:12px;margin-top:12px;padding:13px 16px;border:1px solid #d7b65e;border-radius:12px;background:linear-gradient(100deg,#fff8df,#fffdf5);color:#8b6413;font-size:1.15rem}.lifetime-banner span{display:grid;gap:3px}.lifetime-banner strong{font-size:.88rem}.lifetime-banner small{font-size:.73rem;color:#9b7b34}
+.plan-card.is-special{border-color:#d8b65e;background:linear-gradient(160deg,#fff9e7,#fff 75%);box-shadow:0 8px 24px #b68b2518}.plan-card.is-special .plan-icon{background:#fff0bf;color:#9a6a00}.plan-card.is-special .plan-type{color:#a17816}
+.plan-intro{margin-bottom:18px}.plan-catalog{margin-top:12px}
+@media(max-width:760px){.plan-summary-grid{grid-template-columns:1fr}.plan-summary-card{padding:13px}}
+</style></head>
 <body class="student-body">
 <div class="portal-layout">
   <aside class="portal-sidebar" aria-label="Menu do aluno">
@@ -20,8 +29,15 @@
       <div><span class="eyebrow">R-FIT · SUA EVOLUÇÃO COMEÇA AQUI</span><h1 class="student-title">Meu plano<span>.</span></h1><p id="student-welcome">Validando sua sessão segura…</p></div>
       <button id="logout" class="secondary-button student-logout" type="button">Sair</button>
     </header>
-    <section id="current-plan-panel" class="student-panel" style="margin-bottom:22px" hidden aria-live="polite"><span class="section-kicker">SEU ACESSO</span><h2 id="current-plan-name">Carregando seu plano…</h2><p id="current-plan-details">Consultando sua assinatura.</p><p id="current-plan-days" style="font-weight:800"></p><p id="current-plan-type" style="color:#6b7280"></p></section>\n    <section class="plan-intro">
-      <span class="section-kicker">UPGRADE DE PLANO</span>
+    <section id="current-plan-panel" class="student-panel current-plan-panel" style="margin-bottom:22px" hidden aria-live="polite">
+ <div class="plan-summary-grid">
+  <article class="plan-summary-card"><span class="plan-summary-icon">⏳</span><small>TEMPO RESTANTE</small><strong id="current-plan-days">—</strong><span id="current-plan-expiry">Validade do seu acesso</span></article>
+  <article class="plan-summary-card"><span class="plan-summary-icon">💳</span><small>ÚLTIMO PAGAMENTO</small><strong id="current-payment-method">—</strong><span id="current-payment-details">Nenhum pagamento registrado</span></article>
+  <article class="plan-summary-card"><span class="plan-summary-icon">🎯</span><small>SEU PLANO ATUAL</small><strong id="current-plan-name">Carregando…</strong><span id="current-plan-type">Recursos incluídos no seu acesso</span></article>
+ </div>
+ <div id="lifetime-banner" class="lifetime-banner" hidden>👑 <span><strong>Acesso especial R-Fit</strong><small>Seu acesso vitalício ou cortesia do personal está ativo.</small></span></div>
+</section>
+    <section class="plan-intro"><span id="plan-upgrade-context" class="section-kicker">UPGRADE DE PLANO</span>
       <h2>Amplie seu acompanhamento.</h2>
       <p>Confira as opções disponíveis e escolha o plano que combina com seu próximo objetivo. A mudança só será confirmada após a etapa de pagamento.</p>
       <div class="plan-trust-row"><span>✓ Pagamento via PIX</span><span>✓ Acesso pelo portal</span><span>✓ Seus dados protegidos</span></div>
