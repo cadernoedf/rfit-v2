@@ -411,3 +411,9 @@ body.student-body .sidebar-bottom{padding:10px 7px 0;font-size:.72rem}
 
 /* Ajuste fino: rótulos do menu do aluno sempre em uma linha */
 @media(min-width:851px){body.student-body .portal-nav-link .nav-label{white-space:nowrap;overflow:visible;text-overflow:clip}body.student-body .portal-nav-link{gap:8px!important;padding-left:9px!important;padding-right:8px!important;font-size:.79rem!important}body.student-body .portal-layout{grid-template-columns:220px minmax(0,1fr)}}
+
+
+/* R-FIT V2 | títulos das páginas do aluno em escala compacta */
+body.student-body .student-topbar .student-title{font-size:clamp(2rem,3.8vw,3rem)!important;line-height:1.08!important;letter-spacing:-.045em!important;margin:8px 0 5px!important;max-width:100%;overflow-wrap:normal;word-break:normal}
+body.student-body .student-topbar .student-title span{color:var(--rfit-red)}
+@media(max-width:700px){body.student-body .student-topbar .student-title{font-size:clamp(1.8rem,7vw,2.5rem)!important}}
