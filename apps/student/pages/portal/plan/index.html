@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f4f6f9">
   <title>R-Fit — Escolha seu plano</title>
   <link rel="stylesheet" href="../../../../shared/css/rfit.css">
-  <script type="module" src="./page.js"></script>
+  <script type="module" src="./page.js?build=20261029-plan-status"></script>
 </head>
 <body class="student-body">
 <div class="portal-layout">
@@ -15,8 +15,8 @@
     <nav class="portal-nav">
       <a class="portal-nav-link" href="../home/index.html"><span>▦</span> Meu painel</a>
       <a class="portal-nav-link is-active" href="./index.html" aria-current="page"><span>▤</span> Planos</a>
-      <a class="portal-nav-link" href="../training/index.html"><span>🏋</span> Meu treino</a>
-      <a class="portal-nav-link" href="../diet/index.html"><span>🥗</span> Minha dieta</a>
+      <a class="portal-nav-link" href="../training/index.html"><span class="nav-icon" aria-hidden="true">♧</span> Meu treino</a>
+      <a class="portal-nav-link" href="../diet/index.html"><span class="nav-icon" aria-hidden="true">▤</span> Minha dieta</a>
       <a class="portal-nav-link" href="../journey/index.html"><span>✓</span> Minha jornada</a>
       <a class="portal-nav-link" href="../progress/index.html"><span>↗</span> Evolução</a>
       <a class="portal-nav-link" href="../support/index.html"><span>☏</span> Suporte</a>
@@ -25,10 +25,10 @@
   </aside>
   <main class="student-shell portal-main">
     <header class="student-topbar">
-      <div><span class="eyebrow">R-FIT · SUA EVOLUÇÃO COMEÇA AQUI</span><h1 class="student-title">Escolha seu plano<span>.</span></h1><p id="student-welcome">Validando sua sessão segura…</p></div>
+      <div><span class="eyebrow">R-FIT · SUA EVOLUÇÃO COMEÇA AQUI</span><h1 class="student-title">Meu plano<span>.</span></h1><p id="student-welcome">Validando sua sessão segura…</p></div>
       <button id="logout" class="secondary-button student-logout" type="button">Sair</button>
     </header>
-    <section class="plan-intro">
+    <section id="current-plan-panel" class="student-panel" style="margin-bottom:22px" hidden aria-live="polite"><span class="section-kicker">SEU ACESSO</span><h2 id="current-plan-name">Carregando seu plano…</h2><p id="current-plan-details">Consultando sua assinatura.</p><p id="current-plan-days" style="font-weight:800"></p><p id="current-plan-type" style="color:#6b7280"></p></section>\n    <section class="plan-intro">
       <span class="section-kicker">TREINE COM MÉTODO</span>
       <h2>Um plano para cada objetivo.</h2>
       <p>Escolha o acompanhamento que combina com sua rotina. Você poderá continuar navegando pelo portal; a anamnese será lembrada como próxima etapa.</p>
