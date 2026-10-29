@@ -121,6 +121,7 @@ export async function adminRoutes(request, env, url) {
     if (url.pathname === '/api/professor/students') {
       const rows = await env.RFIT_DB.prepare(`SELECT u.id,u.full_name,u.email,u.avatar_url,u.status,u.created_at,
         sp.anamnesis_completed_at,
+        (SELECT MAX(an.version) FROM anamneses an WHERE an.user_id=u.id) AS anamnesis_version,
         s.status AS subscription_status,p.name AS plan_name,
         (SELECT pay.status FROM payments pay WHERE pay.user_id=u.id ORDER BY pay.created_at DESC LIMIT 1) AS payment_status
         FROM users u
