@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     set('journey-bmi-value',bmi.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}));
     const badge=document.getElementById('journey-bmi-category');if(badge){badge.textContent=category.label;badge.style.color=category.color;badge.style.background=category.color+'18';}
     set('journey-bmi-description',category.desc);
-    const angle=-90+(Math.max(16,Math.min(45,bmi)-16)/29)*180;
+    const angle=-90+((Math.max(16,Math.min(45,bmi))-16)/29)*180;
     document.getElementById('journey-bmi-needle')?.setAttribute('transform','rotate('+angle+' 180 174)');
     gauge.hidden=false;
   }
