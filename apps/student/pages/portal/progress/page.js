@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const data=await response.json();
         let formAnswers=data.anamnesis_answers?.form_answers||null;
         if(!formAnswers){
-          const oldNotes=data.health_info?.additional_notes;
+          const oldNotes=data.anamnesis_answers?.additional_notes||data.health_info?.additional_notes;
           if(oldNotes){try{const parsed=JSON.parse(oldNotes);formAnswers=parsed.form_answers||parsed}catch{}}
         }
         const alerts=[];
