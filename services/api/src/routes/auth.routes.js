@@ -193,7 +193,7 @@ export async function authRoutes(request, env, url) {
       if (user.status !== "active") {
         return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [cookieHeader(COOKIE_STATE, "", 0)]);
       }
-      if (!user.phone || String(user.phone).replace(/\\D/g, "").length < 10) {
+      if (!user.phone || String(user.phone).replace(/\D/g, "").length < 10) {
         const pendingSession = await makeSession(user, env.SESSION_SECRET);
         return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [
           cookieHeader(COOKIE_SESSION, pendingSession, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
@@ -218,7 +218,7 @@ export async function authRoutes(request, env, url) {
     let body;
     try { body = await request.json(); } catch { return authError("invalid_json", 400); }
     const phone = String(body.phone || "").trim();
-    const digits = phone.replace(/\\D/g, "");
+    const digits = phone.replace(/\D/g, "");
     if (digits.length < 10 || digits.length > 13) return authError("registration_invalid", 400);
     try {
       const result = await env.RFIT_DB.prepare("UPDATE users SET phone=?,status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student' AND google_subject IS NOT NULL").bind(phone, session.sub).run();
@@ -242,7 +242,7 @@ export async function authRoutes(request, env, url) {
     if (origin && origin !== url.origin) return authError("origin_not_allowed", 403);
     let body;
     try { body = await request.json(); } catch { return authError("invalid_json", 400); }
-    const name = String(body.name || "").trim().replace(/\\s+/g, " ");
+    const name = String(body.name || "").trim().replace(/\s+/g, " ");
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
     const normalizedPhone = phone.replace(/\D/g, "");
@@ -336,14 +336,14 @@ export async function authRoutes(request, env, url) {
     if (origin && origin !== url.origin) return authError("origin_not_allowed",403);
     let body;
     try { body = await request.json(); } catch { return authError("invalid_json",400); }
-    const name=String(body.name||"").trim().replace(/\\s+/g," ");
+    const name=String(body.name||"").trim().replace(/\s+/g," ");
     const email=String(body.email||"").trim().toLowerCase();
     const phone=String(body.phone||"").trim().slice(0,30);
     const avatar=String(body.avatar_url||"");
     const currentPassword=String(body.current_password||"");
     const newPassword=String(body.new_password||"");
-    if(name.length<2||name.length>160||! /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||email.length>254) return authError("profile_invalid",400);
-    const digits=phone.replace(/\\D/g,"");
+    if(name.length<2||name.length>160||! /^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)||email.length>254) return authError("profile_invalid",400);
+    const digits=phone.replace(/\D/g,"");
     if(phone && (digits.length<10||digits.length>13)) return authError("phone_invalid",400);
     if(avatar && !(avatar.startsWith("data:image/jpeg;base64,")||avatar.startsWith("data:image/png;base64,")||avatar.startsWith("data:image/webp;base64,"))) return authError("avatar_invalid",400);
     if(avatar.length>700000) return authError("avatar_too_large",413);
