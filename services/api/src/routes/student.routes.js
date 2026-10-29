@@ -69,8 +69,15 @@ export async function studentRoutes(request, env, url) {
         if(body.form_answers&&typeof body.form_answers==='object'&&!Array.isArray(body.form_answers))answers.form_answers=body.form_answers;
         const required=['birth_date','height_cm','weight_kg','goal','training_frequency'];
         if(required.some(key=>!answers[key])||!/^\d{4}-\d{2}-\d{2}$/.test(answers.birth_date)||!Number.isFinite(Number(answers.height_cm))||Number(answers.height_cm)<80||Number(answers.height_cm)>250||!Number.isFinite(Number(answers.weight_kg))||Number(answers.weight_kg)<20||Number(answers.weight_kg)>400)return reply({ok:false,error:'required_fields_missing'},400);
+        const previous=await env.RFIT_DB.prepare('SELECT version,answers_json,completed_at FROM anamneses WHERE user_id=? ORDER BY completed_at DESC LIMIT 1').bind(session.sub).first();
+        if(previous?.answers_json){
+          try{
+            const previousAnswers=JSON.parse(previous.answers_json);
+            const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
+            if(JSON.stringify(stable(answers))===JSON.stringify(stable(previousAnswers)))return reply({ok:true,completed:true,unchanged:true,completed_at:previous.completed_at||null});
+          }catch{}
+        }
         const completedAt=new Date().toISOString();
-        const previous=await env.RFIT_DB.prepare('SELECT COALESCE(MAX(version),0) AS version FROM anamneses WHERE user_id=?').bind(session.sub).first();
         const nextVersion=Number(previous?.version||0)+1;
         await env.RFIT_DB.prepare("INSERT INTO anamneses(id,user_id,version,answers_json,completed_at) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,nextVersion,JSON.stringify(answers),completedAt).run();
         await env.RFIT_DB.prepare("UPDATE student_profiles SET birth_date=?,sex=?,height_cm=?,weight_kg=?,goal=?,training_frequency=?,experience_level=?,restrictions_json=?,anamnesis_completed_at=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?").bind(answers.birth_date,answers.sex,Number(answers.height_cm),Number(answers.weight_kg),answers.goal,Number(answers.training_frequency),answers.experience_level,JSON.stringify({health_conditions:answers.health_conditions,medications:answers.medications,allergies:answers.allergies,restrictions:answers.restrictions,additional_notes:answers.additional_notes}),completedAt,session.sub).run();
