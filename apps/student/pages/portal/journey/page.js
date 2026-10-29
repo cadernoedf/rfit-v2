@@ -18,14 +18,21 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-weight',fmt(body.weight_kg,' kg'));set('journey-bmi',fmt(body.bmi));set('journey-waist',fmt(body.waist_cm,' cm'));
   const bmi=Number(body.bmi),gauge=document.getElementById('journey-bmi-gauge');
   if(gauge&&Number.isFinite(bmi)&&bmi>0){
-    const categories=[{max:18.5,label:'Abaixo do peso',color:'#199ed0',desc:'Abaixo da faixa de referência para adultos.'},{max:25,label:'Faixa adequada',color:'#159b50',desc:'Dentro da faixa de referência de IMC para adultos.'},{max:30,label:'Sobrepeso',color:'#c28a00',desc:'Faixa de sobrepeso pelo IMC.'},{max:35,label:'Obesidade grau I',color:'#ed7417',desc:'Faixa de obesidade grau I pelo IMC.'},{max:40,label:'Obesidade grau II',color:'#df4b27',desc:'Faixa de obesidade grau II pelo IMC.'},{max:Infinity,label:'Obesidade grau III',color:'#c92736',desc:'Faixa de obesidade grau III pelo IMC.'}];
+    const categories=[{max:18.5,label:'Abaixo do peso',color:'#199ed0',desc:'Abaixo da faixa de referência.'},{max:25,label:'Faixa adequada',color:'#159b50',desc:'Dentro da faixa de referência.'},{max:30,label:'Sobrepeso',color:'#c28a00',desc:'Faixa de sobrepeso.'},{max:35,label:'Obesidade grau I',color:'#ed7417',desc:'Obesidade grau I.'},{max:40,label:'Obesidade grau II',color:'#df4b27',desc:'Obesidade grau II.'},{max:Infinity,label:'Obesidade grau III',color:'#c92736',desc:'Obesidade grau III.'}];
     const category=categories.find(item=>bmi<item.max)||categories[categories.length-1];
     set('journey-bmi-value',bmi.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}));
     const badge=document.getElementById('journey-bmi-category');if(badge){badge.textContent=category.label;badge.style.color=category.color;badge.style.background=category.color+'18';}
-    set('journey-bmi-description',category.desc+' O IMC não é um diagnóstico isolado.');
+    set('journey-bmi-description',category.desc);
     const angle=-90+(Math.max(16,Math.min(45,bmi)-16)/29)*180;
     document.getElementById('journey-bmi-needle')?.setAttribute('transform','rotate('+angle+' 180 174)');
     gauge.hidden=false;
+  }
+  const waist=Number(body.waist_cm),waistGauge=document.getElementById('journey-waist-gauge');
+  if(waistGauge&&Number.isFinite(waist)&&waist>0){
+    set('journey-waist-value',waist.toLocaleString('pt-BR',{maximumFractionDigits:1})+' cm');
+    const marker=document.getElementById('journey-waist-marker');
+    if(marker)marker.style.left=(Math.max(0,Math.min(100,((waist-50)/100)*100)))+'%';
+    waistGauge.hidden=false;
   }
   set('journey-weight-note',body.measured_at?'Atualizado em '+dateText(body.measured_at):'Dado da anamnese ou última avaliação');
   set('journey-measure-date',body.measured_at?dateText(body.measured_at):'Sem medida registrada');
