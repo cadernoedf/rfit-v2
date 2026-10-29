@@ -317,7 +317,7 @@ export async function authRoutes(request, env, url) {
       const activePlan = await env.RFIT_DB.prepare(
         "SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND (lifetime=1 OR expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) LIMIT 1"
       ).bind(user.id).first().catch(() => null);
-      const destination = activePlan ? "/student/dashboard.html" : "/student/pages/plans.html";
+      const destination = activePlan ? "/student/pages/portal/home/index.html" : "/student/pages/plans.html";
       return Response.json({ ok: true, redirect: destination }, {
         headers: { "Cache-Control": "no-store", "Set-Cookie": cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), "X-Content-Type-Options": "nosniff" }
       });
