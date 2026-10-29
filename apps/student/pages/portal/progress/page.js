@@ -8,6 +8,36 @@ document.addEventListener('DOMContentLoaded', async function () {
     if(result.user.role!=='student'){window.location.replace('/professor/');return;}
     welcome.textContent='Olá, '+(result.user.name||result.user.email)+'.';
     if(message) message.textContent='Sessão validada.';
+    try{
+      const response=await fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+      if(response.ok){
+        const data=await response.json(),body=data.body||{};
+        const weight=Number(body.weight_kg),height=Number(body.height_cm);
+        let bmi=Number(body.bmi);
+        if((!Number.isFinite(bmi)||bmi<=0)&&Number.isFinite(weight)&&Number.isFinite(height)&&height>0)bmi=weight/Math.pow(height/100,2);
+        const card=document.getElementById('bmi-gauge-card');
+        if(card&&Number.isFinite(bmi)&&bmi>0&&Number.isFinite(weight)){
+          const value=document.getElementById('bmi-gauge-value'),category=document.getElementById('bmi-gauge-category'),description=document.getElementById('bmi-gauge-description'),needle=document.getElementById('bmi-gauge-needle'),svg=document.getElementById('bmi-gauge-svg');
+          let label,color,detail;
+          if(bmi<18.5){label='Abaixo do peso';color='#199ed0';detail='O resultado está abaixo da faixa de referência para adultos. Avalie junto a outros indicadores.'}
+          else if(bmi<25){label='Faixa adequada';color='#159b50';detail='O resultado está na faixa de referência de IMC para adultos. Isso não substitui a avaliação individual.'}
+          else if(bmi<30){label='Sobrepeso';color='#c28a00';detail='O resultado está na faixa de sobrepeso pelo IMC. Considere outros indicadores e contexto individual.'}
+          else if(bmi<35){label='Obesidade grau I';color='#ed7417';detail='O resultado está na faixa de obesidade grau I pelo IMC. A classificação não é um diagnóstico isolado.'}
+          else if(bmi<40){label='Obesidade grau II';color='#df4b27';detail='O resultado está na faixa de obesidade grau II pelo IMC. A classificação não é um diagnóstico isolado.'}
+          else{label='Obesidade grau III';color='#c92736';detail='O resultado está na faixa de obesidade grau III pelo IMC. A classificação não é um diagnóstico isolado.'}
+          if(value)value.textContent=bmi.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+          if(category){category.textContent=label;category.style.background=color+'18';category.style.color=color}
+          if(description)description.textContent=detail;
+          // Semicircle maps the adult range 16–40+ to -90°…90°.
+          const clamped=Math.max(16,Math.min(45,bmi));
+          const angle=-90+((clamped-16)/(45-16))*180;
+          if(needle)needle.setAttribute('transform','rotate('+angle+' 180 174)');
+          if(svg)svg.setAttribute('aria-label','IMC '+bmi.toLocaleString('pt-BR',{maximumFractionDigits:1})+', classificação '+label);
+          card.hidden=false;
+        }
+      }
+    }catch(error){console.warn('bmi_gauge_load_failed')}
+
     try {
       const response=await fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
       if(response.ok){
