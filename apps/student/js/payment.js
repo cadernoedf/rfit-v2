@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  });
  try{const current=await getCurrentUser();if(current.user.role!=='student')location.replace('/professor/');
   // Botão temporário restrito à conta de teste conhecida.
-  if(current.user.id==='student-test-rfit-v2'){
+  if(current.user.role==='student' && String(current.user.email||'').trim().toLowerCase()==='aluno@rfit.com.br'){
    $('#test-activate').hidden=false;$('#test-note').hidden=false;
 
   }
