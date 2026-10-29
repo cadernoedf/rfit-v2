@@ -1,35 +1,8 @@
 const form=document.querySelector('#anamnesis-form');const msg=document.querySelector('#anam-message');const setMsg=(s,err=false)=>{msg.textContent=s;msg.className=err?'anam-error':''};
-const phoneField=document.querySelector('#anam-phone');
-if(phoneField){fetch('/api/student/dashboard',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(data=>{const phone=String(data?.student?.phone||'').trim();phoneField.value=phone||'Nenhum telefone cadastrado';phoneField.dataset.found=phone?'yes':'no';const note=document.querySelector('#anam-phone-note');if(note)note.textContent=phone?'Telefone carregado do seu perfil. Não precisa preencher novamente.':'Você ainda não tem telefone cadastrado no perfil.'}).catch(()=>{phoneField.value='Não foi possível carregar';});}
-const updateDetails=()=>{
- const health=[...form.querySelectorAll('input[name="health_conditions"]:checked')].map(x=>x.value);
- const healthDetail=form.querySelector('[data-detail-for="health_conditions"]');if(healthDetail)healthDetail.hidden=!health.some(x=>x!=='Nenhuma');
- const meds=form.querySelector('input[name="medications_status"]:checked')?.value;
- const medsDetail=form.querySelector('[data-detail-for="medications_status"]');if(medsDetail)medsDetail.hidden=meds!=='Sim';
- const allergy=form.querySelector('input[name="allergies_status"]:checked')?.value;
- const allergyDetail=form.querySelector('[data-detail-for="allergies_status"]');if(allergyDetail)allergyDetail.hidden=allergy!=='Sim';
-};
-form?.addEventListener('change',e=>{
- const input=e.target;if(input.matches('input[type="checkbox"][data-exclusive]')&&input.checked){form.querySelectorAll('input[name="'+input.name+'"]').forEach(other=>{if(other!==input&&other.value==='Nenhuma')other.checked=false})}
- if(input.matches('input[type="checkbox"]')&&input.value==='Nenhuma'&&input.checked)form.querySelectorAll('input[name="'+input.name+'"]').forEach(other=>{if(other!==input)other.checked=false});
- updateDetails();
-});
-updateDetails();
-form?.addEventListener('submit',async e=>{
- e.preventDefault();const btn=form.querySelector('button');btn.disabled=true;setMsg('Salvando suas respostas…');
- const body=Object.fromEntries(new FormData(form).entries());
- const selected=name=>[...form.querySelectorAll('input[name="'+name+'"]:checked')].map(x=>x.value);
- const health=selected('health_conditions');
- if(!health.length){setMsg('Selecione pelo menos uma opção em condições de saúde.',true);btn.disabled=false;return}
- const healthDetails=body.health_conditions_details?.trim();
- body.health_conditions=[...health,...(healthDetails?[healthDetails]:[])].join(' — ');
- body.medications=body.medications_status==='Sim'?(body.medications?.trim()||'Sim, detalhes não informados'):'Nenhum';
- body.allergies=body.allergies_status==='Sim'?(body.allergies?.trim()||'Sim, detalhes não informados'):'Nenhuma';
- body.restrictions=[...selected('restrictions'),body.restrictions_details?.trim()].filter(Boolean).join(' — ');
- ['health_conditions_details','medications_status','allergies_status','restrictions_details'].forEach(k=>delete body[k]);
- try{
-  const r=await fetch('/api/student/anamnesis',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d=await r.json();if(!r.ok)throw new Error(d.error||'save_failed');
-  setMsg('Anamnese concluída! Abrindo sua área do aluno…');location.assign('/student/pages/portal/home/index.html');
- }catch(err){setMsg(err.message==='active_plan_required'?'É necessário ter um plano ativo para responder à anamnese.':'Não foi possível salvar. Confira os campos obrigatórios e tente novamente.',true);btn.disabled=false}
-});
+const profileName=document.querySelector('#anam-name'),phoneField=document.querySelector('#anam-phone');
+fetch('/api/student/dashboard',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(data=>{if(profileName)profileName.value=data?.student?.name||'Nome não cadastrado';if(phoneField)phoneField.value=String(data?.student?.phone||'').trim()||'Nenhum telefone cadastrado';const note=document.querySelector('#anam-phone-note');if(note)note.textContent=data?.student?.phone?'WhatsApp carregado do seu perfil; não precisa digitar novamente.':'Não há WhatsApp cadastrado no perfil.'}).catch(()=>{if(profileName)profileName.value='Não foi possível carregar';if(phoneField)phoneField.value='Não foi possível carregar'});
+const selected=name=>[...form.querySelectorAll('[name="'+name+'"]:checked')].map(x=>x.value);
+form?.addEventListener('change',e=>{const x=e.target;if(x.matches('input[type="checkbox"]')){const group=x.name,vals=selected(group);if(x.checked&&vals.includes('Nenhum'))form.querySelectorAll('[name="'+group+'"]').forEach(y=>{if(y!==x)y.checked=false});else if(x.checked&&['Nenhuma','Não'].includes(x.value))form.querySelectorAll('[name="'+group+'"]').forEach(y=>{if(y!==x&&['Nenhum','Nenhuma','Não'].includes(y.value))y.checked=false})}});
+form?.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('button');btn.disabled=true;setMsg('Salvando suas respostas…');const raw=Object.fromEntries(new FormData(form).entries());const arrNames=['goal_options','work_activities','surgeries','diagnoses','symptoms','exercise_sensations','alcohol_frequency','supplements','planned_supplements'];const answers={...raw};for(const name of arrNames)answers[name]=selected(name);const goals=answers.goal_options.join(' | ');const diagnoses=[...answers.surgeries.map(x=>'Cirurgia: '+x),...answers.diagnoses,...answers.symptoms.map(x=>'Sintoma: '+x),...answers.exercise_sensations.map(x=>'Sensação no exercício: '+x)].filter(x=>!/^Nenhum$|^Nenhuma$/.test(x));const meds=raw.medication_status==='Não'?'Nenhum':raw.medications_detail||raw.medication_status||'';const allergies=raw.food_restriction_status==='Sim'?(raw.food_restriction_detail||'Restrição alimentar informada'):'';
+const exp=JSON.stringify(answers);const body={birth_date:raw.birth_date,sex:'',height_cm:raw.height_cm,weight_kg:raw.weight_kg,goal:goals||'Não informado',training_frequency:raw.training_frequency,experience_level:'',health_conditions:diagnoses.join(' — '),medications:meds,allergies,restrictions:raw.food_restriction_detail||'',additional_notes:exp};
+try{const r=await fetch('/api/student/anamnesis',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'save_failed');setMsg('Anamnese concluída! Abrindo sua área do aluno…');location.assign('/student/pages/portal/home/index.html')}catch(err){setMsg(err.message==='active_plan_required'?'É necessário ter um plano ativo para responder à anamnese.':'Não foi possível salvar. Confira os campos obrigatórios e tente novamente.',true);btn.disabled=false}});
