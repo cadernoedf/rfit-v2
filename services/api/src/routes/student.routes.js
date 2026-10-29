@@ -13,6 +13,23 @@ export async function studentRoutes(request, env, url) {
       return reply({ok:true,plans:result.results||[]});
     }catch(error){console.error('student_plan_catalog_failed',error?.message||'unknown');return reply({ok:false,error:'plan_catalog_unavailable'},503);}
   }
+  if (url.pathname === '/api/student/subscription') {
+    if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    try {
+      const subscription=await env.RFIT_DB.prepare("SELECT s.id,s.status,s.expires_at,s.lifetime,s.created_at,p.code AS plan_code,p.name AS plan_name,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+      if(!subscription)return reply({ok:true,subscription:null});
+      let days_remaining=null;
+      if(!Number(subscription.lifetime) && subscription.expires_at) {
+        days_remaining=Math.max(0,Math.ceil((new Date(subscription.expires_at).getTime()-Date.now())/86400000));
+      }
+      return reply({ok:true,subscription:{...subscription,days_remaining}});
+    } catch(error) {
+      console.error('student_subscription_failed',error?.message||'unknown');
+      return reply({ok:false,error:'subscription_unavailable'},503);
+    }
+  }
   if (url.pathname === '/api/student/anamnesis/status' || url.pathname === '/api/student/anamnesis') {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
