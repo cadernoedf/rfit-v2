@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-expiry-note',!sub?'Nenhum plano ativo':Number(sub.lifetime)?'Acesso vitalício':sub.expires_at?'Vence em '+dateText(sub.expires_at):'Validade não informada');
   set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
   set('journey-record-count',body.measured_at?'1 registro recente':'0 registros');
+  const healthCard=document.getElementById('journey-health-card'),healthItems=document.getElementById('journey-health-items'),healthInfo=data.health_info||{};
+  const healthRows=[['Condições / lesões',healthInfo.health_conditions,['Nenhuma','Nenhum','']],['Medicamentos',healthInfo.medications,['Nenhum','Nenhuma','']],['Alergias',healthInfo.allergies,['Nenhuma','Nenhum','']],['Restrições alimentares',healthInfo.restrictions,['Nenhuma','Nenhum','']]];
+  if(healthCard&&healthItems){healthItems.replaceChildren();healthRows.forEach(([label,value,ignored])=>{if(!value)return;const clean=String(value).trim();if(!clean||['Nenhuma','Nenhum','Não','Não informado'].includes(clean))return;const chip=document.createElement('span');chip.className='journey-health-item';const strong=document.createElement('strong');strong.textContent=label+': ';chip.append(strong,document.createTextNode(clean));healthItems.append(chip)});healthCard.hidden=healthItems.childElementCount===0;}
   const reminder=document.getElementById('journey-anamnesis');
   if(reminder&&anamnesis?.has_active_plan&&!anamnesis.completed)reminder.hidden=false;
   const items=[];
