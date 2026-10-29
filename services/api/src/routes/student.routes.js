@@ -4,6 +4,24 @@ const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 const reply=(data,status=200)=>Response.json(data,{status,headers});
 
 export async function studentRoutes(request, env, url) {
+  if (url.pathname === '/api/student/dashboard') {
+    if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    try {
+      const user=await env.RFIT_DB.prepare("SELECT full_name,email,phone,avatar_url FROM users WHERE id=? AND role='student' LIMIT 1").bind(session.sub).first();
+      const profile=await env.RFIT_DB.prepare("SELECT height_cm,weight_kg,goal,anamnesis_completed_at FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first();
+      const sub=await env.RFIT_DB.prepare("SELECT s.id,s.status,s.expires_at,s.lifetime,p.code AS plan_code,p.name AS plan_name,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+      const measurement=await env.RFIT_DB.prepare("SELECT weight_kg,height_cm,waist_cm,measured_at FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 1").bind(session.sub).first();
+      const workout=await env.RFIT_DB.prepare("SELECT id,title,created_at FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
+      const diet=await env.RFIT_DB.prepare("SELECT id,title,created_at FROM diets WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
+      const height=Number(measurement?.height_cm||profile?.height_cm||0)/100;
+      const weight=Number(measurement?.weight_kg||profile?.weight_kg||0);
+      const bmi=height>0&&weight>0?Math.round(weight/(height*height)*10)/10:null;
+      const days=sub&&!Number(sub.lifetime)&&sub.expires_at?Math.max(0,Math.ceil((new Date(sub.expires_at).getTime()-Date.now())/86400000)):null;
+      return reply({ok:true,student:{name:user?.full_name||session.name||'',email:user?.email||session.email||'',phone:user?.phone||'',avatar_url:user?.avatar_url||''},subscription:sub?{plan_name:sub.plan_name||'Plano R-Fit',plan_code:sub.plan_code,lifetime:Number(sub.lifetime),expires_at:sub.expires_at,days_remaining:days,includes_training:Number(sub.includes_training),includes_nutrition:Number(sub.includes_nutrition)}:null,anamnesis_completed:Boolean(profile?.anamnesis_completed_at),body:{bmi,waist_cm:measurement?.waist_cm??null,measured_at:measurement?.measured_at||null},workout_available:Boolean(workout),workout_title:workout?.title||'',diet_available:Boolean(diet),diet_title:diet?.title||''});
+    } catch(error) { console.error('student_dashboard_failed',error?.message||'unknown'); return reply({ok:false,error:'dashboard_unavailable'},503); }
+  }
   if (url.pathname === '/api/student/plans') {
     if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
     const session=await getSession(request,env);
