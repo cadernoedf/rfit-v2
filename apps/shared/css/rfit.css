@@ -393,3 +393,18 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 
 /* Cadastro: orientação do campo obrigatório de celular */
 .register-phone-help { display:block; margin-top:-2px; color:var(--rfit-muted); font-size:.75rem; line-height:1.4; }
+
+
+/* R-FIT V2 | MENU DO ALUNO: compacto, alinhado e sem rolagem desnecessária */
+body.student-body .portal-layout{grid-template-columns:220px minmax(0,1fr)}
+body.student-body .portal-sidebar{gap:20px;padding:22px 14px;min-height:0}
+body.student-body .portal-brand{gap:9px;padding:2px 6px;font-size:1rem}
+body.student-body .brand-mark{width:38px;height:38px;font-size:1.3rem;border-radius:11px}
+body.student-body .portal-brand small{font-size:.58rem;letter-spacing:.13em}
+body.student-body .portal-nav{gap:4px}
+body.student-body .portal-nav-link{min-height:39px!important;padding:8px 10px!important;gap:9px!important;border-radius:9px;font-size:.82rem;font-weight:650;line-height:1.2}
+body.student-body .portal-nav-link .nav-icon{width:20px!important;min-width:20px!important;flex:0 0 20px!important;height:20px!important}
+body.student-body .portal-nav-link .nav-icon svg{width:17px!important;height:17px!important}
+body.student-body .portal-nav-link .nav-label{font-size:inherit;line-height:1.2}
+body.student-body .sidebar-bottom{padding:10px 7px 0;font-size:.72rem}
+@media(max-width:850px){body.student-body .portal-layout{grid-template-columns:64px minmax(0,1fr)}body.student-body .portal-sidebar{gap:20px;padding:18px 7px}body.student-body .portal-nav-link{min-height:38px!important;padding:8px 3px!important}body.student-body .portal-nav-link .nav-label{display:none}body.student-body .portal-brand>span:last-child{display:none}body.student-body .portal-brand{padding:0}body.student-body .portal-nav-link:not(.is-active){font-size:0}body.student-body .portal-nav-link.is-active{font-size:0}}
