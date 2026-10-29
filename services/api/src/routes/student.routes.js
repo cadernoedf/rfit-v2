@@ -38,13 +38,14 @@ export async function studentRoutes(request, env, url) {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
     try {
-      const subscription=await env.RFIT_DB.prepare("SELECT s.id,s.status,s.expires_at,s.lifetime,s.created_at,p.code AS plan_code,p.name AS plan_name,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+      const subscription=await env.RFIT_DB.prepare("SELECT s.id,s.status,s.expires_at,s.lifetime,s.created_at,s.payment_provider,p.code AS plan_code,p.name AS plan_name,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
       if(!subscription)return reply({ok:true,subscription:null});
       let days_remaining=null;
       if(!Number(subscription.lifetime) && subscription.expires_at) {
         days_remaining=Math.max(0,Math.ceil((new Date(subscription.expires_at).getTime()-Date.now())/86400000));
       }
-      return reply({ok:true,subscription:{...subscription,days_remaining}});
+      const payment=await env.RFIT_DB.prepare("SELECT pc.method,p.status,p.paid_at,p.amount_cents FROM payments p LEFT JOIN payment_checkouts pc ON pc.provider_payment_id=p.provider_payment_id WHERE p.user_id=? AND p.status='approved' ORDER BY COALESCE(p.paid_at,p.created_at) DESC LIMIT 1").bind(session.sub).first().catch(()=>null);
+      return reply({ok:true,subscription:{...subscription,days_remaining,last_payment_method:payment?.method||null,last_payment_status:payment?.status||null,last_payment_date:payment?.paid_at||null,last_payment_amount_cents:payment?.amount_cents??null}});
     } catch(error) {
       console.error('student_subscription_failed',error?.message||'unknown');
       return reply({ok:false,error:'subscription_unavailable'},503);
