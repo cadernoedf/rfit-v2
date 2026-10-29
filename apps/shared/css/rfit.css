@@ -408,3 +408,6 @@ body.student-body .portal-nav-link .nav-icon svg{width:17px!important;height:17p
 body.student-body .portal-nav-link .nav-label{font-size:inherit;line-height:1.2}
 body.student-body .sidebar-bottom{padding:10px 7px 0;font-size:.72rem}
 @media(max-width:850px){body.student-body .portal-layout{grid-template-columns:64px minmax(0,1fr)}body.student-body .portal-sidebar{gap:20px;padding:18px 7px}body.student-body .portal-nav-link{min-height:38px!important;padding:8px 3px!important}body.student-body .portal-nav-link .nav-label{display:none}body.student-body .portal-brand>span:last-child{display:none}body.student-body .portal-brand{padding:0}body.student-body .portal-nav-link:not(.is-active){font-size:0}body.student-body .portal-nav-link.is-active{font-size:0}}
+
+/* Ajuste fino: rótulos do menu do aluno sempre em uma linha */
+@media(min-width:851px){body.student-body .portal-nav-link .nav-label{white-space:nowrap;overflow:visible;text-overflow:clip}body.student-body .portal-nav-link{gap:8px!important;padding-left:9px!important;padding-right:8px!important;font-size:.79rem!important}body.student-body .portal-layout{grid-template-columns:220px minmax(0,1fr)}}
