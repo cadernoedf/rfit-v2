@@ -6,11 +6,8 @@ const $=s=>document.querySelector(s);const message=(text,error=false)=>{$('#pay-
 document.addEventListener('DOMContentLoaded',async()=>{
  if(!labels[planCode]){message('Plano inválido. Volte à página de planos e escolha novamente.',true);$('#start-payment').disabled=true;return;}
  $('#pay-title').textContent=labels[planCode][0];$('#pay-plan').textContent=labels[planCode][1];
- try{const current=await getCurrentUser();if(current.user.role!=='student')location.replace('/professor/');
-  // Botão temporário restrito à conta de teste conhecida.
-  if(current.user.id==='student-test-rfit-v2'){
-   $('#test-activate').hidden=false;$('#test-note').hidden=false;
-   $('#test-activate').addEventListener('click',async()=>{
+ const testButton=$('#test-activate');
+ testButton.addEventListener('click',async()=>{
     const btn=$('#test-activate');
     btn.disabled=true;btn.textContent='Ativando teste…';message('Solicitando ativação de teste ao servidor…');
     try{
@@ -27,7 +24,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
      message(errors[e.message]||('Falha ao ativar o teste ('+e.message+'). Nenhuma cobrança foi feita.'),true);
      btn.disabled=false;btn.textContent='🧪 Teste: ativar 30 dias sem pagar';
     }
-   });
+ });
+ try{const current=await getCurrentUser();if(current.user.role!=='student')location.replace('/professor/');
+  // Botão temporário restrito à conta de teste conhecida.
+  if(current.user.id==='student-test-rfit-v2'){
+   $('#test-activate').hidden=false;$('#test-note').hidden=false;
+
   }
  }
  catch{location.replace('/student/pages/login.html?next='+encodeURIComponent('/student/pages/payment.html?plan='+planCode));return;}
