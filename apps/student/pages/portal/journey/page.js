@@ -26,9 +26,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const healthRows=[['Condições / lesões',healthInfo.health_conditions,['Nenhuma','Nenhum','']],['Medicamentos',healthInfo.medications,['Nenhum','Nenhuma','']],['Alergias',healthInfo.allergies,['Nenhuma','Nenhum','']],['Restrições alimentares',healthInfo.restrictions,['Nenhuma','Nenhum','']]];
   if(healthCard&&healthItems){healthItems.replaceChildren();healthRows.forEach(([label,value,ignored])=>{if(!value)return;const clean=String(value).trim();if(!clean||['Nenhuma','Nenhum','Não','Não informado'].includes(clean))return;const chip=document.createElement('span');chip.className='journey-health-item';const strong=document.createElement('strong');strong.textContent=label+': ';chip.append(strong,document.createTextNode(clean));healthItems.append(chip)});healthCard.hidden=healthItems.childElementCount===0;}
   const reminder=document.getElementById('journey-anamnesis');
-  if(reminder&&anamnesis?.has_active_plan&&!anamnesis.completed)reminder.hidden=false;
+  const isAnamnesisCompleted=Boolean(data.anamnesis_completed||anamnesis?.completed);
+  if(reminder){reminder.hidden=!(anamnesis?.has_active_plan&&!isAnamnesisCompleted)}
   const updateCard=document.getElementById('journey-anamnesis-update'),updateNote=document.getElementById('journey-anamnesis-update-note');
-  if(updateCard&&anamnesis?.completed){updateCard.hidden=false;if(updateNote)updateNote.textContent='Última atualização: '+(dateText(anamnesis.completed_at)||'data não disponível')+'. Atualize se seu estado de saúde, rotina, objetivos ou restrições mudarem.';}
+  if(updateCard){updateCard.hidden=!isAnamnesisCompleted;if(isAnamnesisCompleted&&updateNote)updateNote.textContent='Última atualização: '+(dateText(anamnesis?.completed_at)||'data não disponível')+'. Atualize se seu estado de saúde, rotina, objetivos ou restrições mudarem.';}
   const items=[];
   if(data.anamnesis_completed||anamnesis?.completed)addTimeline(items,'Anamnese concluída','Dados iniciais registrados para orientar seu acompanhamento.',anamnesis?.completed_at,'✓');
   else addTimeline(items,'Complete sua anamnese','Preencha os dados iniciais para personalizar o acompanhamento.','','!');
