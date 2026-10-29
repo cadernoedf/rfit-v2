@@ -176,7 +176,7 @@ export async function authRoutes(request, env, url) {
         ]);
       }
 
-      let user = await env.RFIT_DB.prepare("SELECT id,email,full_name,phone,role,status,google_subject FROM users WHERE email=? LIMIT 1").bind(email).first();
+      let user = await env.RFIT_DB.prepare("SELECT id,email,full_name,phone,avatar_url,role,status,google_subject FROM users WHERE email=? LIMIT 1").bind(email).first();
       if (user && user.role !== "student") return authError("google_account_not_authorized", 403);
 
       if (!user) {
@@ -188,6 +188,12 @@ export async function authRoutes(request, env, url) {
         return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [
           cookieHeader(COOKIE_SESSION, pendingSession, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
         ]);
+      }
+
+      /* Use Google photo as default only when the student has not set a custom photo. */
+      if (!user.avatar_url && profile.picture) {
+        await env.RFIT_DB.prepare("UPDATE users SET avatar_url=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student' AND (avatar_url IS NULL OR avatar_url='')").bind(profile.picture, user.id).run();
+        user.avatar_url = profile.picture;
       }
 
       if (user.status !== "active") {
@@ -342,11 +348,11 @@ export async function authRoutes(request, env, url) {
     const avatar=String(body.avatar_url||"");
     const currentPassword=String(body.current_password||"");
     const newPassword=String(body.new_password||"");
-    if(name.length<2||name.length>160||! /^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)||email.length>254) return authError("profile_invalid",400);
+    if(name.length<2||name.length>160||! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254) return authError("profile_invalid",400);
     const digits=phone.replace(/\D/g,"");
     if(phone && (digits.length<10||digits.length>13)) return authError("phone_invalid",400);
     if(avatar && !(avatar.startsWith("data:image/jpeg;base64,")||avatar.startsWith("data:image/png;base64,")||avatar.startsWith("data:image/webp;base64,"))) return authError("avatar_invalid",400);
-    if(avatar.length>700000) return authError("avatar_too_large",413);
+    if(avatar.length>200000) return authError("avatar_too_large",413);
     if(newPassword && (newPassword.length<8||newPassword.length>128)) return authError("password_invalid",400);
     try {
       const existing=await env.RFIT_DB.prepare("SELECT id,email,password_hash FROM users WHERE id=? AND role='student' LIMIT 1").bind(session.sub).first();
