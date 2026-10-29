@@ -23,10 +23,40 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
   set('journey-record-count',body.measured_at?'1 registro recente':'0 registros');
   const healthCard=document.getElementById('journey-health-card'),healthItems=document.getElementById('journey-health-items'),healthInfo=data.health_info||{};
-  const healthRows=[['Condições / lesões',healthInfo.health_conditions,['Nenhuma','Nenhum','']],['Medicamentos',healthInfo.medications,['Nenhum','Nenhuma','']],['Alergias',healthInfo.allergies,['Nenhuma','Nenhum','']],['Restrições alimentares',healthInfo.restrictions,['Nenhuma','Nenhum','']]];
-  if(healthCard&&healthItems){healthItems.replaceChildren();healthRows.forEach(([label,value,ignored])=>{if(!value)return;const clean=String(value).trim();if(!clean||['Nenhuma','Nenhum','Não','Não informado'].includes(clean))return;const chip=document.createElement('span');chip.className='journey-health-item';const strong=document.createElement('strong');strong.textContent=label+': ';chip.append(strong,document.createTextNode(clean));healthItems.append(chip)});healthCard.hidden=healthItems.childElementCount===0;}
+  let formAnswers=data.anamnesis_answers?.form_answers||null;
+  if(!formAnswers&&data.anamnesis_answers?.additional_notes){try{const old=JSON.parse(data.anamnesis_answers.additional_notes);formAnswers=old.form_answers||old}catch{}}
+  const values=(key)=>Array.isArray(formAnswers?.[key])?formAnswers[key].map(x=>String(x).trim()).filter(x=>x&&!/^(nenhum|nenhuma|não|nao)$/i.test(x)):[];
+  const healthGroups=[
+    {emoji:'🩺',label:'Condições de saúde',items:values('diagnoses')},
+    {emoji:'🏥',label:'Cirurgias',items:values('surgeries')},
+    {emoji:'⚠️',label:'Sintomas relatados',items:values('symptoms')},
+    {emoji:'🏃',label:'Durante o exercício',items:values('exercise_sensations')},
+    {emoji:'💊',label:'Medicamentos',items:formAnswers?.medication_status==='Sim'&&String(formAnswers?.medications_detail||'').trim()?[String(formAnswers.medications_detail).trim()]:[]},
+    {emoji:'🥗',label:'Restrições alimentares',items:formAnswers?.food_restriction_status==='Sim'&&String(formAnswers?.food_restriction_detail||'').trim()?[String(formAnswers.food_restriction_detail).trim()]:[]}
+  ];
+  if(!formAnswers){
+    const legacy=String(healthInfo.health_conditions||'').split(' — ').map(x=>x.trim()).filter(x=>x&&!/^(nenhum|nenhuma|não|nao)$/i.test(x));
+    healthGroups[0].items=legacy.filter(x=>!/^Cirurgia:|^Sintoma:|^Sensação no exercício:/i.test(x));
+    healthGroups[1].items=legacy.filter(x=>/^Cirurgia:/i.test(x)).map(x=>x.replace(/^Cirurgia:\s*/i,''));
+    healthGroups[2].items=legacy.filter(x=>/^Sintoma:/i.test(x)).map(x=>x.replace(/^Sintoma:\s*/i,''));
+    healthGroups[3].items=legacy.filter(x=>/^Sensação no exercício:/i.test(x)).map(x=>x.replace(/^Sensação no exercício:\s*/i,''));
+    if(healthInfo.medications&&!/^(nenhum|nenhuma|não|nao)$/i.test(String(healthInfo.medications).trim()))healthGroups[4].items=[String(healthInfo.medications).trim()];
+    if(healthInfo.restrictions&&!/^(nenhum|nenhuma|não|nao)$/i.test(String(healthInfo.restrictions).trim()))healthGroups[5].items=[String(healthInfo.restrictions).trim()];
+  }
+  if(healthCard&&healthItems){
+    healthItems.replaceChildren();
+    healthGroups.filter(group=>group.items.length).forEach(group=>{
+      const card=document.createElement('div');card.className='journey-health-item';
+      const emoji=document.createElement('span');emoji.className='health-emoji';emoji.textContent=group.emoji;
+      const copy=document.createElement('span');copy.className='health-copy';
+      const label=document.createElement('span');label.className='health-label';label.textContent=group.label;
+      const value=document.createElement('span');value.className='health-value';value.textContent=group.items.join(', ');
+      copy.append(label,value);card.append(emoji,copy);healthItems.append(card);
+    });
+    healthCard.hidden=healthItems.childElementCount===0;
+  }
   const reminder=document.getElementById('journey-anamnesis');
-  const isAnamnesisCompleted=Boolean(data.anamnesis_completed||anamnesis?.completed);
+  const isAnamnesisCompleted=Boolean(anamnesis?.completed||data.anamnesis_completed);
   if(reminder){reminder.hidden=!(anamnesis?.has_active_plan&&!isAnamnesisCompleted)}
   const updateCard=document.getElementById('journey-anamnesis-update'),updateNote=document.getElementById('journey-anamnesis-update-note');
   if(updateCard){updateCard.hidden=!isAnamnesisCompleted;if(isAnamnesisCompleted&&updateNote)updateNote.textContent='Última atualização: '+(dateText(anamnesis?.completed_at)||'data não disponível')+'. Atualize se seu estado de saúde, rotina, objetivos ou restrições mudarem.';}
