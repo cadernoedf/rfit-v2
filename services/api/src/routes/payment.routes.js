@@ -76,7 +76,14 @@ export async function paymentRoutes(request, env, url) {
     if (request.method !== 'POST') return reply({ok:false,error:'method_not_allowed'},405);
     const session = await getSession(request, env);
     if (!session || session.role !== 'student') return reply({ok:false,error:'unauthenticated'},401);
-    if (session.sub !== 'student-test-rfit-v2') return reply({ok:false,error:'test_account_only'},403);
+    // Autorizar pela identidade persistida da conta de teste, não por um ID de sessão presumido.
+    // Nunca confiar apenas no e-mail enviado pelo navegador.
+    const testUser = await env.RFIT_DB.prepare(
+      "SELECT id,email,role FROM users WHERE id=? AND role='student' LIMIT 1"
+    ).bind(session.sub).first();
+    if (!testUser || String(testUser.email || '').trim().toLowerCase() !== 'aluno@rfit.com.br') {
+      return reply({ok:false,error:'test_account_only'},403);
+    }
     const origin = request.headers.get('Origin');
     if (origin && origin !== url.origin) return reply({ok:false,error:'origin_not_allowed'},403);
     let body; try { body = await request.json(); } catch { return reply({ok:false,error:'invalid_json'},400); }
