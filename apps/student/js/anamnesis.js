@@ -1,4 +1,6 @@
 const form=document.querySelector('#anamnesis-form');const msg=document.querySelector('#anam-message');const setMsg=(s,err=false)=>{msg.textContent=s;msg.className=err?'anam-error':''};
+const phoneField=document.querySelector('#anam-phone');
+if(phoneField){fetch('/api/student/dashboard',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(data=>{const phone=String(data?.student?.phone||'').trim();phoneField.value=phone||'Nenhum telefone cadastrado';phoneField.dataset.found=phone?'yes':'no';const note=document.querySelector('#anam-phone-note');if(note)note.textContent=phone?'Telefone carregado do seu perfil. Não precisa preencher novamente.':'Você ainda não tem telefone cadastrado no perfil.'}).catch(()=>{phoneField.value='Não foi possível carregar';});}
 const updateDetails=()=>{
  const health=[...form.querySelectorAll('input[name="health_conditions"]:checked')].map(x=>x.value);
  const healthDetail=form.querySelector('[data-detail-for="health_conditions"]');if(healthDetail)healthDetail.hidden=!health.some(x=>x!=='Nenhuma');
