@@ -66,6 +66,7 @@ export async function studentRoutes(request, env, url) {
         const fields=['birth_date','sex','height_cm','weight_kg','goal','training_frequency','experience_level','health_conditions','medications','allergies','restrictions','additional_notes'];
         const answers={};
         for(const key of fields)answers[key]=String(body[key]??'').trim().slice(0,2000);
+        if(body.form_answers&&typeof body.form_answers==='object'&&!Array.isArray(body.form_answers))answers.form_answers=body.form_answers;
         const required=['birth_date','height_cm','weight_kg','goal','training_frequency'];
         if(required.some(key=>!answers[key])||!/^\d{4}-\d{2}-\d{2}$/.test(answers.birth_date)||!Number.isFinite(Number(answers.height_cm))||Number(answers.height_cm)<80||Number(answers.height_cm)>250||!Number.isFinite(Number(answers.weight_kg))||Number(answers.weight_kg)<20||Number(answers.weight_kg)>400)return reply({ok:false,error:'required_fields_missing'},400);
         const completedAt=new Date().toISOString();
