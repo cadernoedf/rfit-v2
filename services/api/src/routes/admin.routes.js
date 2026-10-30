@@ -59,7 +59,7 @@ export async function adminRoutes(request, env, url) {
         env.RFIT_DB.prepare(`SELECT u.id,u.full_name,u.email,u.phone,u.avatar_url,u.status,u.created_at,
           sp.birth_date,sp.sex,sp.height_cm,sp.weight_kg,sp.goal,sp.training_frequency,sp.experience_level,sp.anamnesis_completed_at
           FROM users u LEFT JOIN student_profiles sp ON sp.user_id=u.id WHERE u.id=? AND u.role='student'`).bind(studentId).first(),
-        env.RFIT_DB.prepare('SELECT id,weight_kg,height_cm,body_fat_pct,waist_cm,hip_cm,measured_at,notes FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 12').bind(studentId).all(),
+        env.RFIT_DB.prepare('SELECT id,weight_kg,height_cm,body_fat_pct,waist_cm,hip_cm,basal_kcal,measured_at,notes FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 12').bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT id,title,goal,weekly_frequency,status,created_at,updated_at FROM workouts WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT id,title,goal,calories_target,status,created_at,updated_at FROM diets WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
         env.RFIT_DB.prepare(`SELECT s.id,s.status,s.starts_at,s.expires_at,s.billing_starts_at,s.lifetime,p.name AS plan_name,p.price_cents
@@ -86,7 +86,7 @@ export async function adminRoutes(request, env, url) {
       if(waist!==null&&(!Number.isFinite(waist)||waist<1||waist>300))return Response.json({ok:false,error:'invalid_waist'},{status:400,headers:noStore});
       if(bmr!==null&&(!Number.isFinite(bmr)||bmr<500||bmr>10000))return Response.json({ok:false,error:'invalid_bmr'},{status:400,headers:noStore});
       const notes=[String(body.notes||'').trim(),bmr?('Gasto calórico basal: '+bmr+' kcal'):null].filter(Boolean).join(' | ').slice(0,1200);
-      await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,measured_at,notes) VALUES (?,?,?,?,?,?,?)').bind(crypto.randomUUID(),studentId,weight,student.height_cm||null,waist,measuredAt,notes||null).run();
+      await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at,notes) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),studentId,weight,student.height_cm||null,waist,bmr,measuredAt,notes||null).run();
       if(weight!==null)await env.RFIT_DB.prepare('UPDATE student_profiles SET weight_kg=? WHERE user_id=?').bind(weight,studentId).run();
       return Response.json({ok:true},{headers:noStore});
     }
