@@ -136,7 +136,7 @@ export async function studentRoutes(request, env, url) {
         ]);
         const goals=(result.results||[]).map(goal=>{
           const current=goal.metric==='weight'?(measurement?.weight_kg??profile?.weight_kg??null):goal.metric==='waist'?(measurement?.waist_cm??null):goal.metric==='body_fat'?(measurement?.body_fat_pct??null):null;
-          const start=goal.start_value===null?null:Number(goal.start_value),target=goal.target_value===null?null:Number(goal.target_value),value=current===null?null:Number(current);
+          const value=current===null?null:Number(current),start=goal.start_value===null?(value!==null&&Number.isFinite(value)?value:null):Number(goal.start_value),target=goal.target_value===null?null:Number(goal.target_value);
           let progress=null,reached=false;
           if(start!==null&&target!==null&&value!==null&&Number.isFinite(value)&&target!==start){
             progress=Math.max(0,Math.min(100,Math.round(((value-start)/(target-start))*100)));
