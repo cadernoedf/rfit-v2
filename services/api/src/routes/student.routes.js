@@ -59,8 +59,12 @@ export async function studentRoutes(request, env, url) {
     try {
       if(request.method==='GET'){
         await env.RFIT_DB.prepare("UPDATE support_messages SET read_at=CURRENT_TIMESTAMP WHERE student_user_id=? AND sender_role IN ('professor','admin') AND read_at IS NULL").bind(session.sub).run();
-        const rows=await env.RFIT_DB.prepare("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE student_user_id=? ORDER BY created_at ASC,id ASC LIMIT 300").bind(session.sub).all();
-        return reply({ok:true,messages:rows.results||[]});
+        const [rows,student,professor]=await Promise.all([
+          env.RFIT_DB.prepare("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE student_user_id=? ORDER BY created_at ASC,id ASC LIMIT 300").bind(session.sub).all(),
+          env.RFIT_DB.prepare("SELECT full_name,avatar_url FROM users WHERE id=? AND role='student' LIMIT 1").bind(session.sub).first(),
+          env.RFIT_DB.prepare("SELECT full_name,avatar_url FROM users WHERE role IN ('professor','admin') AND status='active' ORDER BY CASE role WHEN 'professor' THEN 0 ELSE 1 END LIMIT 1").first()
+        ]);
+        return reply({ok:true,student:student||{full_name:session.name||'Aluno',avatar_url:null},professor:professor||{full_name:'Professor R-Fit',avatar_url:null},messages:rows.results||[]});
       }
       if(request.method==='POST'){
         const body=await request.json(), message=String(body.message||'').trim();
