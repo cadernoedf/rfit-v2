@@ -16,6 +16,8 @@ async function loadPortalPresentation(){
   const settings=data.settings||{};
   const title=document.querySelector('.login-title'),intro=document.querySelector('#login-message-intro');
   if(title&&settings.login_title)title.textContent=settings.login_title;
+  const registerLink=document.querySelector('.login-register-link');
+  if(registerLink&&settings.registration_enabled===false)registerLink.hidden=true;
   if(intro&&settings.login_message)intro.textContent=settings.login_message;
   const list=document.querySelector('#login-featured-list'),section=document.querySelector('#login-featured');
   const students=data.top_students||[];
