@@ -4,6 +4,53 @@ const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 const reply=(data,status=200)=>Response.json(data,{status,headers});
 
 export async function studentRoutes(request, env, url) {
+  /* ===== CONFIGURAÇÃO PÚBLICA DA TELA DE LOGIN ===== */
+  if (url.pathname === '/api/public/portal-config' && request.method === 'GET') {
+    try {
+      const rows=await env.RFIT_DB.prepare("SELECT setting_key,setting_value FROM portal_settings WHERE setting_key IN ('consultancy_name','login_title','login_message','login_top_students')").all();
+      const settings=Object.fromEntries((rows.results||[]).map(row=>[row.setting_key,row.setting_value]));
+      let topStudents=[];
+      try {
+        const ids=JSON.parse(settings.login_top_students||'[]');
+        if(Array.isArray(ids)&&ids.length){
+          const valid=ids.filter(id=>typeof id==='string').slice(0,5);
+          if(valid.length){const marks=valid.map(()=>'?').join(',');const result=await env.RFIT_DB.prepare(`SELECT id,full_name,avatar_url FROM users WHERE role='student' AND status='active' AND id IN (${marks})`).bind(...valid).all();topStudents=result.results||[];}
+        }
+      } catch {}
+      return reply({ok:true,settings:{consultancy_name:settings.consultancy_name||'R-Fit',login_title:settings.login_title||'Seu próximo nível começa aqui.',login_message:settings.login_message||'Entre para acessar seu espaço no R-Fit.'},top_students:topStudents});
+    } catch(error){console.error('public_portal_config_failed',error?.message||'unknown');return reply({ok:false,error:'portal_config_unavailable'},503);}
+  }
+
+  /* ===== AVISOS PRIVADOS DO ALUNO ===== */
+  if (url.pathname === '/api/student/announcements') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    try {
+      if(request.method==='GET'){
+        const rows=await env.RFIT_DB.prepare(`SELECT a.id,a.title,a.message,a.starts_at,a.ends_at,a.require_acknowledgement,a.created_at,
+          r.read_at FROM portal_announcements a LEFT JOIN announcement_reads r ON r.announcement_id=a.id AND r.user_id=?
+          WHERE a.is_active=1 AND (a.starts_at IS NULL OR a.starts_at<=CURRENT_TIMESTAMP)
+          AND (a.ends_at IS NULL OR a.ends_at>=CURRENT_TIMESTAMP)
+          ORDER BY a.created_at DESC LIMIT 100`).bind(session.sub).all();
+        const announcements=(rows.results||[]).filter(item=>!item.read_at).filter(item=>{
+          return true;
+        });
+        const details=await env.RFIT_DB.prepare("SELECT id,target_user_ids_json,audience FROM portal_announcements WHERE is_active=1 AND (starts_at IS NULL OR starts_at<=CURRENT_TIMESTAMP) AND (ends_at IS NULL OR ends_at>=CURRENT_TIMESTAMP)").all();
+        const allowed=new Set((details.results||[]).filter(item=>item.audience==='all'||(()=>{try{return JSON.parse(item.target_user_ids_json||'[]').includes(session.sub)}catch{return false}})()).map(item=>item.id));
+        return reply({ok:true,announcements:announcements.filter(item=>allowed.has(item.id))});
+      }
+      const match=url.pathname.match(/^\/api\/student\/announcements\/([^/]+)\/read$/);
+      if(request.method==='POST'&&match){
+        const id=decodeURIComponent(match[1]);
+        const exists=await env.RFIT_DB.prepare("SELECT id FROM portal_announcements WHERE id=? AND is_active=1 AND (audience='all' OR target_user_ids_json LIKE ?)").bind(id,'%'+session.sub+'%').first();
+        if(!exists)return reply({ok:false,error:'announcement_not_found'},404);
+        await env.RFIT_DB.prepare('INSERT OR IGNORE INTO announcement_reads(announcement_id,user_id) VALUES(?,?)').bind(id,session.sub).run();
+        return reply({ok:true});
+      }
+      return reply({ok:false,error:'method_not_allowed'},405);
+    } catch(error){console.error('student_announcements_failed',error?.message||'unknown');return reply({ok:false,error:'announcements_unavailable'},503);}
+  }
+
   if (url.pathname === '/api/student/support/messages') {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
