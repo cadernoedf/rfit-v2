@@ -25,8 +25,16 @@ function render(data){
  const badges=document.createElement('div');badges.className='student-profile-badges';
  [s.status==='active'?'Acesso ativo':s.status==='suspended'?'Acesso suspenso':'Aguardando ativação',sub?.plan_name||'Sem plano',sub?.status==='active'?'Assinatura ativa':sub?.status||'Sem assinatura'].forEach(text=>{const badge=document.createElement('span');badge.textContent=text;badges.append(badge)});
  info.append(name,email,badges);
- const actions=document.createElement('div');actions.className='student-profile-contact';const phone=document.createElement('span');phone.textContent=s.phone||'Telefone não informado';const goal=document.createElement('span');goal.textContent=s.goal||'Objetivo não informado';actions.append(phone,goal);
- hero.append(avatar,info,actions);
+ const actions=document.createElement('div');actions.className='student-profile-contact';
+ const phone=document.createElement('span');phone.textContent=s.phone||'Telefone não informado';
+ const goal=document.createElement('span');goal.textContent=s.goal||'Objetivo não informado';
+ actions.append(phone,goal);
+ const quick=document.createElement('div');quick.className='student-profile-quick-actions';
+ const digits=String(s.phone||'').replace(/\\D/g,'');
+ if(digits.length>=10){const wa=document.createElement('a');wa.className='student-quick-button is-whatsapp';wa.href='https://wa.me/'+(digits.startsWith('55')?digits:'55'+digits);wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Conversar no WhatsApp';quick.append(wa);}
+ const assessment=document.createElement('button');assessment.type='button';assessment.className='student-quick-button is-primary';assessment.textContent='＋ Registrar avaliação';assessment.addEventListener('click',()=>document.querySelector('[data-student-tab="evolution"]')?.click());quick.append(assessment);
+ const workout=document.createElement('button');workout.type='button';workout.className='student-quick-button';workout.textContent='＋ Novo treino';workout.addEventListener('click',()=>{document.querySelector('[data-student-tab="workouts"]')?.click();document.querySelector('#workout-form')?.scrollIntoView({behavior:'smooth',block:'start'});});quick.append(workout);
+ hero.append(avatar,info,actions,quick);
  const measurements=data.measurements||[];
  const latest=measurements[0]||{};
  const weight=latest.weight_kg??s.weight_kg;
