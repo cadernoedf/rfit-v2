@@ -306,6 +306,13 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 .brand-mark{display:grid;width:42px;height:42px;place-items:center;background:#ff3348;border-radius:12px;color:white;font-size:1.45rem;font-weight:950}
 .portal-nav{display:grid;gap:7px}
 .portal-nav-link{display:flex;align-items:center;gap:12px;min-height:46px;padding:11px 13px;color:#b7bdc8;border:1px solid transparent;border-radius:10px;font-size:.9rem;font-weight:650;transition:background .15s ease,color .15s ease}
+/* Menu do professor: dimensões fixas e estado ativo sem deslocamento */
+body.admin-body .portal-nav{gap:7px}
+body.admin-body .portal-nav-link{box-sizing:border-box;width:100%;height:46px;min-height:46px;padding:0 13px;gap:12px;line-height:1.2;white-space:nowrap}
+body.admin-body .portal-nav-link>span{box-sizing:border-box;flex:0 0 22px;width:22px;min-width:22px;height:22px;display:inline-grid;place-items:center;line-height:1}
+body.admin-body .portal-nav-link:hover:not(.is-active){background:#1c2028;border-color:#292e38;color:#fff}
+body.admin-body .portal-nav-link.is-active{background:#282b34;border-color:#373b46;color:#fff;box-shadow:inset 3px 0 #ff3348}
+
 .portal-nav-link>span{display:inline-grid;width:22px;place-items:center;font-size:1.08rem}
 .portal-nav-link:hover,.portal-nav-link.is-active{color:#fff;background:#282b34;border-color:#373b46}
 .portal-nav-link.is-active{box-shadow:inset 3px 0 #ff3348}
