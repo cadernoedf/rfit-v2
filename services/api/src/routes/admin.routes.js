@@ -26,7 +26,8 @@ export async function adminRoutes(request, env, url) {
     return Response.json({ ok: false, error: 'forbidden' }, { status: 403, headers: noStore });
   }
 
-  try {\n    if (isSupportInbox && request.method === 'GET') {
+  try {
+    if (isSupportInbox && request.method === 'GET') {
       const rows=await env.RFIT_DB.prepare(`SELECT u.id AS student_id,u.full_name,u.avatar_url,
         (SELECT body FROM support_messages m WHERE m.student_user_id=u.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) AS last_message,
         (SELECT created_at FROM support_messages m WHERE m.student_user_id=u.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) AS last_message_at,
