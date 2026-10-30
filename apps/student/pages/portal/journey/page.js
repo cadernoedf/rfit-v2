@@ -15,8 +15,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const body=data.body||{},sub=data.subscription;
   set('journey-goal',data.goal||'Construindo sua melhor versão.');
   set('journey-subtitle',data.anamnesis_completed?'Seus dados e registros ajudam você e seu personal a acompanhar sua evolução.':'Sua jornada fica mais personalizada quando você conclui a anamnese.');
+  const planKind=sub?.access_type==='lifetime'||Number(sub?.lifetime)?'👑 Acesso vitalício':sub?.access_type==='courtesy'?'👑 Cortesia do personal':sub?.is_expired?'Plano vencido':'Plano ativo';
   set('journey-plan',sub?.plan_name||'Nenhum plano ativo');
-  set('journey-days',sub?(Number(sub.lifetime)?'Acesso vitalício':sub.days_remaining===null||sub.days_remaining===undefined?'Plano ativo':'Restam '+sub.days_remaining+' '+(sub.days_remaining===1?'dia':'dias')):'Escolha seu plano');
+  set('journey-days',!sub?'Sem plano ativo':Number(sub.lifetime)?'👑 Vitalício':sub.is_expired?'Plano vencido':sub.days_remaining===null||sub.days_remaining===undefined?'Validade não informada':'Restam '+sub.days_remaining+' '+(sub.days_remaining===1?'dia':'dias'));
+  const heroTags=document.querySelector('.journey-tags');
+  if(heroTags&&sub){const badge=document.createElement('span');badge.textContent=planKind; if(sub.access_type==='lifetime'||sub.access_type==='courtesy'||Number(sub.lifetime)){badge.style.color='#f3cf75';badge.style.borderColor='#b88b36';badge.style.background='#b88b3618'} heroTags.append(badge);}
   set('journey-weight',fmt(body.weight_kg,' kg'));set('journey-bmi',fmt(body.bmi));set('journey-waist',fmt(body.waist_cm,' cm'));
   const bmi=Number(body.bmi),gauge=document.getElementById('journey-bmi-gauge');
   if(gauge&&Number.isFinite(bmi)&&bmi>0){
@@ -43,27 +46,31 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(marker)marker.style.left=(Math.max(0,Math.min(100,((waist-50)/100)*100)))+'%';
     waistGauge.hidden=false;
   }
-  set('journey-weight-note',body.measured_at?'Atualizado em '+dateText(body.measured_at):'Dado da anamnese ou última avaliação');
+  set('journey-weight-note',body.weight_source==='checkin'?'Último peso informado no check-in':body.weight_source==='evaluation'?'Última avaliação do professor':'Peso inicial da anamnese');
   set('journey-measure-date',body.measured_at?dateText(body.measured_at):'Sem medida registrada');
   set('journey-days-count',!sub?'—':Number(sub.lifetime)?'∞':sub.days_remaining===null||sub.days_remaining===undefined?'—':String(sub.days_remaining));
-  set('journey-expiry-note',!sub?'Nenhum plano ativo':Number(sub.lifetime)?'Acesso vitalício':sub.expires_at?'Vence em '+dateText(sub.expires_at):'Validade não informada');
+  set('journey-expiry-note',!sub?'Nenhum plano cadastrado':Number(sub.lifetime)?'👑 Acesso vitalício':sub.is_expired?'Acesso vencido em '+dateText(sub.expires_at):sub.expires_at?'Vence em '+dateText(sub.expires_at):'Validade não informada');
   set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
-  set('journey-record-count',body.measured_at?'1 registro recente':'0 registros');
+  set('journey-record-count',String(measurements.length+checkins.length)+' registros');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
+  const heightMeters=Number(body.height_cm||0)/100;
+  const checkinWeightPoints=checkins.filter(row=>row.weight_kg!==null&&row.weight_kg!==undefined&&Number(row.weight_kg)>0).map(row=>({measured_at:row.created_at||row.checkin_date,weight_kg:Number(row.weight_kg),bmi:heightMeters>0?Math.round((Number(row.weight_kg)/(heightMeters*heightMeters))*10)/10:null,source:'checkin'}));
+  const evaluationPoints=measurements.map(row=>({...row,source:'evaluation'}));
+  const combinedWeightHistory=[...evaluationPoints,...checkinWeightPoints].sort((x,y)=>new Date(x.measured_at)-new Date(y.measured_at));
   const chartMetrics={
-    weight:{label:'Peso corporal',unit:'kg',color:'#7650ee',value:r=>Number(r.weight_kg)},
-    waist:{label:'Circunferência abdominal',unit:'cm',color:'#f08a35',value:r=>Number(r.waist_cm)},
-    bmi:{label:'Índice de massa corporal',unit:'',color:'#2997dc',value:r=>Number(r.bmi)},
-    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#16a36a',value:r=>Number(r.basal_kcal)}
+    weight:{label:'Peso corporal',unit:'kg',color:'#7650ee',value:r=>Number(r.weight_kg),source:'all'},
+    waist:{label:'Circunferência abdominal',unit:'cm',color:'#f08a35',value:r=>Number(r.waist_cm),source:'evaluation'},
+    bmi:{label:'Índice de massa corporal',unit:'',color:'#2997dc',value:r=>Number(r.bmi),source:'all'},
+    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#16a36a',value:r=>Number(r.basal_kcal),source:'evaluation'}
   };
   let activeMetric='weight';
   const chartNode=document.getElementById('journey-chart'),captionNode=document.getElementById('journey-chart-caption');
   const chartDate=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});};
   const renderJourneyChart=()=>{
-    const metric=chartMetrics[activeMetric],points=measurements.map(row=>({date:row.measured_at,value:metric.value(row)})).filter(p=>Number.isFinite(p.value)&&p.value>0);
+    const metric=chartMetrics[activeMetric],sourceRows=metric.source==='all'?combinedWeightHistory:measurements,points=sourceRows.map(row=>({date:row.measured_at,value:metric.value(row),source:row.source||'evaluation'})).filter(p=>Number.isFinite(p.value)&&p.value>0);
     document.querySelectorAll('.journey-chart-toggle').forEach(button=>{const active=button.dataset.metric===activeMetric;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});
-    if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'avaliação':'avaliações');
+    if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'registro':'registros')+(activeMetric==='weight'?' (check-ins e avaliações)':activeMetric==='bmi'?' (calculado por registro)':' do professor');
     if(!chartNode)return;
     if(!points.length){chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">↗</span><strong>Seu histórico está começando</strong><p>Assim que seu personal registrar avaliações com este indicador, a evolução aparecerá aqui.</p></div>';return;}
     if(points.length===1){const p=points[0];chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">✓</span><strong>Primeira avaliação registrada</strong><p>'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+' · '+chartDate(p.date)+'. Registros seguintes formarão a linha de evolução.</p></div>';return;}
