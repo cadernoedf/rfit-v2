@@ -663,3 +663,68 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
  .portal-main .professor-page-hero .detail-header-actions{flex-direction:row;align-items:center}
  .portal-main .professor-page-hero .detail-header-actions .secondary-button{min-width:0;padding:7px 9px;font-size:.66rem}
 }
+
+
+/* ==========================================================================
+   R-FIT | HERO ÚNICO DO PROFESSOR
+   Identificação, título, contexto e ação na mesma faixa horizontal.
+   ========================================================================== */
+.portal-main .admin-topbar.professor-page-hero{
+ position:relative;display:grid;grid-template-columns:minmax(245px,.9fr) minmax(300px,1.35fr) auto;
+ align-items:center;column-gap:30px;row-gap:12px;
+ min-height:176px;margin:0 0 24px;padding:27px 28px;
+ border:1px solid #343a46;border-radius:18px;
+ background:radial-gradient(circle at 88% -35%,#414958 0,transparent 34%),linear-gradient(112deg,#151820 0%,#242a35 72%,#321923 100%);
+ box-shadow:0 12px 30px #11182712;
+}
+.portal-main .professor-page-heading{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;padding-right:24px;border-right:1px solid #ffffff20}
+.portal-main .professor-page-intro{grid-column:2;grid-row:1;display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;padding-right:8px}
+.portal-main .professor-page-hero .eyebrow{margin:0;color:#ff5368;font-size:.65rem;font-weight:900;letter-spacing:.19em}
+.portal-main .professor-page-hero .eyebrow::before{background:#ff435b}
+.portal-main .professor-page-hero .admin-title{margin:5px 0 0;color:#fff;font-size:clamp(1.8rem,2.5vw,2.35rem);line-height:1.05;letter-spacing:-.045em}
+.portal-main .professor-page-hero .admin-title span{color:#ff4059}
+.portal-main .professor-page-hero p{margin:3px 0 0;color:#c6ccd6;font-size:.78rem;line-height:1.5}
+.portal-main .professor-page-intro .overview-kicker{margin:0;color:#ff5368;font-size:.64rem;font-weight:900;letter-spacing:.18em}
+.portal-main .professor-page-intro h2{margin:0;color:#fff;font-size:clamp(1.2rem,1.8vw,1.65rem);line-height:1.16;letter-spacing:-.035em}
+.portal-main .professor-page-intro p{max-width:620px;margin:0;color:#c6ccd6;font-size:.8rem;line-height:1.5}
+.portal-main .professor-page-hero>.admin-logout,
+.portal-main .professor-page-hero>.detail-header-actions{
+ position:absolute;top:18px;right:20px;grid-column:3;grid-row:1;
+}
+.portal-main .professor-page-hero .admin-logout,
+.portal-main .professor-page-hero .detail-header-actions .secondary-button,
+.portal-main .professor-page-hero>.professor-hero-action{
+ width:auto;min-width:76px;min-height:38px;margin:0;padding:8px 14px;
+ border:1px solid #ffffff2b;border-radius:10px;background:#ffffff0b;color:#fff;
+ font-size:.74rem;font-weight:800;
+}
+.portal-main .professor-page-hero>.professor-hero-action,
+.portal-main .professor-page-hero>.overview-hero-action,
+.portal-main .professor-page-hero>.professor-hero-count{
+ grid-column:3;grid-row:1;align-self:center;margin-right:0;
+}
+.portal-main .professor-page-hero>.overview-hero-action{display:inline-flex;align-items:center;justify-content:center;gap:15px;min-height:58px;padding:0 19px;border:1px solid #ffffff30;border-radius:12px;background:#ffffff0b;color:#fff;font-size:.8rem;font-weight:900;text-decoration:none;white-space:nowrap}
+.portal-main .professor-page-hero>.overview-hero-action span{color:#ff5368}
+.portal-main .professor-page-hero>.professor-hero-count{display:grid;place-items:center;gap:2px;min-width:84px;min-height:84px;padding:10px;border:1px solid #ffffff24;border-radius:14px;background:#ffffff0b;color:#fff}
+.portal-main .professor-page-hero>.professor-hero-count strong{font-size:1.5rem}
+.portal-main .professor-page-hero>.professor-hero-count span{font-size:.65rem}
+.portal-main .professor-page-hero .overview-hero-orbit{position:absolute;right:7%;top:-105px;width:290px;height:290px;border:1px solid #ffffff0a;border-radius:50%;pointer-events:none}
+.portal-main .professor-page-hero .overview-hero-orbit::before,.portal-main .professor-page-hero .overview-hero-orbit::after{position:absolute;inset:22px;border:1px solid #ffffff08;border-radius:50%;content:""}
+.portal-main .professor-page-hero .overview-hero-orbit::after{inset:48px}
+@media(max-width:900px){
+ .portal-main .admin-topbar.professor-page-hero{grid-template-columns:minmax(190px,.8fr) minmax(240px,1.2fr);column-gap:20px;padding:24px 22px}
+ .portal-main .professor-page-heading{padding-right:15px}
+ .portal-main .professor-page-hero>.overview-hero-action,.portal-main .professor-page-hero>.professor-hero-action,.portal-main .professor-page-hero>.professor-hero-count{grid-column:2;grid-row:2;justify-self:start}
+ .portal-main .professor-page-hero>.admin-logout,.portal-main .professor-page-hero>.detail-header-actions{top:13px;right:14px}
+ .portal-main .professor-page-heading{padding-right:48px}
+}
+@media(max-width:600px){
+ .portal-main .admin-topbar.professor-page-hero{grid-template-columns:minmax(0,1fr);gap:15px;min-height:0;padding:20px 17px}
+ .portal-main .professor-page-heading{grid-column:1;grid-row:1;padding:0 82px 12px 0;border-right:0;border-bottom:1px solid #ffffff20}
+ .portal-main .professor-page-intro{grid-column:1;grid-row:2;padding:0}
+ .portal-main .professor-page-hero>.overview-hero-action,.portal-main .professor-page-hero>.professor-hero-action,.portal-main .professor-page-hero>.professor-hero-count{grid-column:1;grid-row:3;justify-self:start}
+ .portal-main .professor-page-hero>.admin-logout,.portal-main .professor-page-hero>.detail-header-actions{top:15px;right:13px}
+ .portal-main .professor-page-hero .admin-title{font-size:1.75rem}
+ .portal-main .professor-page-intro h2{font-size:1.25rem}
+ .portal-main .professor-page-hero .overview-hero-orbit{right:-110px;top:-115px}
+}
