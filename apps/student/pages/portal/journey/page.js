@@ -281,13 +281,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
     reportWindow.document.close();
   });
   // Orientações registradas pelo profissional para este aluno.
-  const notesList=document.getElementById('journey-professional-notes-list');
+  const notesList=document.getElementById('journey-professional-notes-list');let journeyNotes=[];
   try{
     const response=await fetch('/api/student/journey/notes',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
     if(!response.ok)throw new Error('notes_unavailable');
-    const result=await response.json(),notes=Array.isArray(result.notes)?result.notes:[];
+    const result=await response.json();journeyNotes=Array.isArray(result.notes)?result.notes:[];const notes=journeyNotes;
     if(notesList){notesList.replaceChildren();if(!notes.length){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='Seu personal ainda não deixou orientações por aqui.';notesList.append(empty);}else{notes.forEach(note=>{const card=document.createElement('article');card.className='journey-professional-note';const author=document.createElement('strong'),body=document.createElement('p'),time=document.createElement('time');author.textContent=note.author_name||'Seu personal';body.textContent=note.note;time.textContent=dateText(note.created_at);card.append(author,body,time);notesList.append(card);});}}
-    notes.forEach(note=>addTimeline(items,'Orientação do personal',note.note,note.created_at,'✎'));
   }catch(error){if(notesList){notesList.replaceChildren();const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='As orientações profissionais não estão disponíveis no momento.';notesList.append(empty);}}
 
   document.getElementById('journey-print-report')?.addEventListener('click',()=>window.print());
@@ -330,6 +329,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const updateCard=document.getElementById('journey-anamnesis-update'),updateNote=document.getElementById('journey-anamnesis-update-note');
   if(updateCard){updateCard.hidden=!isAnamnesisCompleted;if(isAnamnesisCompleted&&updateNote)updateNote.textContent='Última atualização: '+(dateText(anamnesis?.completed_at)||'data não disponível')+'. Atualize se seu estado de saúde, rotina, objetivos ou restrições mudarem.';}
   const items=[];
+  journeyNotes.forEach(note=>addTimeline(items,'Orientação do personal',note.note,note.created_at,'✎'));
   if(data.anamnesis_completed||anamnesis?.completed)addTimeline(items,'Anamnese concluída','Dados iniciais registrados para orientar seu acompanhamento.',anamnesis?.completed_at,'✓');
   else addTimeline(items,'Complete sua anamnese','Preencha os dados iniciais para personalizar o acompanhamento.','','!');
   if(sub)addTimeline(items,'Plano ativo: '+(sub.plan_name||'R-Fit'),Number(sub.lifetime)?'Seu acesso é vitalício.':(sub.days_remaining===null?'Plano em andamento.':'Restam '+sub.days_remaining+' dias de acesso.'),sub.expires_at,'R');
