@@ -13,7 +13,10 @@ export async function adminRoutes(request, env, url) {
   const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
   const testAccessMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/test-access$/);
   const isTestAccess = Boolean(testAccessMatch);
-  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  const journeyNoteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/journey-notes$/);
+  const isJourneyNote = Boolean(journeyNoteMatch);
+
+  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -21,6 +24,19 @@ export async function adminRoutes(request, env, url) {
   }
 
   try {
+    if (isJourneyNote && request.method === 'POST') {
+      const studentId=decodeURIComponent(journeyNoteMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      const body=await request.json();
+      const note=String(body.note||'').trim().slice(0,1200);
+      if(!note)return Response.json({ok:false,error:'empty_note'},{status:400,headers:noStore});
+      const id=crypto.randomUUID();
+      await env.RFIT_DB.prepare("INSERT INTO student_journey_notes(id,user_id,author_user_id,note) VALUES(?,?,?,?)").bind(id,studentId,session.sub,note).run();
+      await env.RFIT_DB.prepare("INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,'journey.note_added','student',studentId,JSON.stringify({note_id:id})).run();
+      return Response.json({ok:true,id},{status:201,headers:noStore});
+    }
+
     if (isSettings && request.method === 'GET') {
       const rows = await env.RFIT_DB.prepare('SELECT setting_key,setting_value,updated_at FROM portal_settings ORDER BY setting_key').all();
       return Response.json({ok:true,settings:Object.fromEntries((rows.results||[]).map(r=>[r.setting_key,{value:r.setting_value,updated_at:r.updated_at}]))},{headers:noStore});
