@@ -87,6 +87,61 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-checkin-count',String(checkins.length));
   const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,checkins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
 
+  const achievementDefs=[
+    {id:'first-checkin',icon:'✓',title:'Primeiro passo',desc:'Realizou seu primeiro check-in.',unlocked:checkins.length>=1},
+    {id:'five-checkins',icon:'★',title:'Ritmo constante',desc:'Completou 5 check-ins.',unlocked:checkins.length>=5},
+    {id:'ten-checkins',icon:'🏅',title:'Compromisso em ação',desc:'Completou 10 check-ins.',unlocked:checkins.length>=10},
+    {id:'thirty-checkins',icon:'🏆',title:'30 passos de evolução',desc:'Completou 30 check-ins.',unlocked:checkins.length>=30},
+    {id:'first-measurement',icon:'⚖',title:'Ponto de partida',desc:'Recebeu sua primeira avaliação corporal.',unlocked:measurements.length>=1},
+    {id:'five-measurements',icon:'📈',title:'Evolução acompanhada',desc:'Possui 5 avaliações corporais registradas.',unlocked:measurements.length>=5},
+    {id:'first-goal',icon:'🎯',title:'Olhar no objetivo',desc:'Definiu sua primeira meta pessoal.',unlocked:false}
+  ];
+  const achievementList=document.getElementById('journey-achievements-list');
+  const renderAchievements=(goals=[])=>{
+    const defs=achievementDefs.map(item=>item.id==='first-goal'?{...item,unlocked:goals.length>0}:item);
+    const unlocked=defs.filter(item=>item.unlocked).length;
+    set('journey-achievement-count',unlocked+' de '+defs.length+' desbloqueadas');
+    if(achievementList){achievementList.replaceChildren();defs.forEach(item=>{
+      const card=document.createElement('article');card.className='journey-achievement'+(item.unlocked?'':' is-locked');
+      const medal=document.createElement('span');medal.className='medal';medal.textContent=item.icon;
+      const title=document.createElement('strong');title.textContent=item.title;
+      const desc=document.createElement('small');desc.textContent=item.unlocked?'Conquista desbloqueada · '+item.desc:item.desc;
+      card.append(medal,title,desc);achievementList.append(card);
+    });}
+  };
+  const goalsList=document.getElementById('journey-goals-list');
+  const goalForm=document.getElementById('journey-goal-form');
+  const renderGoals=(goals)=>{
+    if(!goalsList)return;goalsList.replaceChildren();
+    if(!goals.length){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='Você ainda não definiu uma meta. Use o formulário abaixo para registrar seu próximo objetivo.';goalsList.append(empty);return;}
+    goals.forEach(goal=>{
+      const card=document.createElement('article');card.className='journey-goal-item';
+      const title=document.createElement('strong');title.textContent=goal.title;
+      const values=document.createElement('p');values.textContent='Início: '+fmt(goal.start_value,goal.unit?' '+goal.unit:'')+' · Meta: '+fmt(goal.target_value,goal.unit?' '+goal.unit:'')+' · '+(goal.status==='active'?'Em andamento':goal.status==='completed'?'Concluída':'Pausada');
+      card.append(title,values);if(goal.notes){const note=document.createElement('p');note.textContent=goal.notes;card.append(note);}goalsList.append(card);
+    });
+  };
+  let currentGoals=[];
+  try{
+    const goalsResponse=await fetch('/api/student/journey/goals',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    if(goalsResponse.ok){const goalsData=await goalsResponse.json();currentGoals=Array.isArray(goalsData.goals)?goalsData.goals:[];renderGoals(currentGoals);}
+    else renderGoals([]);
+  }catch(error){renderGoals([]);console.warn('journey_goals_load_failed');}
+  renderAchievements(currentGoals);
+  if(goalForm)goalForm.addEventListener('submit',async event=>{
+    event.preventDefault();const submit=goalForm.querySelector('button[type="submit"]'),message=document.getElementById('journey-goal-message');
+    submit.disabled=true;if(message)message.textContent='Salvando objetivo…';
+    try{
+      const form=new FormData(goalForm),payload=Object.fromEntries(form.entries());
+      payload.start_value=payload.start_value===''?null:Number(payload.start_value);
+      payload.target_value=payload.target_value===''?null:Number(payload.target_value);
+      const response=await fetch('/api/student/journey/goals',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)});
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');
+      const refreshed=await fetch('/api/student/journey/goals',{credentials:'same-origin',cache:'no-store'});const data=await refreshed.json();currentGoals=Array.isArray(data.goals)?data.goals:[];renderGoals(currentGoals);renderAchievements(currentGoals);goalForm.reset();if(message)message.textContent='Objetivo salvo com sucesso.';
+    }catch(error){if(message)message.textContent='Não foi possível salvar seu objetivo. Tente novamente.';console.error('journey_goal_save_failed',error)}
+    finally{submit.disabled=false;}
+  });
+  document.getElementById('journey-print-report')?.addEventListener('click',()=>window.print());
   const healthCard=document.getElementById('journey-health-card'),healthItems=document.getElementById('journey-health-items'),healthInfo=data.health_info||{};
   let formAnswers=data.anamnesis_answers?.form_answers||null;
   if(!formAnswers&&data.anamnesis_answers?.additional_notes){try{const old=JSON.parse(data.anamnesis_answers.additional_notes);formAnswers=old.form_answers||old}catch{}}
