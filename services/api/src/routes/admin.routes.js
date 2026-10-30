@@ -26,7 +26,36 @@ export async function adminRoutes(request, env, url) {
     return Response.json({ ok: false, error: 'forbidden' }, { status: 403, headers: noStore });
   }
 
-  try {
+  try {\n    if (isSupportInbox && request.method === 'GET') {
+      const rows=await env.RFIT_DB.prepare(`SELECT u.id AS student_id,u.full_name,u.avatar_url,
+        (SELECT body FROM support_messages m WHERE m.student_user_id=u.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) AS last_message,
+        (SELECT created_at FROM support_messages m WHERE m.student_user_id=u.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) AS last_message_at,
+        (SELECT sender_role FROM support_messages m WHERE m.student_user_id=u.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) AS last_sender_role,
+        (SELECT COUNT(*) FROM support_messages m WHERE m.student_user_id=u.id AND m.sender_role='student' AND m.read_at IS NULL) AS unread_count
+        FROM users u WHERE u.role='student' AND EXISTS(SELECT 1 FROM support_messages m WHERE m.student_user_id=u.id)
+        ORDER BY last_message_at DESC LIMIT 200`).all();
+      return Response.json({ok:true,conversations:rows.results||[]},{headers:noStore});
+    }
+    if (isSupportThread && request.method === 'GET') {
+      const studentId=decodeURIComponent(supportThreadMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id,full_name,avatar_url FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      await env.RFIT_DB.prepare("UPDATE support_messages SET read_at=CURRENT_TIMESTAMP WHERE student_user_id=? AND sender_role='student' AND read_at IS NULL").bind(studentId).run();
+      const rows=await env.RFIT_DB.prepare("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE student_user_id=? ORDER BY created_at ASC,id ASC LIMIT 300").bind(studentId).all();
+      return Response.json({ok:true,student,messages:rows.results||[]},{headers:noStore});
+    }
+    if (isSupportThread && request.method === 'POST') {
+      const studentId=decodeURIComponent(supportThreadMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      const body=await request.json(), message=String(body.message||'').trim();
+      if(!message||message.length>3000)return Response.json({ok:false,error:'invalid_message'},{status:400,headers:noStore});
+      const id=crypto.randomUUID();
+      await env.RFIT_DB.prepare("INSERT INTO support_messages(id,student_user_id,sender_user_id,sender_role,body) VALUES(?,?,?,?,?)").bind(id,studentId,session.sub,session.role,message).run();
+      return Response.json({ok:true,id,created_at:new Date().toISOString()},{status:201,headers:noStore});
+    }
+
+
     if (isJourneyNote && request.method === 'POST') {
       const studentId=decodeURIComponent(journeyNoteMatch[1]);
       const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
