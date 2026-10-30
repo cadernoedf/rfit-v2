@@ -76,6 +76,37 @@ export async function studentRoutes(request, env, url) {
       return reply({ok:true,saved:true,message:'Check-in salvo com sucesso.'});
     }catch(error){console.error('student_daily_checkin_failed',error?.message||'unknown');return reply({ok:false,error:'checkin_save_failed'},503);}
   }
+  if (url.pathname === '/api/student/journey/goals') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method==='GET'){
+      try{const result=await env.RFIT_DB.prepare("SELECT id,metric,title,start_value,target_value,unit,notes,status,created_at,updated_at FROM student_journey_goals WHERE user_id=? ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END,created_at DESC").bind(session.sub).all();return reply({ok:true,goals:result.results||[]});}
+      catch(error){console.error('journey_goals_list_failed',error?.message||'unknown');return reply({ok:false,error:'journey_goals_unavailable'},503);}
+    }
+    if(request.method==='POST'){
+      try{
+        const body=await request.json();
+        const metric=['weight','waist','body_fat','fitness','custom'].includes(body.metric)?body.metric:'custom';
+        const title=String(body.title||'').trim().slice(0,100);
+        const unit=String(body.unit||'').trim().slice(0,20);
+        const notes=String(body.notes||'').trim().slice(0,500);
+        const start=body.start_value===null||body.start_value===''||body.start_value===undefined?null:Number(body.start_value);
+        const target=body.target_value===null||body.target_value===''||body.target_value===undefined?null:Number(body.target_value);
+        if(!title||start!==null&&!Number.isFinite(start)||target!==null&&!Number.isFinite(target)||start===null&&target===null)return reply({ok:false,error:'invalid_goal'},400);
+        const id=crypto.randomUUID();
+        await env.RFIT_DB.prepare("INSERT INTO student_journey_goals(id,user_id,metric,title,start_value,target_value,unit,notes) VALUES(?,?,?,?,?,?,?,?)").bind(id,session.sub,metric,title,start,target,unit,notes).run();
+        return reply({ok:true,saved:true,id},201);
+      }catch(error){console.error('journey_goal_save_failed',error?.message||'unknown');return reply({ok:false,error:'journey_goal_save_failed'},503);}
+    }
+    return reply({ok:false,error:'method_not_allowed'},405);
+  }
+  if (url.pathname.startsWith('/api/student/journey/goals/') && request.method==='DELETE') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    const id=url.pathname.split('/').pop();
+    try{const result=await env.RFIT_DB.prepare("DELETE FROM student_journey_goals WHERE id=? AND user_id=?").bind(id,session.sub).run();return reply({ok:true,deleted:Boolean(result.meta?.changes)});}
+    catch(error){console.error('journey_goal_delete_failed',error?.message||'unknown');return reply({ok:false,error:'journey_goal_delete_failed'},503);}
+  }
   if (url.pathname === '/api/student/plans') {
     if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
     const session=await getSession(request,env);
