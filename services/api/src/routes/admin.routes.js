@@ -74,9 +74,12 @@ export async function adminRoutes(request, env, url) {
 
     /* REGISTRAR AVALIAÇÃO DO ALUNO */
     if (assessmentMatch && request.method === 'POST') {
+      let assessmentStage='student_lookup';
+      try {
       const studentId=decodeURIComponent(assessmentMatch[1]);
       const student=await env.RFIT_DB.prepare("SELECT id,height_cm FROM student_profiles WHERE user_id=?").bind(studentId).first();
       if(!student)return Response.json({ok:false,error:'student_profile_not_found'},{status:404,headers:noStore});
+      assessmentStage='request_validation';
       const body=await request.json(),measuredAt=String(body.measured_at||'');
       const weight=body.weight_kg===''||body.weight_kg==null?null:Number(body.weight_kg);
       const waist=body.waist_cm===''||body.waist_cm==null?null:Number(body.waist_cm);
@@ -88,9 +91,15 @@ export async function adminRoutes(request, env, url) {
       if(waist!==null&&(!Number.isFinite(waist)||waist<1||waist>300))return Response.json({ok:false,error:'invalid_waist'},{status:400,headers:noStore});
       if(bmr!==null&&(!Number.isFinite(bmr)||bmr<500||bmr>10000))return Response.json({ok:false,error:'invalid_bmr'},{status:400,headers:noStore});
       const notes=[String(body.notes||'').trim(),bmr?('Gasto calórico basal: '+bmr+' kcal'):null].filter(Boolean).join(' | ').slice(0,1200);
+      assessmentStage='measurement_insert';
       await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at,notes) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),studentId,weight,student.height_cm||null,waist,bmr,measuredAt,notes||null).run();
+      assessmentStage='profile_update';
       if(weight!==null)await env.RFIT_DB.prepare('UPDATE student_profiles SET weight_kg=? WHERE user_id=?').bind(weight,studentId).run();
       return Response.json({ok:true},{headers:noStore});
+      } catch (error) {
+        console.error('assessment_save_failed', assessmentStage, error?.message || 'unknown');
+        return Response.json({ok:false,error:'assessment_save_failed',stage:assessmentStage},{status:503,headers:noStore});
+      }
     }
 
     /* EXCLUSÃO DEFINITIVA DE ALUNO PELO PROFESSOR */
