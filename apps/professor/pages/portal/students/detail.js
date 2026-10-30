@@ -56,10 +56,16 @@ function render(data){
   };
   try{
    const answers=JSON.parse(an.answers_json||'{}');
-   Object.entries(answers).forEach(([key,value])=>{
-    const formatted=niceValue(key,value);if(!formatted)return;
-    const item=document.createElement('div');item.className='student-anamnesis-item';if(/health|restriction|medication|allerg|symptom|surgery|diagnos|observ|supplement/i.test(key))item.classList.add('anamnesis-wide');
-    const label=document.createElement('span');label.textContent=labels[key]||key.replace(/[_-]/g,' ').replace(/\\b\\w/g,ch=>ch.toUpperCase());
+   const extraLabels={goal_options:'Objetivo',work_activities:'Atividades profissionais',work_other:'Outras atividades',surgeries_other:'Outras cirurgias',diagnoses_other:'Outros diagnósticos',medication_status:'Uso de medicamentos',symptoms_other:'Outros sintomas',exercise_sensations_other:'Outras sensações no exercício',physical_activity:'Atividade física atual',trained_before:'Experiência anterior',training_location:'Local de treino',home_equipment_status:'Equipamentos em casa',home_equipment_detail:'Equipamentos disponíveis',training_duration:'Duração do treino',training_duration_other:'Outra duração',meals_per_day:'Refeições por dia',water_liters:'Consumo de água',alcohol_frequency:'Consumo de álcool',diet_supplement:'Uso de suplementos',food_restriction_status:'Restrições alimentares',food_restriction_detail:'Detalhes das restrições',planned_supplements:'Suplementos planejados',planned_supplements_other:'Outros suplementos',additional_notes:'Observações adicionais',form_answers:'Respostas do formulário'};
+   const entries=[];
+   const flatten=(obj)=>{if(!obj||typeof obj!=='object')return;Object.entries(obj).forEach(([key,value])=>{if(value===null||value===undefined||value==='')return;if(value&&typeof value==='object'&&!Array.isArray(value)){flatten(value);return;}if(key==='form_answers')return;entries.push([key,value]);});};
+   flatten(answers);
+   const seen=new Set();
+   entries.forEach(([key,value])=>{
+    const labelText=labels[key]||extraLabels[key]||key.replace(/[_-]/g,' ').replace(/\\b\\w/g,ch=>ch.toUpperCase());
+    const formatted=niceValue(key,value);if(!formatted||seen.has(labelText))return;seen.add(labelText);
+    const item=document.createElement('div');item.className='student-anamnesis-item';if(/saúde|restriç|medic|alerg|sintoma|cirurg|diagnóst|observ|suplement/i.test(labelText))item.classList.add('anamnesis-wide');
+    const label=document.createElement('span');label.textContent=labelText;
     const content=document.createElement('strong');content.textContent=formatted;item.append(label,content);wrap.append(item);
    });
   }catch{}
@@ -108,7 +114,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  try{render(await api('/api/professor/students/'+encodeURIComponent(studentId)));}catch(error){message('Não foi possível carregar o aluno: '+error.message);}
  const modal=$('#assessment-modal'),assessmentForm=$('#assessment-form');
  const closeAssessment=()=>{modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');};
- $('#open-assessment')?.addEventListener('click',()=>{assessmentForm.elements.measured_at.value=new Date().toLocaleDateString('en-CA');modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');assessmentForm.elements.weight_kg.focus();});
+ $('#open-assessment')?.addEventListener('click',()=>{const now=new Date();assessmentForm.elements.measured_at.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');assessmentForm.elements.weight_kg.focus();});
  modal.querySelectorAll('[data-close-assessment]').forEach(el=>el.addEventListener('click',closeAssessment));
  document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAssessment();});
  assessmentForm?.addEventListener('submit',async event=>{event.preventDefault();const button=assessmentForm.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(assessmentForm);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/measurements',{method:'POST',body:JSON.stringify({measured_at:fd.get('measured_at'),weight_kg:fd.get('weight_kg'),waist_cm:fd.get('waist_cm'),bmr_kcal:fd.get('bmr_kcal'),notes:fd.get('notes')})});assessmentForm.reset();closeAssessment();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Avaliação registrada com sucesso.','success');}catch(error){message('Não foi possível salvar a avaliação: '+error.message,'error');}finally{button.disabled=false;}});
