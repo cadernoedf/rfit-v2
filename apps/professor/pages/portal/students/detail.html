@@ -122,7 +122,7 @@
 .professor-student-detail .student-attention-item strong{color:#29364a;font-size:.82rem}
 .professor-student-detail .student-attention-item span{color:#6e7a8e;font-size:.78rem;line-height:1.5;overflow-wrap:anywhere}
 .professor-student-detail .student-anamnesis-meta{margin-bottom:14px;padding:11px 14px;border-radius:10px;background:#f7f8fb;color:#758197;font-size:.76rem;font-weight:700}
-</style></head>
+ .professor-student-detail .student-360-card small{display:block;margin-top:5px;color:#8a94a5;font-size:.7rem;line-height:1.35}.professor-student-detail .student-evolution-caption{font-size:.75rem;font-weight:800;color:#596579;margin-bottom:2px}.professor-student-detail .student-evolution-insight{margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fff5f6;color:#9d2940;font-size:.78rem;font-weight:700}.professor-student-detail .student-followup-pill{display:inline-flex;padding:7px 11px;border-radius:999px;font-size:.75rem;font-weight:850}.professor-student-detail .student-followup-pill.is-ok{background:#eaf8f0;color:#187346}.professor-student-detail .student-followup-pill.is-warning{background:#fff2e5;color:#a45b12}.professor-student-detail #student-followup-status p{margin:10px 0 7px;color:#4f5c70;font-size:.82rem}.professor-student-detail #student-followup-status small{color:#8490a2;font-size:.72rem}</style></head>
 <body class="admin-body"><div class="portal-layout">
 <!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
 <aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav">
@@ -145,6 +145,7 @@
  <div class="student-summary-grid">
   <section class="overview-panel student-summary-evolution"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO FÍSICA</span><h2>Visão geral do progresso</h2></div><button type="button" class="secondary-button" data-go-tab="evolution">Ver avaliações</button></div><div id="student-evolution"></div></section>
   <section class="overview-panel student-summary-attention"><div class="overview-panel-heading"><div><span class="section-kicker">CUIDADOS</span><h2>Pontos de atenção</h2></div></div><div id="student-attention"></div></section>
+  <section class="overview-panel student-followup-panel"><div class="overview-panel-heading"><div><span class="section-kicker">PRÓXIMA AÇÃO</span><h2>Status do acompanhamento</h2></div></div><div id="student-followup-status"></div></section>
   <section class="overview-panel student-journey-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2>Observações do professor</h2></div></div><form id="journey-note-form" class="student-note-form"><textarea name="note" rows="3" maxlength="1200" placeholder="Registre uma observação importante sobre o aluno…"></textarea><button class="primary-button" type="submit">Salvar observação</button></form><div id="student-journey-notes"></div></section>
   <section class="overview-panel student-summary-timeline"><div class="overview-panel-heading"><div><span class="section-kicker">ATIVIDADE</span><h2>Últimas atualizações</h2></div></div><div id="student-recent-activity"></div></section>
  </div>
