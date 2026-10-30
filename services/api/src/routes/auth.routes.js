@@ -244,6 +244,13 @@ export async function authRoutes(request, env, url) {
   /* 04. CADASTRO DE ALUNO */
   if (url.pathname === "/auth/student/register" && request.method === "POST") {
     if (!env.SESSION_SECRET) return authError("auth_not_configured", 503);
+    try {
+      const registration = await env.RFIT_DB.prepare("SELECT setting_value FROM portal_settings WHERE setting_key='registration_enabled'").first();
+      if (registration && registration.setting_value === 'false') return authError("registration_closed", 403);
+    } catch (error) {
+      console.error("registration_setting_check_failed", error?.message || "unknown");
+      return authError("registration_unavailable", 503);
+    }
     const origin = request.headers.get("Origin");
     if (origin && origin !== url.origin) return authError("origin_not_allowed", 403);
     let body;
