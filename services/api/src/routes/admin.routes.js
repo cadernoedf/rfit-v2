@@ -77,7 +77,7 @@ export async function adminRoutes(request, env, url) {
       let assessmentStage='student_lookup';
       try {
       const studentId=decodeURIComponent(assessmentMatch[1]);
-      const student=await env.RFIT_DB.prepare("SELECT id,height_cm FROM student_profiles WHERE user_id=?").bind(studentId).first();
+      const student=await env.RFIT_DB.prepare("SELECT user_id AS id,height_cm FROM student_profiles WHERE user_id=?").bind(studentId).first();
       if(!student)return Response.json({ok:false,error:'student_profile_not_found'},{status:404,headers:noStore});
       assessmentStage='request_validation';
       const body=await request.json(),measuredAt=String(body.measured_at||'');
