@@ -552,3 +552,71 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .student-announcement-footer small{color:#aab2c0;font-size:.72rem}
 .student-announcement-footer .primary-button{width:auto;min-width:140px;margin:0}
 @media(max-width:650px){.settings-announcements .admin-form{grid-template-columns:1fr}.settings-announcements .admin-form label{grid-column:1/-1}.student-announcement-dialog{padding:21px}.student-announcement-dialog h2{font-size:1.35rem}}
+
+
+/* ==========================================================================
+   16. GESTÃO DE ALUNOS — CARTÕES E PERFIL INDIVIDUAL
+   ========================================================================== */
+.students-management-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}
+.students-management-heading h2{margin:5px 0;color:#192231;font-size:1.35rem}
+.students-management-heading p{margin:0;color:#7b8697;font-size:.8rem}
+.students-add-button{width:auto;min-width:150px;margin:0}
+.students-toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:18px 0}
+.students-toolbar .search-field{width:min(100%,420px)}
+.students-count{color:#818b9b;font-size:.75rem}
+.managed-students-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.managed-student-card{display:grid;gap:13px;min-width:0;padding:17px;border:1px solid #e2e7ef;border-radius:15px;background:#fff;box-shadow:0 5px 18px #17203308;transition:border-color .15s ease,transform .15s ease}
+.managed-student-card:hover{border-color:#f0a3ad;transform:translateY(-1px)}
+.managed-student-main{display:flex;align-items:center;gap:12px;min-width:0}
+.managed-student-avatar{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;overflow:hidden;border-radius:13px;background:#191e29;color:#fff;font-size:1.1rem;font-weight:900}
+.managed-student-avatar img{width:100%;height:100%;object-fit:cover}
+.managed-student-identity{display:grid;gap:3px;min-width:0}
+.managed-student-identity strong{overflow:hidden;color:#18202d;font-size:.9rem;text-overflow:ellipsis;white-space:nowrap}
+.managed-student-identity small{overflow:hidden;color:#8993a3;font-size:.7rem;text-overflow:ellipsis;white-space:nowrap}
+.managed-student-plan{width:fit-content;padding:3px 7px;border-radius:6px;background:#fff0f2;color:#bb2a41;font-size:.65rem;font-weight:800}
+.managed-student-meta{display:flex;flex-wrap:wrap;gap:6px}
+.managed-student-meta>span{padding:5px 8px;border-radius:999px;background:#f2f4f7;color:#667184;font-size:.64rem;font-weight:800}
+.managed-student-meta .status-active{background:#eaf7ef;color:#187443}
+.managed-student-meta .status-pending{background:#fff5e5;color:#9a650e}
+.managed-student-meta .status-suspended{background:#fff0f1;color:#b52c40}
+.managed-student-actions{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr);gap:9px;align-items:start}
+.managed-student-actions select{width:100%;min-height:36px;padding:6px 8px;border:1px solid #dce2eb;border-radius:8px;background:#fff;color:#283246;font-size:.72rem}
+.managed-student-note{min-width:0}
+.managed-student-note summary{padding:8px 9px;border:1px solid #f0d2d8;border-radius:8px;color:#b52c40;font-size:.72rem;font-weight:800;cursor:pointer}
+.managed-student-note textarea{width:100%;margin-top:8px;padding:9px;border:1px solid #dce2eb;border-radius:8px;color:#18202d;font:inherit;font-size:.75rem}
+.managed-student-note .secondary-button{min-height:34px;margin:5px 0 0;padding:6px 9px;font-size:.7rem}
+.managed-student-open{justify-self:end;color:#c72b45;font-size:.75rem;font-weight:900}
+.detail-header-actions{display:flex;align-items:center;gap:8px}
+.detail-header-actions .secondary-button{width:auto;min-width:85px;margin:0;padding:8px 12px;font-size:.75rem}
+.student-profile-hero{display:flex;align-items:center;gap:18px;margin:20px 0;padding:23px;border:1px solid #343a46;border-radius:17px;background:linear-gradient(110deg,#151820,#292f3a 78%,#351923);color:#fff}
+.student-profile-avatar{display:grid;place-items:center;flex:0 0 68px;width:68px;height:68px;overflow:hidden;border:2px solid #ffffff30;border-radius:18px;background:#e52d49;color:#fff;font-size:1.8rem;font-weight:900}
+.student-profile-avatar img{width:100%;height:100%;object-fit:cover}
+.student-profile-info{min-width:0}
+.student-profile-info h2{margin:0;color:#fff;font-size:1.3rem}
+.student-profile-info p{margin:3px 0 9px;color:#c6ccd6;font-size:.78rem}
+.student-profile-badges{display:flex;flex-wrap:wrap;gap:6px}
+.student-profile-badges span{padding:5px 8px;border:1px solid #ffffff24;border-radius:999px;background:#ffffff0c;color:#f0f2f6;font-size:.65rem}
+.student-profile-contact{display:grid;gap:5px;margin-left:auto;color:#d4d9e2;font-size:.72rem;text-align:right}
+.student-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.student-detail-grid .overview-panel{min-width:0}
+.detail-record{display:grid;gap:3px;padding:11px 0;border-top:1px solid #edf0f4}
+.detail-record strong{color:#1d2635;font-size:.8rem}
+.detail-record small{color:#818b9b;font-size:.7rem}
+.detail-record-status{color:#b52c40;font-size:.65rem;font-weight:800}
+.detail-create{margin-top:15px;padding-top:12px;border-top:1px solid #edf0f4}
+.detail-create summary{color:#c72b45;font-size:.78rem;font-weight:900;cursor:pointer}
+.detail-form{display:grid;gap:11px;margin-top:13px}
+.detail-form label{display:grid;gap:5px;color:#465165;font-size:.74rem;font-weight:800}
+.detail-form input,.detail-form textarea{width:100%;padding:9px 10px;border:1px solid #dce2eb;border-radius:8px;background:#fff;color:#18202d;font:inherit;font-size:.78rem}
+.detail-form-heading{padding:9px 0 3px;border-bottom:1px solid #edf0f4;color:#c72b45;font-size:.7rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.workout-day-editor,.diet-meal-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:12px;border:1px solid #e4e8ef;border-radius:10px}
+.workout-day-editor legend{padding:0 5px;color:#30394a;font-size:.72rem;font-weight:900}
+.workout-day-editor>input:first-of-type,.diet-meal-editor>input,.diet-meal-editor textarea{grid-column:1/-1}
+.workout-day-editor input,.diet-meal-editor input,.diet-meal-editor textarea{min-width:0;padding:8px;border:1px solid #dce2eb;border-radius:7px;color:#18202d;font:inherit;font-size:.72rem}
+.workout-day-editor .secondary-button{grid-column:1/-1;width:fit-content;min-height:32px;margin:0;padding:5px 9px;font-size:.68rem}
+.workout-exercise-editor{display:grid;grid-template-columns:2fr .7fr 1fr;grid-column:1/-1;gap:7px}
+.detail-form>.secondary-button{width:fit-content;min-height:35px;margin:0;padding:7px 11px;font-size:.72rem}
+.detail-form>.primary-button{margin:0}
+.student-measurements-panel{margin-top:16px}
+@media(max-width:1050px){.managed-students-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.students-management-heading{align-items:flex-start;flex-direction:column}.students-add-button{width:auto}.student-detail-grid{grid-template-columns:1fr}.student-profile-hero{align-items:flex-start;flex-wrap:wrap}.student-profile-contact{width:100%;margin:0;text-align:left}.detail-header-actions{flex-direction:column;align-items:stretch}.detail-header-actions .secondary-button{min-width:0}}
