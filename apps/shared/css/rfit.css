@@ -469,3 +469,9 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
  .professor-overview .command-hero .overview-top-actions #logout{flex:1 1 auto}
 }
 @media(max-width:420px){.professor-overview .command-hero .overview-top-actions{display:grid;grid-template-columns:1fr 1fr}.professor-overview .command-hero .overview-top-actions .overview-action:first-child{grid-column:1/-1}}
+
+/* Ajustes pontuais do dashboard ativo e do botão Sair do aluno */
+.student-body .student-topbar #logout{width:auto;min-width:88px;flex:0 0 auto;margin:0;align-self:flex-start}
+.dashboard-top-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-left:auto}
+.dashboard-top-actions .text-button,.dashboard-top-actions .secondary-button{display:inline-flex;align-items:center;justify-content:center;width:auto;min-width:0;min-height:40px;margin:0;padding:9px 13px;white-space:nowrap}
+@media(max-width:760px){.dashboard-top-actions{width:100%;justify-content:flex-start;margin:8px 0 0}.dashboard-top-actions .text-button,.dashboard-top-actions .secondary-button{flex:1 1 auto}}
