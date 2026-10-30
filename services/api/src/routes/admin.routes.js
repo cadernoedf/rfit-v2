@@ -209,8 +209,11 @@ export async function adminRoutes(request, env, url) {
       const student=await env.RFIT_DB.prepare("SELECT id,full_name,avatar_url FROM users WHERE id=? AND role='student'").bind(studentId).first();
       if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
       await env.RFIT_DB.prepare("UPDATE support_messages SET read_at=CURRENT_TIMESTAMP WHERE student_user_id=? AND sender_role='student' AND read_at IS NULL").bind(studentId).run();
-      const rows=await env.RFIT_DB.prepare("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE student_user_id=? ORDER BY created_at ASC,id ASC LIMIT 300").bind(studentId).all();
-      return Response.json({ok:true,student,messages:rows.results||[]},{headers:noStore});
+      const [rows,professor]=await Promise.all([
+        env.RFIT_DB.prepare("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE student_user_id=? ORDER BY created_at ASC,id ASC LIMIT 300").bind(studentId).all(),
+        env.RFIT_DB.prepare("SELECT full_name,avatar_url FROM users WHERE id=? AND role IN ('professor','admin') LIMIT 1").bind(session.sub).first()
+      ]);
+      return Response.json({ok:true,student,professor:professor||{full_name:session.name||'Professor',avatar_url:null},messages:rows.results||[]},{headers:noStore});
     }
     if (isSupportThread && request.method === 'POST') {
       const studentId=decodeURIComponent(supportThreadMatch[1]);
