@@ -52,6 +52,15 @@ body.student-body .journey-main{padding-top:26px!important;max-width:1500px;marg
 @media(max-width:800px){.journey-goal-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.journey-achievements-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.portal-sidebar,.journey-goal-form,.journey-report-actions,.journey-action{display:none!important}body.student-body,.portal-main{background:#fff!important}.journey-card,.journey-metric{break-inside:avoid;box-shadow:none!important}}
 </style><style>
+/* Card grafite principal e conteúdo em duas colunas */
+.journey-dashboard-panel{position:relative;isolation:isolate;overflow:hidden;margin:0 0 18px;padding:20px 26px;border:1px solid #343b49;border-radius:20px;background:linear-gradient(115deg,#151922 0%,#242a36 72%,#303644 100%)!important;color:#fff!important;box-shadow:0 18px 45px #10172218}
+.journey-dashboard-panel:before{content:"";position:absolute;z-index:-1;width:310px;height:310px;right:30px;top:-160px;border:1px solid #ffffff12;border-radius:50%;box-shadow:0 0 0 35px #ffffff05,0 0 0 70px #ffffff03;pointer-events:none}
+.journey-dashboard-panel .journey-heading,.journey-dashboard-panel .journey-hero{position:relative;z-index:1;background:transparent!important;color:#fff!important}
+.journey-dashboard-panel .journey-heading .eyebrow,.journey-dashboard-panel .journey-hero .journey-kicker{color:#ff5367!important}
+.journey-dashboard-panel .journey-heading .student-title,.journey-dashboard-panel .journey-hero h2{color:#fff!important}
+.journey-dashboard-panel .journey-heading p,.journey-dashboard-panel .journey-hero p{color:#c8ced8!important}
+.journey-dashboard-panel .journey-tags span{background:#ffffff0d!important;border:1px solid #ffffff24!important;color:#fff!important}
+.journey-dashboard-panel .journey-hero-mark svg{stroke:#ff3348!important}
 /* Banner compacto: identificação à esquerda e objetivo à direita */
 .journey-dashboard-panel{padding:20px 26px!important;margin-bottom:18px!important}
 .journey-banner-row{display:grid;grid-template-columns:minmax(280px,.85fr) minmax(0,1.65fr);align-items:center;gap:25px;min-height:145px}
