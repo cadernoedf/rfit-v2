@@ -341,13 +341,19 @@ export async function adminRoutes(request, env, url) {
       const rows = await env.RFIT_DB.prepare(`SELECT u.id,u.full_name,u.email,u.avatar_url,u.status,u.created_at,
         sp.anamnesis_completed_at,sp.goal AS profile_goal,sp.training_frequency AS profile_training_frequency,
         (SELECT MAX(an.version) FROM anamneses an WHERE an.user_id=u.id) AS anamnesis_version,
-        s.status AS subscription_status,p.name AS plan_name,p.code AS plan_code,
+        s.status AS subscription_status,s.billing_starts_at,s.lifetime AS subscription_lifetime,
+        p.name AS plan_name,p.code AS plan_code,p.lifetime AS plan_lifetime,
+        CASE WHEN s.billing_starts_at IS NULL AND COALESCE(s.lifetime,0)=0 AND COALESCE(p.lifetime,0)=0 THEN 1 ELSE 0 END AS is_courtesy,
         (SELECT pay.status FROM payments pay WHERE pay.user_id=u.id ORDER BY pay.created_at DESC LIMIT 1) AS payment_status,
-        (SELECT m.weight_kg FROM student_measurements m WHERE m.user_id=u.id ORDER BY m.measured_at DESC LIMIT 1) AS current_weight,
+        COALESCE((SELECT d.weight_kg FROM daily_checkins d WHERE d.user_id=u.id AND d.weight_kg IS NOT NULL ORDER BY d.checkin_date DESC LIMIT 1),
+                 (SELECT m.weight_kg FROM student_measurements m WHERE m.user_id=u.id ORDER BY m.measured_at DESC LIMIT 1),
+                 sp.weight_kg) AS current_weight,
+        (SELECT m.weight_kg FROM student_measurements m WHERE m.user_id=u.id ORDER BY m.measured_at DESC LIMIT 1) AS measurement_weight,
+        (SELECT m.weight_kg FROM student_measurements m WHERE m.user_id=u.id ORDER BY m.measured_at DESC LIMIT 1 OFFSET 1) AS previous_weight,
         (SELECT m.measured_at FROM student_measurements m WHERE m.user_id=u.id ORDER BY m.measured_at DESC LIMIT 1) AS measurement_at,
         (SELECT w.goal FROM workouts w WHERE w.user_id=u.id AND w.status='active' ORDER BY w.updated_at DESC,w.created_at DESC LIMIT 1) AS workout_goal,
         (SELECT w.weekly_frequency FROM workouts w WHERE w.user_id=u.id AND w.status='active' ORDER BY w.updated_at DESC,w.created_at DESC LIMIT 1) AS workout_frequency,
-        (SELECT MAX(d.updated_at) FROM daily_checkins d WHERE d.user_id=u.id) AS latest_daily_checkin,
+        (SELECT MAX(d.checkin_date) FROM daily_checkins d WHERE d.user_id=u.id) AS latest_daily_checkin,
         (SELECT MAX(wc.created_at) FROM weekly_checkins wc WHERE wc.user_id=u.id) AS latest_weekly_checkin
         FROM users u
         LEFT JOIN student_profiles sp ON sp.user_id=u.id
