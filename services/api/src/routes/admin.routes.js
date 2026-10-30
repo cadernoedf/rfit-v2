@@ -81,7 +81,9 @@ export async function adminRoutes(request, env, url) {
       const weight=body.weight_kg===''||body.weight_kg==null?null:Number(body.weight_kg);
       const waist=body.waist_cm===''||body.waist_cm==null?null:Number(body.waist_cm);
       const bmr=body.bmr_kcal===''||body.bmr_kcal==null?null:Number(body.bmr_kcal);
-      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(measuredAt)||(!weight&&!waist))return Response.json({ok:false,error:'invalid_assessment'},{status:400,headers:noStore});
+      const dateMatch=measuredAt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const validDate=dateMatch&&Number(dateMatch[2])>=1&&Number(dateMatch[2])<=12&&Number(dateMatch[3])>=1&&Number(dateMatch[3])<=new Date(Date.UTC(Number(dateMatch[1]),Number(dateMatch[2]),0)).getUTCDate();
+      if(!validDate||(weight===null&&waist===null))return Response.json({ok:false,error:'invalid_assessment'},{status:400,headers:noStore});
       if(weight!==null&&(!Number.isFinite(weight)||weight<1||weight>500))return Response.json({ok:false,error:'invalid_weight'},{status:400,headers:noStore});
       if(waist!==null&&(!Number.isFinite(waist)||waist<1||waist>300))return Response.json({ok:false,error:'invalid_waist'},{status:400,headers:noStore});
       if(bmr!==null&&(!Number.isFinite(bmr)||bmr<500||bmr>10000))return Response.json({ok:false,error:'invalid_bmr'},{status:400,headers:noStore});
