@@ -117,12 +117,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
       const remove=document.createElement('button');remove.type='button';remove.textContent='Excluir meta';remove.addEventListener('click',async()=>{if(!confirm('Excluir esta meta?'))return;remove.disabled=true;try{const response=await fetch('/api/student/journey/goals/'+encodeURIComponent(goal.id),{method:'DELETE',credentials:'same-origin'});if(!response.ok)throw new Error('delete_failed');await refreshGoals();}catch(error){if(goalMessage)goalMessage.textContent='Não foi possível excluir a meta.';remove.disabled=false;}});actions.append(remove);card.append(actions);goalsList.append(card);
     });
   };
-  try{await refreshGoals();}catch(error){renderGoals([]);console.warn('journey_goals_load_failed');}
+  try{await refreshGoals();}catch(error){if(goalsList){goalsList.replaceChildren();const warning=document.createElement('p');warning.className='journey-muted';warning.textContent='Não foi possível consultar suas metas salvas. Seus registros não foram apagados.';goalsList.append(warning);}console.error('journey_goals_load_failed',error);}
   if(goalForm)goalForm.addEventListener('submit',async event=>{
     event.preventDefault();const submit=goalForm.querySelector('button[type="submit"]');submit.disabled=true;if(goalMessage)goalMessage.textContent='Salvando objetivo…';
     try{const form=new FormData(goalForm),payload=Object.fromEntries(form.entries());payload.start_value=payload.start_value===''?null:Number(payload.start_value);payload.target_value=payload.target_value===''?null:Number(payload.target_value);
       const response=await fetch('/api/student/journey/goals',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)});
-      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');await refreshGoals();goalForm.reset();if(goalMessage)goalMessage.textContent='Objetivo salvo. A evolução será atualizada quando novas avaliações forem registradas.';
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');await refreshGoals();goalForm.reset();document.getElementById('journey-goal-editor')?.removeAttribute('open');if(goalMessage)goalMessage.textContent='Objetivo salvo. A evolução será atualizada quando novas avaliações forem registradas.';
     }catch(error){if(goalMessage)goalMessage.textContent='Não foi possível salvar seu objetivo. Confira os valores e tente novamente.';console.error('journey_goal_save_failed',error)}
     finally{submit.disabled=false;}
   });
@@ -135,6 +135,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
     return journeyPhotos;
   };
   try{await loadPhotos();}catch(error){if(photoGallery){photoGallery.replaceChildren();const msg=document.createElement('p');msg.className='journey-muted';msg.textContent='Não foi possível carregar a galeria agora.';photoGallery.append(msg);}console.warn('journey_photos_load_failed');}
+  const cameraInput=document.getElementById('journey-photo-camera-input'),galleryInput=document.getElementById('journey-photo-file'),selectedText=document.getElementById('journey-photo-selected');
+  let selectedPhoto=null;
+  document.getElementById('journey-photo-camera')?.addEventListener('click',()=>cameraInput?.click());
+  document.getElementById('journey-photo-choose')?.addEventListener('click',()=>galleryInput?.click());
+  const selectPhoto=file=>{if(!file)return;selectedPhoto=file;if(selectedText)selectedText.textContent='Foto selecionada: '+file.name;};
+  cameraInput?.addEventListener('change',()=>selectPhoto(cameraInput.files?.[0]));
+  galleryInput?.addEventListener('change',()=>selectPhoto(galleryInput.files?.[0]));
   const compressPhoto=async file=>{
     if(!file||!file.type.startsWith('image/'))throw new Error('Selecione uma imagem válida.');
     if(!('createImageBitmap'in window))throw new Error('Este navegador não oferece compressão local de imagem. Atualize o navegador.');
@@ -148,10 +155,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
     return blob;
   };
   if(photoForm)photoForm.addEventListener('submit',async event=>{
-    event.preventDefault();const submit=photoForm.querySelector('button[type="submit"]'),file=document.getElementById('journey-photo-file')?.files?.[0];submit.disabled=true;if(photoMessage)photoMessage.textContent='Comprimindo e enviando foto…';
+    event.preventDefault();const submit=photoForm.querySelector('button[type="submit"]'),file=selectedPhoto;submit.disabled=true;if(photoMessage)photoMessage.textContent='Comprimindo e enviando foto…';
     try{const blob=await compressPhoto(file),form=new FormData(photoForm),params=new URLSearchParams({type:String(form.get('type')||'progresso'),date:String(form.get('date')||''),note:String(form.get('note')||'')});
       const response=await fetch('/api/student/journey/photos?'+params.toString(),{method:'POST',credentials:'same-origin',headers:{'Content-Type':'image/jpeg'},body:blob});
-      const result=await response.json();if(!response.ok)throw new Error(result.error||'photo_upload_failed');photoForm.reset();if(photoMessage)photoMessage.textContent='Foto salva com segurança no D1.';await loadPhotos();renderAchievements();
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'photo_upload_failed');photoForm.reset();if(cameraInput)cameraInput.value='';selectedPhoto=null;if(selectedText)selectedText.textContent='Nenhuma foto selecionada.';if(photoMessage)photoMessage.textContent='Foto salva com segurança no D1.';await loadPhotos();renderAchievements();
     }catch(error){if(photoMessage)photoMessage.textContent=error.message==='image_too_large'?'A foto ficou maior que 700 KB após compressão.':error.message||'Não foi possível enviar a foto.';console.error('journey_photo_upload_failed',error)}
     finally{submit.disabled=false;}
   });
