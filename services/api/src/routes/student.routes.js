@@ -42,8 +42,10 @@ export async function studentRoutes(request, env, url) {
       const match=url.pathname.match(/^\/api\/student\/announcements\/([^/]+)\/read$/);
       if(request.method==='POST'&&match){
         const id=decodeURIComponent(match[1]);
-        const exists=await env.RFIT_DB.prepare("SELECT id FROM portal_announcements WHERE id=? AND is_active=1 AND (audience='all' OR target_user_ids_json LIKE ?)").bind(id,'%'+session.sub+'%').first();
-        if(!exists)return reply({ok:false,error:'announcement_not_found'},404);
+        const exists=await env.RFIT_DB.prepare("SELECT id,audience,target_user_ids_json FROM portal_announcements WHERE id=? AND is_active=1").bind(id).first();
+        let allowed=exists?.audience==='all';
+        if(exists?.audience==='selected'){try{allowed=JSON.parse(exists.target_user_ids_json||'[]').includes(session.sub)}catch{allowed=false}}
+        if(!exists||!allowed)return reply({ok:false,error:'announcement_not_found'},404);
         await env.RFIT_DB.prepare('INSERT OR IGNORE INTO announcement_reads(announcement_id,user_id) VALUES(?,?)').bind(id,session.sub).run();
         return reply({ok:true});
       }
