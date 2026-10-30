@@ -58,6 +58,40 @@
 .professor-student-detail .student-modal-actions button{width:auto}
 @media(max-width:1050px){.professor-student-detail .student-anamnesis-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.professor-student-detail .student-anamnesis-list{grid-template-columns:1fr}.professor-student-detail .student-note-form{grid-template-columns:1fr}.professor-student-detail .student-assessment-fields{grid-template-columns:1fr}.professor-student-detail .student-measurements-panel .overview-panel-heading{align-items:flex-start;flex-direction:column}}
+</style>
+<style>
+/* Perfil 360: navegação por abas e painéis independentes */
+.professor-student-detail .student-profile-tabs{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px;margin:0 0 16px;border:1px solid #e5eaf1;border-radius:14px;background:#fff;position:sticky;top:8px;z-index:20;box-shadow:0 5px 18px #17203308}
+.professor-student-detail .student-profile-tab{width:auto;min-height:40px;padding:9px 16px;border:0;border-radius:10px;background:transparent;color:#657187;font-size:.8rem;font-weight:800;cursor:pointer}
+.professor-student-detail .student-profile-tab:hover{background:#fff1f3;color:#b4233b}
+.professor-student-detail .student-profile-tab.is-active{background:#202632;color:#fff;box-shadow:0 4px 12px #17203320}
+.professor-student-detail .student-profile-tab-panel{display:none;min-width:0}
+.professor-student-detail .student-profile-tab-panel.is-active{display:block}
+.professor-student-detail .student-summary-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.85fr);gap:16px}
+.professor-student-detail .student-summary-grid>.overview-panel{min-width:0;margin:0;padding:22px 24px;border:1px solid #e5eaf1;border-radius:16px;background:#fff;box-shadow:0 5px 20px #14233c08}
+.professor-student-detail .student-summary-grid .student-journey-panel,.professor-student-detail .student-summary-grid .student-summary-timeline{grid-column:span 1}
+.professor-student-detail .student-summary-grid .student-note-form{grid-template-columns:minmax(0,1fr) auto}
+.professor-student-detail .student-summary-grid .student-note-form textarea{min-height:72px}
+.professor-student-detail .student-summary-attention{background:linear-gradient(145deg,#fff,#fff9fa)!important}
+.professor-student-detail .student-anamnesis-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.professor-student-detail .student-anamnesis-group{border:1px solid #e7ebf2;border-radius:13px;background:#fff;overflow:hidden}
+.professor-student-detail .student-anamnesis-group summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;color:#263247;font-size:.88rem;font-weight:850;cursor:pointer;list-style:none}
+.professor-student-detail .student-anamnesis-group summary::-webkit-details-marker{display:none}
+.professor-student-detail .student-anamnesis-group summary:after{content:'＋';color:#d52b48;font-size:1.1rem}
+.professor-student-detail .student-anamnesis-group[open] summary:after{content:'−'}
+.professor-student-detail .student-anamnesis-group-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0 12px 13px}
+.professor-student-detail .student-anamnesis-group-content .student-anamnesis-item{min-width:0;background:#f7f8fb;border-radius:10px;padding:10px 11px}
+.professor-student-detail .student-anamnesis-group-content .student-anamnesis-item.anamnesis-wide{grid-column:1/-1}
+.professor-student-detail .student-profile-tab-panel>.overview-panel{margin:0}
+.professor-student-detail .student-danger-zone{margin-top:16px}
+.professor-student-detail .student-summary-evolution .overview-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.professor-student-detail .student-summary-evolution .secondary-button{width:auto;white-space:nowrap}
+.professor-student-detail .student-finance-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.professor-student-detail .student-finance-fact{padding:15px;border-radius:12px;background:#f7f8fb}
+.professor-student-detail .student-finance-fact span{display:block;color:#7b8798;font-size:.73rem}
+.professor-student-detail .student-finance-fact strong{display:block;margin-top:6px;color:#1d293b}
+@media(max-width:900px){.professor-student-detail .student-summary-grid{grid-template-columns:1fr}.professor-student-detail .student-anamnesis-groups{grid-template-columns:1fr}}
+@media(max-width:600px){.professor-student-detail .student-profile-tabs{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.professor-student-detail .student-profile-tab{padding:9px 5px;font-size:.72rem}.professor-student-detail .student-summary-grid .student-note-form{grid-template-columns:1fr}.professor-student-detail .student-anamnesis-group-content{grid-template-columns:1fr}.professor-student-detail .student-finance-facts{grid-template-columns:1fr}}
 </style></head>
 <body class="admin-body"><div class="portal-layout">
 <!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
@@ -66,39 +100,44 @@
 </nav><div class="sidebar-bottom">Sistema R-Fit</div></aside>
 <main class="admin-shell portal-main professor-student-detail">
 <header class="admin-topbar professor-page-hero"><div class="professor-page-heading"><span class="eyebrow">R-FIT · PERFIL INDIVIDUAL</span><h1 class="admin-title" id="student-title">Aluno<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><div class="detail-header-actions"><a class="secondary-button" href="./index.html">Voltar aos alunos</a><button id="logout" class="secondary-button" type="button">Sair</button></div></header>
-<div class="student-profile-page">
+<div class="student-profile-page student-360-page">
 <section id="student-profile" class="student-profile-hero"><div class="overview-loading">Carregando perfil do aluno…</div></section>
 <section class="student-360-metrics" id="student-360-metrics" aria-label="Indicadores do aluno"></section>
-<section class="overview-panel student-journey-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2>Observações do professor</h2></div></div><form id="journey-note-form" class="student-note-form"><textarea name="note" rows="3" maxlength="1200" placeholder="Registre uma observação importante sobre o aluno…"></textarea><button class="primary-button" type="submit">Salvar observação</button></form><div id="student-journey-notes"></div></section>
-<section class="overview-panel student-evolution-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO FÍSICA</span><h2>Acompanhamento das medidas</h2></div></div><div id="student-evolution"></div></section>
-<section class="overview-panel student-anamnesis-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ANAMNESE</span><h2>Informações e cuidados</h2></div></div><div id="student-anamnesis"></div></section>
-<section class="student-detail-grid">
- <article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">TREINAMENTO</span><h2>Treinos cadastrados</h2></div></div><div id="student-workouts"></div>
-  <details class="detail-create"><summary>＋ Adicionar treino</summary><form id="workout-form" class="detail-form">
-   <label>Nome do treino<input name="title" required maxlength="140" placeholder="Ex.: Hipertrofia — divisão A/B/C"></label>
-   <label>Objetivo<textarea name="goal" rows="2" maxlength="500"></textarea></label>
-   <label>Frequência semanal<input name="weekly_frequency" type="number" min="1" max="7" value="3" required></label>
-   <div class="detail-form-heading">Dias e exercícios</div><div id="workout-days"></div>
-   <button id="add-workout-day" class="secondary-button" type="button">Adicionar dia de treino</button><button class="primary-button" type="submit">Salvar treino</button>
-  </form></details>
- </article>
- <article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">NUTRIÇÃO</span><h2>Dietas cadastradas</h2></div></div><div id="student-diets"></div>
-  <details class="detail-create"><summary>＋ Adicionar dieta</summary><form id="diet-form" class="detail-form">
-   <label>Nome da dieta<input name="title" required maxlength="140" placeholder="Ex.: Plano alimentar"></label>
-   <label>Objetivo<textarea name="goal" rows="2" maxlength="500"></textarea></label>
-   <label>Meta calórica (opcional)<input name="calories_target" type="number" min="500" max="10000" step="1"></label>
-   <div class="detail-form-heading">Refeições</div><div id="diet-meals"></div>
-   <button id="add-diet-meal" class="secondary-button" type="button">Adicionar refeição</button><button class="primary-button" type="submit">Salvar dieta</button>
-  </form></details>
- </article>
+<nav class="student-profile-tabs" role="tablist" aria-label="Seções da ficha do aluno">
+ <button type="button" class="student-profile-tab is-active" role="tab" aria-selected="true" aria-controls="student-tab-summary" id="tab-summary" data-student-tab="summary">Resumo</button>
+ <button type="button" class="student-profile-tab" role="tab" aria-selected="false" aria-controls="student-tab-workouts" id="tab-workouts" data-student-tab="workouts">Treinos</button>
+ <button type="button" class="student-profile-tab" role="tab" aria-selected="false" aria-controls="student-tab-nutrition" id="tab-nutrition" data-student-tab="nutrition">Nutrição</button>
+ <button type="button" class="student-profile-tab" role="tab" aria-selected="false" aria-controls="student-tab-anamnesis" id="tab-anamnesis" data-student-tab="anamnesis">Anamnese</button>
+ <button type="button" class="student-profile-tab" role="tab" aria-selected="false" aria-controls="student-tab-evolution" id="tab-evolution" data-student-tab="evolution">Evolução</button>
+ <button type="button" class="student-profile-tab" role="tab" aria-selected="false" aria-controls="student-tab-finance" id="tab-finance" data-student-tab="finance">Financeiro</button>
+</nav>
+<section class="student-profile-tab-panel is-active" id="student-tab-summary" role="tabpanel" aria-labelledby="tab-summary" data-student-panel="summary">
+ <div class="student-summary-grid">
+  <section class="overview-panel student-summary-evolution"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO FÍSICA</span><h2>Visão geral do progresso</h2></div><button type="button" class="secondary-button" data-go-tab="evolution">Ver avaliações</button></div><div id="student-evolution"></div></section>
+  <section class="overview-panel student-summary-attention"><div class="overview-panel-heading"><div><span class="section-kicker">CUIDADOS</span><h2>Pontos de atenção</h2></div></div><div id="student-attention"></div></section>
+  <section class="overview-panel student-journey-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2>Observações do professor</h2></div></div><form id="journey-note-form" class="student-note-form"><textarea name="note" rows="3" maxlength="1200" placeholder="Registre uma observação importante sobre o aluno…"></textarea><button class="primary-button" type="submit">Salvar observação</button></form><div id="student-journey-notes"></div></section>
+  <section class="overview-panel student-summary-timeline"><div class="overview-panel-heading"><div><span class="section-kicker">ATIVIDADE</span><h2>Últimas atualizações</h2></div></div><div id="student-recent-activity"></div></section>
+ </div>
+ <section class="overview-panel student-danger-zone"><div><span class="section-kicker">GESTÃO DA CONTA</span><h2>Excluir aluno</h2><p>Esta ação remove a conta e os registros vinculados do R-Fit. Não poderá ser desfeita.</p></div><button id="delete-student" class="student-delete-button" type="button">Excluir aluno</button></section>
 </section>
-<section class="overview-panel student-measurements-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO</span><h2>Histórico de avaliações</h2></div><button class="primary-button" id="open-assessment" type="button">＋ Nova avaliação</button></div><div id="student-measurements"></div></section>
-<div class="student-modal" id="assessment-modal" aria-hidden="true"><div class="student-modal-backdrop" data-close-assessment></div><section class="student-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="assessment-title"><button class="student-modal-close" type="button" aria-label="Fechar" data-close-assessment>×</button><h2 id="assessment-title">Nova avaliação</h2><form id="assessment-form" class="student-assessment-form">
-<label>Data<input name="measured_at" type="date" required></label><div class="student-assessment-fields"><label>Peso (kg)<input name="weight_kg" type="number" min="1" max="500" step="0.1" placeholder="Ex.: 74,7"></label><label>Abdômen (cm)<input name="waist_cm" type="number" min="1" max="300" step="0.1" placeholder="Ex.: 99"></label></div>
-<label>Gasto calórico basal (kcal)<input name="bmr_kcal" type="number" min="500" max="10000" step="1" placeholder="Ex.: 1406"></label><label>Observações<textarea name="notes" rows="3" maxlength="1000" placeholder="Ex.: avaliação mensal, boa aderência…"></textarea></label>
-<div class="student-modal-actions"><button class="secondary-button" type="button" data-close-assessment>Cancelar</button><button class="primary-button" type="submit">Salvar avaliação</button></div></form></section></div>
-
-<section class="overview-panel student-danger-zone"><div><span class="section-kicker">GESTÃO DA CONTA</span><h2>Excluir aluno</h2><p>Esta ação remove a conta e os registros vinculados do R-Fit. Não poderá ser desfeita.</p></div><button id="delete-student" class="student-delete-button" type="button">Excluir aluno</button></section>
+<section class="student-profile-tab-panel" id="student-tab-workouts" role="tabpanel" aria-labelledby="tab-workouts" data-student-panel="workouts" hidden>
+ <article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">TREINAMENTO</span><h2>Treinos cadastrados</h2></div></div><div id="student-workouts"></div>
+ <details class="detail-create"><summary>＋ Adicionar treino</summary><form id="workout-form" class="detail-form"><label>Nome do treino<input name="title" required maxlength="140" placeholder="Ex.: Hipertrofia — divisão A/B/C"></label><label>Objetivo<textarea name="goal" rows="2" maxlength="500"></textarea></label><label>Frequência semanal<input name="weekly_frequency" type="number" min="1" max="7" value="3" required></label><div class="detail-form-heading">Dias e exercícios</div><div id="workout-days"></div><button id="add-workout-day" class="secondary-button" type="button">Adicionar dia de treino</button><button class="primary-button" type="submit">Salvar treino</button></form></details></article>
+</section>
+<section class="student-profile-tab-panel" id="student-tab-nutrition" role="tabpanel" aria-labelledby="tab-nutrition" data-student-panel="nutrition" hidden>
+ <article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">NUTRIÇÃO</span><h2>Dietas cadastradas</h2></div></div><div id="student-diets"></div>
+ <details class="detail-create"><summary>＋ Adicionar dieta</summary><form id="diet-form" class="detail-form"><label>Nome da dieta<input name="title" required maxlength="140" placeholder="Ex.: Plano alimentar"></label><label>Objetivo<textarea name="goal" rows="2" maxlength="500"></textarea></label><label>Meta calórica (opcional)<input name="calories_target" type="number" min="500" max="10000" step="1"></label><div class="detail-form-heading">Refeições</div><div id="diet-meals"></div><button id="add-diet-meal" class="secondary-button" type="button">Adicionar refeição</button><button class="primary-button" type="submit">Salvar dieta</button></form></details></article>
+</section>
+<section class="student-profile-tab-panel" id="student-tab-anamnesis" role="tabpanel" aria-labelledby="tab-anamnesis" data-student-panel="anamnesis" hidden>
+ <section class="overview-panel student-anamnesis-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ANAMNESE</span><h2>Histórico e informações do aluno</h2></div></div><div id="student-anamnesis"></div></section>
+</section>
+<section class="student-profile-tab-panel" id="student-tab-evolution" role="tabpanel" aria-labelledby="tab-evolution" data-student-panel="evolution" hidden>
+ <section class="overview-panel student-measurements-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO</span><h2>Avaliações e medidas</h2></div><button class="primary-button" id="open-assessment" type="button">＋ Nova avaliação</button></div><div id="student-measurements"></div></section>
+</section>
+<section class="student-profile-tab-panel" id="student-tab-finance" role="tabpanel" aria-labelledby="tab-finance" data-student-panel="finance" hidden>
+ <section class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">FINANCEIRO</span><h2>Informações da assinatura</h2></div></div><div id="student-finance-summary"></div></section>
+</section>
+<div class="student-modal" id="assessment-modal" aria-hidden="true"><div class="student-modal-backdrop" data-close-assessment></div><section class="student-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="assessment-title"><button class="student-modal-close" type="button" aria-label="Fechar" data-close-assessment>×</button><h2 id="assessment-title">Nova avaliação</h2><form id="assessment-form" class="student-assessment-form"><label>Data<input name="measured_at" type="date" required></label><div class="student-assessment-fields"><label>Peso (kg)<input name="weight_kg" type="number" min="1" max="500" step="0.1" placeholder="Ex.: 74,7"></label><label>Abdômen (cm)<input name="waist_cm" type="number" min="1" max="300" step="0.1" placeholder="Ex.: 99"></label></div><label>Gasto calórico basal (kcal)<input name="bmr_kcal" type="number" min="500" max="10000" step="1" placeholder="Ex.: 1406"></label><label>Observações<textarea name="notes" rows="3" maxlength="1000" placeholder="Ex.: avaliação mensal, boa aderência…"></textarea></label><div class="student-modal-actions"><button class="secondary-button" type="button" data-close-assessment>Cancelar</button><button class="primary-button" type="submit">Salvar avaliação</button></div></form></section></div>
 </div>
 <p id="page-message" class="form-message" role="status" aria-live="polite"></p>
 </main></div></body></html>
