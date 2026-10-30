@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-subtitle',data.anamnesis_completed?'Seus dados e registros ajudam você e seu personal a acompanhar sua evolução.':'Sua jornada fica mais personalizada quando você conclui a anamnese.');
   const planKind=sub?.access_type==='lifetime'||Number(sub?.lifetime)?'👑 Acesso vitalício':sub?.access_type==='courtesy'?'👑 Cortesia do personal':sub?.is_expired?'Plano vencido':'Plano ativo';
   set('journey-plan',sub?.plan_name||'Nenhum plano ativo');
-  set('journey-days',!sub?'Sem plano ativo':Number(sub.lifetime)?'👑 Vitalício':sub.is_expired?'Plano vencido':sub.days_remaining===null||sub.days_remaining===undefined?'Validade não informada':'Restam '+sub.days_remaining+' '+(sub.days_remaining===1?'dia':'dias'));
   const heroTags=document.querySelector('.journey-tags');
   if(heroTags&&sub){const badge=document.createElement('span');badge.textContent=planKind; if(sub.access_type==='lifetime'||sub.access_type==='courtesy'||Number(sub.lifetime)){badge.style.color='#f3cf75';badge.style.borderColor='#b88b36';badge.style.background='#b88b3618'} heroTags.append(badge);}
   set('journey-weight',fmt(body.weight_kg,' kg'));set('journey-bmi',fmt(body.bmi));set('journey-waist',fmt(body.waist_cm,' cm'));
@@ -48,8 +47,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
   }
   set('journey-weight-note',body.weight_source==='checkin'?'Último peso informado no check-in':body.weight_source==='evaluation'?'Última avaliação do professor':'Peso inicial da anamnese');
   set('journey-measure-date',body.measured_at?dateText(body.measured_at):'Sem medida registrada');
-  set('journey-days-count',!sub?'—':Number(sub.lifetime)?'∞':sub.days_remaining===null||sub.days_remaining===undefined?'—':String(sub.days_remaining));
-  set('journey-expiry-note',!sub?'Nenhum plano cadastrado':Number(sub.lifetime)?'👑 Acesso vitalício':sub.is_expired?'Acesso vencido em '+dateText(sub.expires_at):sub.expires_at?'Vence em '+dateText(sub.expires_at):'Validade não informada');
+   const kcalValue=body.basal_kcal??data.anamnesis_answers?.basal_kcal??data.anamnesis_answers?.form_answers?.basal_kcal??null;
+   set('journey-kcal',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?Math.round(Number(kcalValue)).toLocaleString('pt-BR')+' kcal':'—');
+   set('journey-kcal-note',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?'Estimativa diária registrada':'Kcal por dia · não informado');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
   set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
