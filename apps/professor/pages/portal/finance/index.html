@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111318"><title>R-Fit — Financeiro</title><link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./page.js"></script></head>
+<body class="admin-body"><div class="portal-layout">
+<!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
+<aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav">
+<a class="portal-nav-link" href="../overview/index.html">▦ Visão geral</a><a class="portal-nav-link" href="../students/index.html">♙ Alunos</a><a class="portal-nav-link" href="../students/new.html">＋ Cadastrar aluno</a><a class="portal-nav-link" href="../plans/index.html">▤ Planos</a><a class="portal-nav-link is-active" href="../finance/index.html">▣ Financeiro</a><a class="portal-nav-link" href="../support/index.html">✉ Mensagens</a><a class="portal-nav-link" href="../settings/index.html">⚙ Configurações</a>
+</nav><div class="sidebar-bottom">Sistema R-Fit</div></aside>
+<main class="admin-shell portal-main professor-finance">
+<header class="admin-topbar professor-page-hero"><div class="professor-page-heading"><span class="eyebrow">R-FIT · GESTÃO FINANCEIRA</span><h1 class="admin-title">Financeiro<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><div class="professor-page-intro"><span class="overview-kicker">CONTROLE FINANCEIRO</span><h2>Clareza sobre cada recebimento.</h2><p>Valores calculados a partir dos pagamentos registrados no R-Fit.</p></div><button id="finance-refresh" class="secondary-button professor-hero-action" type="button">Atualizar dados</button><button id="logout" class="secondary-button admin-logout" type="button">Sair</button></header>
+
+<section class="overview-section"><div class="overview-section-heading"><div><span class="section-kicker">RESUMO</span><h2>Movimentação registrada</h2></div><span id="finance-updated" class="overview-updated">Aguardando dados</span></div>
+<div id="finance-metrics" class="overview-metrics"><div class="overview-loading">Carregando financeiro…</div></div></section>
+<section class="overview-panel finance-schedule"><div class="overview-panel-heading"><div><span class="section-kicker">PREVISÃO DE COBRANÇA</span><h2>Próximos vencimentos</h2></div><span id="finance-overdue" class="finance-overdue">0 vencidos</span></div><div id="finance-billing-rows" class="finance-billing-rows"><p class="overview-muted">Carregando previsões…</p></div></section>
+<section class="overview-panel finance-transactions"><div class="overview-panel-heading"><div><span class="section-kicker">TRANSAÇÕES</span><h2>Histórico de pagamentos</h2></div><input id="finance-search" class="search-field" type="search" placeholder="Buscar aluno ou plano" aria-label="Buscar pagamentos"></div>
+<div class="table-wrap"><table class="student-table"><thead><tr><th>Aluno</th><th>Plano</th><th>Data</th><th>Meio</th><th>Valor</th><th>Status</th></tr></thead><tbody id="finance-rows"><tr><td colspan="6">Carregando pagamentos…</td></tr></tbody></table></div>
+<p id="finance-empty" class="overview-muted" hidden>Nenhum pagamento registrado ainda. Os pagamentos aparecerão aqui quando forem gravados pelo provedor ou pelo processo administrativo.</p></section>
+<p class="finance-disclaimer">Este painel apresenta transações registradas. Valores de assinaturas futuras ou cobranças previstas não são contabilizados como receita recebida. A cobrança automática depende de integração recorrente com o provedor de pagamentos.</p>
+<p id="page-message" class="form-message" role="status" aria-live="polite"></p>
+</main></div></body></html>
