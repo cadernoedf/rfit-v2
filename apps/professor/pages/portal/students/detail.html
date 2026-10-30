@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111318"><title>R-Fit — Perfil do aluno</title><link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./detail.js"></script></head>
+<body class="admin-body"><div class="portal-layout">
+<!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
+<aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav">
+<a class="portal-nav-link" href="../overview/index.html">▦ Visão geral</a><a class="portal-nav-link is-active" href="./index.html">♙ Alunos</a><a class="portal-nav-link" href="./new.html">＋ Cadastrar aluno</a><a class="portal-nav-link" href="../plans/index.html">▤ Planos</a><a class="portal-nav-link" href="../finance/index.html">▣ Financeiro</a><a class="portal-nav-link" href="../support/index.html">✉ Mensagens</a><a class="portal-nav-link" href="../settings/index.html">⚙ Configurações</a>
+</nav><div class="sidebar-bottom">Sistema R-Fit</div></aside>
+<main class="admin-shell portal-main professor-student-detail">
+<header class="admin-topbar professor-page-hero"><div class="professor-page-heading"><span class="eyebrow">R-FIT · PERFIL INDIVIDUAL</span><h1 class="admin-title" id="student-title">Aluno<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><div class="detail-header-actions"><a class="secondary-button" href="./index.html">Voltar aos alunos</a><button id="logout" class="secondary-button" type="button">Sair</button></div></header>
+<section id="student-profile" class="student-profile-hero"><div class="overview-loading">Carregando perfil do aluno…</div></section>
+<section class="student-detail-grid">
+<article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">TREINAMENTO</span><h2>Treinos cadastrados</h2></div></div><div id="student-workouts"></div>
+<details class="detail-create"><summary>＋ Adicionar treino</summary><form id="workout-form" class="detail-form">
+<label>Nome do treino<input name="title" required maxlength="140" placeholder="Ex.: Hipertrofia — divisão A/B/C"></label>
+<label>Objetivo<textarea name="goal" rows="2" maxlength="500"></textarea></label>
+<label>Frequência semanal<input name="weekly_frequency" type="number" min="1" max="7" value="3" required></label>
+<div class="detail-form-heading">Dias e exercícios</div>
+<div id="workout-days"></div><button id="add-workout-day" class="secondary-button" type="button">Adicionar dia de treino</button>
+<button class="primary-button" type="submit">Salvar treino</button></form></details></article>
+<article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">NUTRIÇÃO</span><h2>Dietas cadastradas</h2></div></div><div id="student-diets"></div>
+<details class="detail-create"><summary>＋ Adicionar dieta</summary><form id="diet-form" class="detail-form">
+<label>Nome da dieta<input name="title" required maxlength="140" placeholder="Ex.: Plano alimentar"></label>
+<label>Objetivo<textarea name="goal" rows="2" maxlength="500"></textarea></label>
+<label>Meta calórica (opcional)<input name="calories_target" type="number" min="500" max="10000" step="1"></label>
+<div class="detail-form-heading">Refeições</div><div id="diet-meals"></div>
+<button id="add-diet-meal" class="secondary-button" type="button">Adicionar refeição</button><button class="primary-button" type="submit">Salvar dieta</button></form></details></article>
+</section>
+<section class="overview-panel student-measurements-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO</span><h2>Últimas avaliações</h2></div></div><div id="student-measurements"></div></section>
+<p id="page-message" class="form-message" role="status" aria-live="polite"></p>
+</main></div></body></html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111318"><title>R-Fit — Cadastrar aluno</title><link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./new.js"></script></head>
+<body class="admin-body"><div class="portal-layout">
+<!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
+<aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav">
+<a class="portal-nav-link" href="../overview/index.html">▦ Visão geral</a><a class="portal-nav-link" href="./index.html">♙ Alunos</a><a class="portal-nav-link is-active" href="./new.html">＋ Cadastrar aluno</a><a class="portal-nav-link" href="../plans/index.html">▤ Planos</a><a class="portal-nav-link" href="../finance/index.html">▣ Financeiro</a><a class="portal-nav-link" href="../support/index.html">✉ Mensagens</a><a class="portal-nav-link" href="../settings/index.html">⚙ Configurações</a>
+</nav><div class="sidebar-bottom">Sistema R-Fit</div></aside>
+<main class="admin-shell portal-main professor-enrollment">
+<header class="admin-topbar professor-page-hero"><div class="professor-page-heading"><span class="eyebrow">R-FIT · GESTÃO DE ALUNOS</span><h1 class="admin-title">Cadastrar aluno<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><div class="professor-page-intro"><span class="overview-kicker">NOVO ALUNO</span><h2>Vamos começar uma nova jornada.</h2><p>Cadastre os dados, escolha o plano e defina a condição de acesso.</p></div><button id="logout" class="secondary-button admin-logout" type="button">Sair</button></header>
+
+<section class="overview-panel enrollment-panel"><form id="student-create-form" class="enrollment-form">
+<div class="enrollment-form-heading"><span class="section-kicker">IDENTIFICAÇÃO</span><h2>Dados do aluno</h2></div>
+<label>Nome completo<input name="name" required minlength="2" maxlength="160" autocomplete="name" placeholder="Nome do aluno"></label>
+<label>E-mail de acesso<input name="email" type="email" required maxlength="254" autocomplete="email" placeholder="aluno@email.com"></label>
+<label>Telefone (opcional)<input name="phone" type="tel" maxlength="24" placeholder="(11) 99999-9999"></label>
+<div class="enrollment-form-heading"><span class="section-kicker">ACESSO E PLANO</span><h2>Configuração da assinatura</h2></div>
+<label>Plano<select name="plan_id" id="student-plan" required><option value="">Carregando planos…</option></select></label>
+<label class="enrollment-check"><input name="courtesy" type="checkbox" id="student-courtesy"> Acesso cortesia (sem cobrança prevista)</label>
+<label id="billing-delay-wrap">Dias de acesso antes da primeira cobrança prevista<input name="billing_delay_days" type="number" min="0" max="365" value="30" required><small>O R-Fit registra a data prevista. A cobrança automática ainda depende de integração recorrente com o provedor.</small></label>
+<button class="primary-button" type="submit">Cadastrar aluno</button>
+</form>
+<div id="student-created" class="student-created" hidden aria-live="polite"></div>
+<p id="page-message" class="form-message" role="status" aria-live="polite"></p>
+</section></main></div></body></html>
