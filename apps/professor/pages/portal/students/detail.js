@@ -79,7 +79,7 @@ function render(data){
  (data.diets||[]).forEach(d=>dietBox.append(makeListItem(d.title,(d.goal||'Sem objetivo')+(d.calories_target?' · '+d.calories_target+' kcal':''),d.status)));
  if(!(data.diets||[]).length)dietBox.textContent='Nenhuma dieta cadastrada.';
  const measureBox=$('#student-measurements');measureBox.replaceChildren();
- (data.measurements||[]).forEach(m=>{const detail=[m.weight_kg?m.weight_kg+' kg':null,m.waist_cm?'Abdômen '+m.waist_cm+' cm':null,m.body_fat_pct?'Gordura '+m.body_fat_pct+'%':null,m.notes||null].filter(Boolean).join(' · ')||'Medidas registradas';measureBox.append(makeListItem(new Date(m.measured_at+'T12:00:00').toLocaleDateString('pt-BR'),detail,''));});
+ (data.measurements||[]).forEach(m=>{const detail=[m.weight_kg?m.weight_kg+' kg':null,m.waist_cm?'Abdômen '+m.waist_cm+' cm':null,m.body_fat_pct?'Gordura '+m.body_fat_pct+'%':null,m.basal_kcal?'Basal '+m.basal_kcal+' kcal':null,m.notes||null].filter(Boolean).join(' · ')||'Medidas registradas';measureBox.append(makeListItem(new Date(m.measured_at+'T12:00:00').toLocaleDateString('pt-BR'),detail,''));});
  if(!(data.measurements||[]).length)measureBox.textContent='Nenhuma avaliação registrada.';
 }
 
