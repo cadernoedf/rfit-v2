@@ -176,7 +176,7 @@ export async function authRoutes(request, env, url) {
         ]);
       }
 
-      let user = await env.RFIT_DB.prepare("SELECT id,email,full_name,phone,role,status,google_subject FROM users WHERE email=? LIMIT 1").bind(email).first();
+      let user = await env.RFIT_DB.prepare("SELECT id,email,full_name,phone,avatar_url,role,status,google_subject FROM users WHERE email=? LIMIT 1").bind(email).first();
       if (user && user.role !== "student") return authError("google_account_not_authorized", 403);
 
       if (!user) {
@@ -190,10 +190,16 @@ export async function authRoutes(request, env, url) {
         ]);
       }
 
+      /* Use Google photo as default only when the student has not set a custom photo. */
+      if (!user.avatar_url && profile.picture) {
+        await env.RFIT_DB.prepare("UPDATE users SET avatar_url=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student' AND (avatar_url IS NULL OR avatar_url='')").bind(profile.picture, user.id).run();
+        user.avatar_url = profile.picture;
+      }
+
       if (user.status !== "active") {
         return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [cookieHeader(COOKIE_STATE, "", 0)]);
       }
-      if (!user.phone || String(user.phone).replace(/\\D/g, "").length < 10) {
+      if (!user.phone || String(user.phone).replace(/\D/g, "").length < 10) {
         const pendingSession = await makeSession(user, env.SESSION_SECRET);
         return redirect(new URL("/student/pages/google-complete.html", url.origin).toString(), [
           cookieHeader(COOKIE_SESSION, pendingSession, SESSION_SECONDS), cookieHeader(COOKIE_STATE, "", 0)
@@ -218,7 +224,7 @@ export async function authRoutes(request, env, url) {
     let body;
     try { body = await request.json(); } catch { return authError("invalid_json", 400); }
     const phone = String(body.phone || "").trim();
-    const digits = phone.replace(/\\D/g, "");
+    const digits = phone.replace(/\D/g, "");
     if (digits.length < 10 || digits.length > 13) return authError("registration_invalid", 400);
     try {
       const result = await env.RFIT_DB.prepare("UPDATE users SET phone=?,status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student' AND google_subject IS NOT NULL").bind(phone, session.sub).run();
@@ -238,11 +244,18 @@ export async function authRoutes(request, env, url) {
   /* 04. CADASTRO DE ALUNO */
   if (url.pathname === "/auth/student/register" && request.method === "POST") {
     if (!env.SESSION_SECRET) return authError("auth_not_configured", 503);
+    try {
+      const registration = await env.RFIT_DB.prepare("SELECT setting_value FROM portal_settings WHERE setting_key='registration_enabled'").first();
+      if (registration && registration.setting_value === 'false') return authError("registration_closed", 403);
+    } catch (error) {
+      console.error("registration_setting_check_failed", error?.message || "unknown");
+      return authError("registration_unavailable", 503);
+    }
     const origin = request.headers.get("Origin");
     if (origin && origin !== url.origin) return authError("origin_not_allowed", 403);
     let body;
     try { body = await request.json(); } catch { return authError("invalid_json", 400); }
-    const name = String(body.name || "").trim().replace(/\\s+/g, " ");
+    const name = String(body.name || "").trim().replace(/\s+/g, " ");
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
     const normalizedPhone = phone.replace(/\D/g, "");
@@ -311,13 +324,66 @@ export async function authRoutes(request, env, url) {
       const activePlan = await env.RFIT_DB.prepare(
         "SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND (lifetime=1 OR expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) LIMIT 1"
       ).bind(user.id).first().catch(() => null);
-      const destination = activePlan ? "/student/dashboard.html" : "/student/pages/plans.html";
+      const destination = activePlan ? "/student/pages/portal/home/index.html" : "/student/pages/plans.html";
       return Response.json({ ok: true, redirect: destination }, {
         headers: { "Cache-Control": "no-store", "Set-Cookie": cookieHeader(COOKIE_SESSION, session, SESSION_SECONDS), "X-Content-Type-Options": "nosniff" }
       });
     } catch (error) {
       console.error("student_login_session_error", error?.name || "Error", error?.message || "unknown");
       return authError("session_creation_error", 503);
+    }
+  }
+
+  /* Configurações do aluno: perfil, foto e credenciais. */
+  if (url.pathname === "/api/student/settings" && ["GET","PUT"].includes(request.method)) {
+    const session = await readSession(request, env.SESSION_SECRET);
+    if (!session || session.role !== "student") return authError("unauthenticated", 401);
+    if (request.method === "GET") {
+      try {
+        const user = await env.RFIT_DB.prepare("SELECT id,email,full_name,phone,avatar_url,password_hash FROM users WHERE id=? AND role='student' LIMIT 1").bind(session.sub).first();
+        if (!user) return authError("user_not_found", 404);
+        return Response.json({ok:true,profile:{name:user.full_name,email:user.email,phone:user.phone||"",avatar_url:user.avatar_url||"",has_password:Boolean(user.password_hash)}},{headers:{"Cache-Control":"no-store"}});
+      } catch (error) { console.error("student_settings_read_failed",error?.message||"unknown"); return authError("settings_unavailable",503); }
+    }
+    const origin = request.headers.get("Origin");
+    if (origin && origin !== url.origin) return authError("origin_not_allowed",403);
+    let body;
+    try { body = await request.json(); } catch { return authError("invalid_json",400); }
+    const name=String(body.name||"").trim().replace(/\s+/g," ");
+    const email=String(body.email||"").trim().toLowerCase();
+    const phone=String(body.phone||"").trim().slice(0,30);
+    const avatar=String(body.avatar_url||"");
+    const currentPassword=String(body.current_password||"");
+    const newPassword=String(body.new_password||"");
+    if(name.length<2||name.length>160||! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254) return authError("profile_invalid",400);
+    const digits=phone.replace(/\D/g,"");
+    if(phone && (digits.length<10||digits.length>13)) return authError("phone_invalid",400);
+    if(avatar && !(avatar.startsWith("data:image/jpeg;base64,")||avatar.startsWith("data:image/png;base64,")||avatar.startsWith("data:image/webp;base64,"))) return authError("avatar_invalid",400);
+    if(avatar.length>200000) return authError("avatar_too_large",413);
+    if(newPassword && (newPassword.length<8||newPassword.length>128)) return authError("password_invalid",400);
+    try {
+      const existing=await env.RFIT_DB.prepare("SELECT id,email,password_hash FROM users WHERE id=? AND role='student' LIMIT 1").bind(session.sub).first();
+      if(!existing) return authError("user_not_found",404);
+      if(newPassword && existing.password_hash && !await verifyPassword(currentPassword,existing.password_hash)) return authError("current_password_invalid",403);
+      if(email!==String(existing.email).toLowerCase()) {
+        const duplicate=await env.RFIT_DB.prepare("SELECT id FROM users WHERE email=? AND id<>? LIMIT 1").bind(email,session.sub).first();
+        if(duplicate) return authError("email_already_registered",409);
+      }
+      let passwordHash=existing.password_hash;
+      if(newPassword) {
+        const salt=crypto.getRandomValues(new Uint8Array(16));
+        const key=await crypto.subtle.importKey("raw",encoder.encode(newPassword),{name:"PBKDF2"},false,["deriveBits"]);
+        const bits=new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:100000},key,256));
+        passwordHash="pbkdf2-sha256$100000$"+base64url(salt)+"$"+base64url(bits);
+      }
+      await env.RFIT_DB.prepare("UPDATE users SET full_name=?,email=?,phone=?,avatar_url=?,password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student'").bind(name,email,phone||null,avatar||null,passwordHash,session.sub).run();
+      const updated=await env.RFIT_DB.prepare("SELECT id,email,full_name,role FROM users WHERE id=? LIMIT 1").bind(session.sub).first();
+      const newSession=await makeSession(updated,env.SESSION_SECRET);
+      return Response.json({ok:true,message:"profile_saved",profile:{name:updated.full_name,email:updated.email,phone,avatar_url:avatar,has_password:Boolean(passwordHash)}},{headers:{"Cache-Control":"no-store","Set-Cookie":cookieHeader(COOKIE_SESSION,newSession,SESSION_SECONDS)}});
+    } catch(error) {
+      if(String(error?.message||"").toLowerCase().includes("unique")) return authError("email_already_registered",409);
+      console.error("student_settings_save_failed",error?.message||"unknown");
+      return authError("settings_save_failed",503);
     }
   }
 
