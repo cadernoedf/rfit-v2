@@ -90,14 +90,24 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const goalsList=document.getElementById('journey-goals-list');
   const goalForm=document.getElementById('journey-goal-form');
   const goalMessage=document.getElementById('journey-goal-message');
-  const goalMetric=goalForm?.querySelector('select[name="metric"]'),goalUnit=goalForm?.querySelector('input[name="unit"]');
-  const syncGoalUnit=()=>{if(!goalUnit||!goalMetric)return;goalUnit.value=({weight:'kg',waist:'cm',body_fat:'%',fitness:'',custom:''})[goalMetric.value]??'';};
-  goalMetric?.addEventListener('change',syncGoalUnit);syncGoalUnit();
+  const goalMetric=goalForm?.querySelector('select[name="metric"]'),goalUnit=goalForm?.querySelector('input[name="unit"]'),goalStart=goalForm?.querySelector('input[name="start_value"]');
+  const latestEvaluation=[...measurements].sort((a,b)=>new Date(b.measured_at||b.created_at||0)-new Date(a.measured_at||a.created_at||0))[0]||null;
+  const metricConfig={weight:{unit:'kg',field:'weight_kg',label:'Peso'},waist:{unit:'cm',field:'waist_cm',label:'Abdômen'},body_fat:{unit:'%',field:'body_fat_pct',label:'Percentual de gordura'},fitness:{unit:'',field:null,label:'Condicionamento'},custom:{unit:'',field:null,label:'Outro'}};
+  const syncGoalMetric=(fillStart=true)=>{
+    if(!goalMetric)return;const config=metricConfig[goalMetric.value]||metricConfig.custom;
+    if(goalUnit)goalUnit.value=config.unit;
+    if(goalStart){
+      const value=config.field&&latestEvaluation?latestEvaluation[config.field]:null;
+      if(fillStart)goalStart.value=value!==null&&value!==undefined&&value!==''?String(value):'';
+      goalStart.placeholder=value!==null&&value!==undefined&&value!==''?'Última avaliação: '+String(value).replace('.',',')+(config.unit?' '+config.unit:''):'Sem avaliação registrada';
+    }
+  };
+  goalMetric?.addEventListener('change',()=>syncGoalMetric(true));syncGoalMetric(true);
 
   const goalModal=document.getElementById('journey-goal-modal');
   const openGoalButton=document.getElementById('journey-open-goal');
   const closeGoalModal=()=>{if(goalModal)goalModal.hidden=true;};
-  openGoalButton?.addEventListener('click',()=>{if(goalModal)goalModal.hidden=false;goalForm?.querySelector('input[name="title"]')?.focus();});
+  openGoalButton?.addEventListener('click',()=>{syncGoalMetric(true);if(goalModal)goalModal.hidden=false;goalForm?.querySelector('input[name="title"]')?.focus();});
   goalModal?.querySelectorAll('[data-close-goal]').forEach(button=>button.addEventListener('click',closeGoalModal));
   goalModal?.addEventListener('click',event=>{if(event.target===goalModal)closeGoalModal();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&goalModal&&!goalModal.hidden)closeGoalModal();});
