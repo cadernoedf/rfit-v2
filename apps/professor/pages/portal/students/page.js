@@ -9,15 +9,18 @@ const $=(selector)=>document.querySelector(selector);
 const statusLabel={active:'Ativo',pending:'Pendente',suspended:'Suspenso'};
 async function api(url,options={}){const response=await fetch(url,{credentials:'same-origin',cache:'no-store',...options,headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||'request_failed');return data;}
 
-/* ===== CARTÃO DO ALUNO ===== */
+/* ===== CARTÃO-RG DO ALUNO ===== */
 function createStudentCard(student,message){
- const card=document.createElement('article');card.className='managed-student-card';
+ const card=document.createElement('article');
+ const planKey=String(student.plan_code||'').toLowerCase();
+ const planTone=({nutrition:'nutrition',training:'training',combo:'combo',premium_lifetime:'premium'})[planKey]||'default';
+ card.className='managed-student-card student-id-card plan-'+planTone;
  const main=document.createElement('a');main.className='managed-student-main';main.href='./detail.html?id='+encodeURIComponent(student.id);
  const avatar=document.createElement('span');avatar.className='managed-student-avatar';
- if(student.avatar_url){const img=document.createElement('img');img.src=student.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=String(student.full_name||'R').trim().charAt(0).toUpperCase();
+ if(student.avatar_url){const img=document.createElement('img');img.src=student.avatar_url;img.alt='Foto de '+(student.full_name||'aluno');avatar.append(img)}else avatar.textContent=String(student.full_name||'R').trim().charAt(0).toUpperCase();
  const identity=document.createElement('span');identity.className='managed-student-identity';
  const name=document.createElement('strong');name.textContent=student.full_name||'Aluno sem nome';
- const email=document.createElement('small');email.textContent=student.email||'';
+ const email=document.createElement('small');email.textContent=student.email||'E-mail não informado';
  const plan=document.createElement('span');plan.className='managed-student-plan';plan.textContent=student.plan_name||'Sem plano';
  identity.append(name,email,plan);main.append(avatar,identity);
  const meta=document.createElement('div');meta.className='managed-student-meta';
@@ -25,6 +28,16 @@ function createStudentCard(student,message){
  const payment=document.createElement('span');payment.className='managed-student-payment';payment.textContent=({approved:'Pagamento confirmado',pending:'Pagamento pendente',rejected:'Pagamento recusado',refunded:'Pagamento estornado'})[student.payment_status]||'Pagamento não registrado';
  const anam=document.createElement('span');anam.className='managed-student-anam';anam.textContent=student.anamnesis_completed_at?'Anamnese preenchida':'Anamnese pendente';
  meta.append(status,payment,anam);
+ const info=document.createElement('div');info.className='student-id-facts';
+ const goal=student.workout_goal||student.profile_goal||'Objetivo não informado';
+ const frequency=student.workout_frequency||student.profile_training_frequency;
+ const facts=[
+  ['FOCO DO TREINO',goal],
+  ['FREQUÊNCIA',frequency?frequency+'x por semana':'Não definida'],
+  ['PESO ATUAL',student.current_weight!==null&&student.current_weight!==undefined?Number(student.current_weight).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg':'Sem avaliação'],
+  ['ÚLTIMO CHECK-IN',formatStudentDate(latestCheckin(student))]
+ ];
+ facts.forEach(([label,value])=>{const item=document.createElement('div');item.className='student-id-fact';const caption=document.createElement('small');caption.textContent=label;const strong=document.createElement('strong');strong.textContent=value;item.append(caption,strong);info.append(item)});
  const actions=document.createElement('div');actions.className='managed-student-actions';
  const statusSelect=document.createElement('select');statusSelect.setAttribute('aria-label','Situação de '+(student.full_name||student.email));
  Object.entries(statusLabel).forEach(([value,label])=>statusSelect.add(new Option(label,value)));statusSelect.value=student.status;
@@ -33,7 +46,15 @@ function createStudentCard(student,message){
  noteButton.addEventListener('click',async()=>{const note=noteInput.value.trim();if(!note){message.textContent='Escreva uma orientação antes de enviar.';return;}noteButton.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(student.id)+'/journey-notes',{method:'POST',body:JSON.stringify({note})});noteInput.value='';noteDetails.open=false;message.textContent='Orientação enviada para '+(student.full_name||student.email)+'.';}catch(error){message.textContent='Não foi possível enviar a orientação: '+error.message;}finally{noteButton.disabled=false;}});
  noteDetails.append(noteSummary,noteInput,noteButton);actions.append(statusSelect,noteDetails);
  const open=document.createElement('a');open.className='managed-student-open';open.href=main.href;open.textContent='Abrir perfil →';
- card.append(main,meta,actions,open);return card;
+ card.append(main,meta,info,actions,open);return card;
+}
+function latestCheckin(student){
+ const dates=[student.latest_daily_checkin,student.latest_weekly_checkin].filter(Boolean).map(value=>new Date(value)).filter(value=>!Number.isNaN(value.getTime()));
+ return dates.length?new Date(Math.max(...dates.map(value=>value.getTime()))):null;
+}
+function formatStudentDate(value){
+ if(!value)return 'Ainda não realizou';
+ return value.toLocaleDateString('pt-BR');
 }
 
 /* ===== CARREGAMENTO E FILTRO ===== */
