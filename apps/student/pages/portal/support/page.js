@@ -19,8 +19,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
  $('#support-form').addEventListener('submit',async event=>{
   event.preventDefault();const input=$('#support-input'),button=$('#support-send'),message=input.value.trim();if(!message)return;
   button.disabled=true;$('#page-message').textContent='Enviando…';
-  try{const response=await fetch('/api/student/support/messages',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});const result=await response.json();if(!response.ok)throw new Error(result.error||'send_failed');input.value='';await loadMessages();}
-  catch(error){$('#page-message').textContent='Não foi possível enviar. Tente novamente.';console.error(error);}
+  try{const response=await fetch('/api/student/support/messages',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});const result=await response.json();if(!response.ok)throw new Error(result.error||('HTTP '+response.status));input.value='';await loadMessages();$('#page-message').textContent='Mensagem enviada com sucesso.';}
+  catch(error){$('#page-message').textContent='Falha ao enviar: '+(error.message||'erro inesperado')+'.';console.error('R-Fit support send:',error);}
   finally{button.disabled=false;input.focus();}
  });
  $('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout();}finally{window.location.replace('/student/pages/login.html');}});
