@@ -1,25 +1,55 @@
+/* ==========================================================================
+   R-FIT | PORTAL DO PROFESSOR
+   Módulo: Lista de alunos em cartões e acesso ao perfil individual.
+   ========================================================================== */
 import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
+
+/* ===== IDENTIFICAÇÃO ===== */
+const $=(selector)=>document.querySelector(selector);
+const statusLabel={active:'Ativo',pending:'Pendente',suspended:'Suspenso'};
+async function api(url,options={}){const response=await fetch(url,{credentials:'same-origin',cache:'no-store',...options,headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||'request_failed');return data;}
+
+/* ===== CARTÃO DO ALUNO ===== */
+function createStudentCard(student,message){
+ const card=document.createElement('article');card.className='managed-student-card';
+ const main=document.createElement('a');main.className='managed-student-main';main.href='./detail.html?id='+encodeURIComponent(student.id);
+ const avatar=document.createElement('span');avatar.className='managed-student-avatar';
+ if(student.avatar_url){const img=document.createElement('img');img.src=student.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=String(student.full_name||'R').trim().charAt(0).toUpperCase();
+ const identity=document.createElement('span');identity.className='managed-student-identity';
+ const name=document.createElement('strong');name.textContent=student.full_name||'Aluno sem nome';
+ const email=document.createElement('small');email.textContent=student.email||'';
+ const plan=document.createElement('span');plan.className='managed-student-plan';plan.textContent=student.plan_name||'Sem plano';
+ identity.append(name,email,plan);main.append(avatar,identity);
+ const meta=document.createElement('div');meta.className='managed-student-meta';
+ const status=document.createElement('span');status.className='managed-student-status status-'+student.status;status.textContent=statusLabel[student.status]||student.status;
+ const payment=document.createElement('span');payment.className='managed-student-payment';payment.textContent=({approved:'Pagamento confirmado',pending:'Pagamento pendente',rejected:'Pagamento recusado',refunded:'Pagamento estornado'})[student.payment_status]||'Pagamento não registrado';
+ const anam=document.createElement('span');anam.className='managed-student-anam';anam.textContent=student.anamnesis_completed_at?'Anamnese preenchida':'Anamnese pendente';
+ meta.append(status,payment,anam);
+ const actions=document.createElement('div');actions.className='managed-student-actions';
+ const statusSelect=document.createElement('select');statusSelect.setAttribute('aria-label','Situação de '+(student.full_name||student.email));
+ Object.entries(statusLabel).forEach(([value,label])=>statusSelect.add(new Option(label,value)));statusSelect.value=student.status;
+ statusSelect.addEventListener('change',async()=>{const previous=student.status;statusSelect.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(student.id)+'/status',{method:'PATCH',body:JSON.stringify({status:statusSelect.value})});student.status=statusSelect.value;status.textContent=statusLabel[student.status];status.className='managed-student-status status-'+student.status;message.textContent='Situação do aluno atualizada.';}catch(error){statusSelect.value=previous;message.textContent='Não foi possível alterar a situação: '+error.message;}finally{statusSelect.disabled=false;}});
+ const noteDetails=document.createElement('details');noteDetails.className='managed-student-note';const noteSummary=document.createElement('summary');noteSummary.textContent='＋ Enviar orientação';const noteInput=document.createElement('textarea');noteInput.rows=3;noteInput.maxLength=1200;noteInput.placeholder='Escreva uma orientação que aparecerá na jornada do aluno…';const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='secondary-button';noteButton.textContent='Enviar orientação';
+ noteButton.addEventListener('click',async()=>{const note=noteInput.value.trim();if(!note){message.textContent='Escreva uma orientação antes de enviar.';return;}noteButton.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(student.id)+'/journey-notes',{method:'POST',body:JSON.stringify({note})});noteInput.value='';noteDetails.open=false;message.textContent='Orientação enviada para '+(student.full_name||student.email)+'.';}catch(error){message.textContent='Não foi possível enviar a orientação: '+error.message;}finally{noteButton.disabled=false;}});
+ noteDetails.append(noteSummary,noteInput,noteButton);actions.append(statusSelect,noteDetails);
+ const open=document.createElement('a');open.className='managed-student-open';open.href=main.href;open.textContent='Abrir perfil →';
+ card.append(main,meta,actions,open);return card;
+}
+
+/* ===== CARREGAMENTO E FILTRO ===== */
 document.addEventListener('DOMContentLoaded',async()=>{
- const welcome=document.querySelector('#professor-welcome'),list=document.querySelector('#students-list'),message=document.querySelector('#page-message');
+ const list=$('#students-list'),message=$('#page-message');
  try{
   const auth=await getCurrentUser();if(!['professor','admin'].includes(auth.user.role)){location.replace('/student/dashboard.html');return;}
-  welcome.textContent='Olá, '+(auth.user.name||auth.user.email)+'.';
-  const response=await fetch('/api/professor/students',{credentials:'same-origin',cache:'no-store'}),data=await response.json();if(!response.ok)throw new Error(data.error||'students_unavailable');
+  $('#professor-welcome').textContent='Olá, '+(auth.user.name||auth.user.email)+'.';
+  const data=await api('/api/professor/students');const students=data.students||[];
   list.replaceChildren();
-  const search=document.createElement('input');search.type='search';search.placeholder='Buscar aluno por nome ou e-mail';search.className='search-field';search.setAttribute('aria-label','Buscar aluno');list.append(search);
-  const table=document.createElement('div');table.className='table-wrap';const t=document.createElement('table');t.className='student-table';
-  const head=document.createElement('thead'),hr=document.createElement('tr');['Aluno','E-mail','Plano','Pagamento','Anamnese','Status','Orientação','Ação'].forEach(v=>{const th=document.createElement('th');th.textContent=v;hr.append(th)});head.append(hr);const body=document.createElement('tbody');t.append(head,body);table.append(t);list.append(table);
-  const students=data.students||[];
-  function render(){body.replaceChildren();const q=search.value.trim().toLowerCase();students.filter(s=>[s.full_name,s.email,s.plan_name].some(v=>String(v||'').toLowerCase().includes(q))).forEach(s=>{const tr=document.createElement('tr');[s.full_name||'—',s.email||'—',s.plan_name||'Sem plano',s.payment_status||'—'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});
-    const anamTd=document.createElement('td'),anamBadge=document.createElement('span');anamBadge.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;font-size:.76rem;font-weight:800;white-space:nowrap;';
-    if(Number(s.anamnesis_version||0)>1){anamBadge.textContent='↻ Atualizada';anamBadge.title='Versão '+s.anamnesis_version+' · '+(s.anamnesis_completed_at||'');anamBadge.style.background='#fff0f2';anamBadge.style.color='#c61c35';}
-    else if(s.anamnesis_completed_at){anamBadge.textContent='✓ Preenchida';anamBadge.title='Anamnese registrada em '+s.anamnesis_completed_at;anamBadge.style.background='#eaf8ef';anamBadge.style.color='#187443';}
-    else{anamBadge.textContent='— Pendente';anamBadge.style.background='#f1f3f6';anamBadge.style.color='#687080';}
-    anamTd.append(anamBadge);tr.append(anamTd);
-    const statusTd=document.createElement('td');statusTd.textContent=s.status||'—';tr.append(statusTd);
-    const noteTd=document.createElement('td'),noteDetails=document.createElement('details'),noteSummary=document.createElement('summary');noteSummary.textContent='＋ Orientação';noteSummary.style.cssText='cursor:pointer;color:#d92e49;font-weight:800;font-size:.78rem';const noteBox=document.createElement('div');noteBox.style.cssText='min-width:220px;padding:8px 0';const noteInput=document.createElement('textarea');noteInput.rows=3;noteInput.maxLength=1200;noteInput.placeholder='Escreva uma orientação para aparecer na jornada do aluno…';noteInput.style.cssText='width:100%;min-width:220px;box-sizing:border-box;border:1px solid #dce2eb;border-radius:8px;padding:8px;font:inherit;font-size:.78rem';const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='primary-button';noteButton.textContent='Enviar orientação';noteButton.style.cssText='margin-top:6px;padding:8px 12px;font-size:.76rem';noteButton.addEventListener('click',async()=>{const note=noteInput.value.trim();if(!note){message.textContent='Escreva uma orientação antes de enviar.';return;}noteButton.disabled=true;try{const r=await fetch('/api/professor/students/'+encodeURIComponent(s.id)+'/journey-notes',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({note})});const result=await r.json();if(!r.ok)throw new Error(result.error||'note_save_failed');noteInput.value='';noteDetails.open=false;message.textContent='Orientação enviada para '+(s.full_name||s.email)+'.';}catch(error){message.textContent='Não foi possível enviar a orientação.';}finally{noteButton.disabled=false;}});noteBox.append(noteInput,noteButton);noteDetails.append(noteSummary,noteBox);noteTd.append(noteDetails);tr.append(noteTd);
-    const td=document.createElement('td'),select=document.createElement('select');['active','pending','suspended'].forEach(status=>{const op=document.createElement('option');op.value=status;op.textContent=({active:'Ativo',pending:'Pendente',suspended:'Suspenso'})[status];select.append(op)});select.value=s.status;select.setAttribute('aria-label','Alterar status de '+(s.full_name||s.email));select.addEventListener('change',async()=>{select.disabled=true;try{const r=await fetch('/api/professor/students/'+encodeURIComponent(s.id)+'/status',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:select.value})});if(!r.ok)throw new Error('status_update_failed');s.status=select.value;message.textContent='Status do aluno atualizado.'}catch(e){select.value=s.status;message.textContent='Não foi possível alterar o status.'}finally{select.disabled=false}});td.append(select);tr.append(td);body.append(tr)});}
+  const toolbar=document.createElement('div');toolbar.className='students-toolbar';
+  const search=document.createElement('input');search.type='search';search.className='search-field';search.placeholder='Buscar por nome, e-mail ou plano';search.setAttribute('aria-label','Buscar alunos');
+  const count=document.createElement('span');count.className='students-count';toolbar.append(search,count);
+  const grid=document.createElement('div');grid.className='managed-students-grid';list.append(toolbar,grid);
+  function render(){grid.replaceChildren();const query=search.value.trim().toLowerCase();const filtered=students.filter(student=>[student.full_name,student.email,student.plan_name].some(value=>String(value||'').toLowerCase().includes(query)));count.textContent=filtered.length+' de '+students.length+' aluno(s)';filtered.forEach(student=>grid.append(createStudentCard(student,message)));if(!filtered.length){const empty=document.createElement('p');empty.className='overview-muted';empty.textContent='Nenhum aluno encontrado.';grid.append(empty);}}
   search.addEventListener('input',render);render();message.textContent=students.length+' aluno(s) carregado(s).';
- }catch(e){message.textContent='Não foi possível carregar alunos. '+(e.message||'')}
- document.querySelector('#logout')?.addEventListener('click',async()=>{try{await logout()}finally{location.replace('/student/pages/login.html')}});
+ }catch(error){message.textContent='Não foi possível carregar alunos: '+error.message;}
+ $('#logout')?.addEventListener('click',async()=>{try{await logout()}finally{location.replace('/student/pages/login.html')}});
 });
