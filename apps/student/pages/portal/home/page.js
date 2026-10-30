@@ -32,5 +32,27 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(reminder&&anamnesis?.has_active_plan&&!anamnesis.completed)reminder.hidden=false;
   if(message)message.textContent='';
  }catch(error){if(message)message.textContent='Não foi possível carregar todos os dados do painel. Atualize a página para tentar novamente.';console.error('student_home_dashboard_failed',error)}
+ const checkinModal=document.getElementById('daily-checkin-modal');
+ const openCheckin=()=>{if(checkinModal){checkinModal.hidden=false;document.body.style.overflow='hidden';}};
+ const closeCheckin=()=>{if(checkinModal){checkinModal.hidden=true;document.body.style.overflow='';}};
+ document.getElementById('open-daily-checkin')?.addEventListener('click',openCheckin);
+ document.getElementById('close-daily-checkin')?.addEventListener('click',closeCheckin);
+ document.getElementById('cancel-daily-checkin')?.addEventListener('click',closeCheckin);
+ checkinModal?.addEventListener('click',event=>{if(event.target===checkinModal)closeCheckin();});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&checkinModal&&!checkinModal.hidden)closeCheckin();});
+ checkinModal?.querySelectorAll('.daily-checkin-scale').forEach(group=>{
+   const name=group.dataset.name;
+   for(let value=1;value<=5;value++){const button=document.createElement('button');button.type='button';button.textContent=String(value);button.setAttribute('aria-pressed',value===3?'true':'false');button.addEventListener('click',()=>{group.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed','false'));button.setAttribute('aria-pressed','true');group.dataset.value=String(value)});group.append(button)}
+   group.dataset.value='3';
+ });
+ ['training_adherence','nutrition_adherence'].forEach(name=>{
+   const input=checkinModal?.querySelector('[name="'+name+'"]');const output=document.getElementById(name==='training_adherence'?'training-adherence-value':'nutrition-adherence-value');
+   input?.addEventListener('input',()=>{if(output)output.textContent=input.value+'%'});
+ });
+ document.getElementById('daily-checkin-form')?.addEventListener('submit',event=>{
+   event.preventDefault();
+   const status=document.getElementById('daily-checkin-message');
+   if(status)status.textContent='O formulário já abre dentro do painel. A gravação do check-in no banco ainda precisa ser conectada; não enviamos seus dados ainda.';
+ });
  document.querySelector('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout()}finally{location.replace('/student/pages/login.html')}});
 });
