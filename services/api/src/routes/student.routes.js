@@ -14,7 +14,7 @@ export async function studentRoutes(request, env, url) {
         const ids=JSON.parse(settings.login_top_students||'[]');
         if(Array.isArray(ids)&&ids.length){
           const valid=ids.filter(id=>typeof id==='string').slice(0,5);
-          if(valid.length){const marks=valid.map(()=>'?').join(',');const result=await env.RFIT_DB.prepare(`SELECT id,full_name,avatar_url FROM users WHERE role='student' AND status='active' AND id IN (${marks})`).bind(...valid).all();topStudents=result.results||[];}
+          if(valid.length){const marks=valid.map(()=>'?').join(',');const result=await env.RFIT_DB.prepare(`SELECT id,full_name,avatar_url FROM users WHERE role='student' AND status='active' AND id IN (${marks})`).bind(...valid).all();const byId=new Map((result.results||[]).map(student=>[student.id,student]));topStudents=valid.map(id=>byId.get(id)).filter(Boolean);}
         }
       } catch {}
       return reply({ok:true,settings:{consultancy_name:settings.consultancy_name||'R-Fit',login_title:settings.login_title||'Seu próximo nível começa aqui.',login_message:settings.login_message||'Entre para acessar seu espaço no R-Fit.'},top_students:topStudents});
