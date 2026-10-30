@@ -7,9 +7,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
  try{
   const auth=await getCurrentUser();if(auth.user.role!=='student'){location.replace('/professor/');return}
   set('student-welcome','Olá, '+(auth.user.name||auth.user.email)+'.');
-  const responses=await Promise.all([fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/anamnesis/status',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})]);
-  if(!responses[0].ok)throw new Error('dashboard_unavailable');
-  const data=await responses[0].json(),anamnesis=responses[1].ok?await responses[1].json():null;
+  const responses=await Promise.all([fetch('/api/student/checkins',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/anamnesis/status',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})]);
+  if(!responses[1].ok)throw new Error('dashboard_unavailable');
+  const checkinData=responses[0].ok?await responses[0].json():{checkins:[],total:0};
+  const data=await responses[1].json(),anamnesis=responses[2].ok?await responses[2].json():null;
   const body=data.body||{},sub=data.subscription;
   set('journey-goal',data.goal||'Construindo sua melhor versão.');
   set('journey-subtitle',data.anamnesis_completed?'Seus dados e registros ajudam você e seu personal a acompanhar sua evolução.':'Sua jornada fica mais personalizada quando você conclui a anamnese.');
@@ -47,6 +48,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-expiry-note',!sub?'Nenhum plano ativo':Number(sub.lifetime)?'Acesso vitalício':sub.expires_at?'Vence em '+dateText(sub.expires_at):'Validade não informada');
   set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
   set('journey-record-count',body.measured_at?'1 registro recente':'0 registros');
+  const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
+  set('journey-checkin-count',String(checkins.length));
+  const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,checkins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
+
   const healthCard=document.getElementById('journey-health-card'),healthItems=document.getElementById('journey-health-items'),healthInfo=data.health_info||{};
   let formAnswers=data.anamnesis_answers?.form_answers||null;
   if(!formAnswers&&data.anamnesis_answers?.additional_notes){try{const old=JSON.parse(data.anamnesis_answers.additional_notes);formAnswers=old.form_answers||old}catch{}}
@@ -90,6 +95,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   else addTimeline(items,'Complete sua anamnese','Preencha os dados iniciais para personalizar o acompanhamento.','','!');
   if(sub)addTimeline(items,'Plano ativo: '+(sub.plan_name||'R-Fit'),Number(sub.lifetime)?'Seu acesso é vitalício.':(sub.days_remaining===null?'Plano em andamento.':'Restam '+sub.days_remaining+' dias de acesso.'),sub.expires_at,'R');
   if(body.weight_kg!==null||body.waist_cm!==null)addTimeline(items,'Medidas corporais disponíveis','Peso: '+fmt(body.weight_kg,' kg')+' · Abdômen: '+fmt(body.waist_cm,' cm')+' · IMC: '+fmt(body.bmi),body.measured_at,'↗');
+  checkins.slice(0,8).reverse().forEach(item=>{
+    const details='Sono '+item.sleep_quality+'/5 · Energia '+item.energy+'/5 · Apetite '+item.appetite+'/5 · Treinos '+item.training_adherence+'% · Alimentação '+item.nutrition_adherence+'%'+(Number(item.discomfort)?' · Relatou desconforto':'')+(item.notes?' · '+item.notes:'');
+    addTimeline(items,'Check-in diário registrado',details,item.created_at||item.checkin_date,'✓');
+  });
   if(data.workout_available)addTimeline(items,'Treino disponível',data.workout_title||'Confira a prescrição de treino.','','↗');
   if(data.diet_available)addTimeline(items,'Plano alimentar disponível',data.diet_title||'Confira seu plano alimentar.','','↗');
   if(!items.length)addTimeline(items,'Sua jornada começa agora','Seu personal poderá adicionar medidas, treino e dieta conforme o acompanhamento evoluir.','','•');
