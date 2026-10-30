@@ -13,6 +13,7 @@ export async function adminRoutes(request, env, url) {
   const isFinance = url.pathname === '/api/professor/finance';
   const isStudentCollection = url.pathname === '/api/professor/students';
   const studentDetailMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)$/);
+  const studentDeleteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)$/);
   const workoutCreateMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/workouts$/);
   const dietCreateMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/diets$/);
   const isAnnouncementCollection = url.pathname === '/api/professor/announcements';
@@ -27,7 +28,7 @@ export async function adminRoutes(request, env, url) {
   const journeyNoteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/journey-notes$/);
   const isJourneyNote = Boolean(journeyNoteMatch);
 
-  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -65,6 +66,40 @@ export async function adminRoutes(request, env, url) {
       ]);
       if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
       return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null},{headers:noStore});
+    }
+
+    /* EXCLUSÃO DEFINITIVA DE ALUNO PELO PROFESSOR */
+    if (studentDeleteMatch && request.method === 'DELETE') {
+      const studentId=decodeURIComponent(studentDeleteMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id,full_name,email FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      await env.RFIT_DB.batch([
+        env.RFIT_DB.prepare("INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,'student.deleted','user',studentId,JSON.stringify({full_name:student.full_name,email:student.email})),
+        env.RFIT_DB.prepare('UPDATE audit_log SET actor_user_id=NULL WHERE actor_user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('UPDATE invite_tokens SET created_by=NULL WHERE created_by=?').bind(studentId),
+        env.RFIT_DB.prepare('UPDATE invite_tokens SET used_by=NULL WHERE used_by=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM payment_checkouts WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM payments WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM support_messages WHERE student_user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM student_journey_notes WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM student_journey_goals WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM student_journey_photos WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM daily_checkins WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM weekly_checkins WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM student_measurements WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM progress_photos WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM notifications WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM anamneses WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM diet_meals WHERE diet_id IN (SELECT id FROM diets WHERE user_id=?)').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM diets WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM workout_exercises WHERE session_id IN (SELECT ws.id FROM workout_sessions ws JOIN workouts w ON w.id=ws.workout_id WHERE w.user_id=?)').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM workout_sessions WHERE workout_id IN (SELECT id FROM workouts WHERE user_id=?)').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM workouts WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM subscriptions WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare('DELETE FROM student_profiles WHERE user_id=?').bind(studentId),
+        env.RFIT_DB.prepare("DELETE FROM users WHERE id=? AND role='student'").bind(studentId)
+      ]);
+      return Response.json({ok:true,deleted_student_id:studentId},{headers:noStore});
     }
 
     /* ===== CRIAR TREINO PERSONALIZADO ===== */
