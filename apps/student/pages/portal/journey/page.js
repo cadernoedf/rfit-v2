@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const checkinData=responses[1].ok?await responses[1].json():{checkins:[],total:0};
   const data=await responses[2].json(),anamnesis=responses[3].ok?await responses[3].json():null;
   const body=data.body||{},sub=data.subscription;
-  set('journey-goal',data.goal||'Construindo sua melhor versão.');
+  set('journey-goal',data.goal||data.profile?.goal||'Construindo sua melhor versão.');
   set('journey-subtitle',data.anamnesis_completed?'Seus dados e registros ajudam você e seu personal a acompanhar sua evolução.':'Sua jornada fica mais personalizada quando você conclui a anamnese.');
   const planKind=sub?.access_type==='lifetime'||Number(sub?.lifetime)?'👑 Acesso vitalício':sub?.access_type==='courtesy'?'👑 Cortesia do personal':sub?.is_expired?'Plano vencido':'Plano ativo';
   set('journey-plan',sub?.plan_name||'Nenhum plano ativo');
@@ -131,8 +131,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(sub)addTimeline(items,'Plano ativo: '+(sub.plan_name||'R-Fit'),Number(sub.lifetime)?'Seu acesso é vitalício.':(sub.days_remaining===null?'Plano em andamento.':'Restam '+sub.days_remaining+' dias de acesso.'),sub.expires_at,'R');
   if(body.weight_kg!==null||body.waist_cm!==null)addTimeline(items,'Medidas corporais disponíveis','Peso: '+fmt(body.weight_kg,' kg')+' · Abdômen: '+fmt(body.waist_cm,' cm')+' · IMC: '+fmt(body.bmi),body.measured_at,'↗');
   checkins.slice(0,8).reverse().forEach(item=>{
-    const details='Sono '+item.sleep_quality+'/5 · Energia '+item.energy+'/5 · Apetite '+item.appetite+'/5 · Treinos '+item.training_adherence+'% · Alimentação '+item.nutrition_adherence+'%'+(Number(item.discomfort)?' · Relatou desconforto':'')+(item.notes?' · '+item.notes:'');
-    addTimeline(items,'Check-in diário registrado',details,item.created_at||item.checkin_date,'✓');
+    const answers=item.answers&&typeof item.answers==='object'?Object.entries(item.answers).map(([key,value])=>key+': '+(Array.isArray(value)?value.join(', '):String(value))).join(' · '):'Registro semanal recebido.';
+    const details=[answers,item.notes].filter(Boolean).join(' · ');
+    addTimeline(items,'Check-in semanal registrado',details,item.created_at||item.week_start||item.checkin_date,'✓');
   });
   if(data.workout_available)addTimeline(items,'Treino disponível',data.workout_title||'Confira a prescrição de treino.','','↗');
   if(data.diet_available)addTimeline(items,'Plano alimentar disponível',data.diet_title||'Confira seu plano alimentar.','','↗');
