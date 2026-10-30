@@ -16,7 +16,7 @@ export async function studentRoutes(request, env, url) {
       if(request.method==='POST'){
         const body=await request.json(), message=String(body.message||'').trim();
         if(!message||message.length>3000)return reply({ok:false,error:'invalid_message'},400);
-        const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student' AND status='active'").bind(session.sub).first();
+        const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(session.sub).first();
         if(!student)return reply({ok:false,error:'student_not_found'},404);
         const id=crypto.randomUUID();
         await env.RFIT_DB.prepare("INSERT INTO support_messages(id,student_user_id,sender_user_id,sender_role,body) VALUES(?,?,?,'student',?)").bind(id,session.sub,session.sub,message).run();
