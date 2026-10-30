@@ -116,7 +116,7 @@ export async function adminRoutes(request, env, url) {
           ORDER BY pay.created_at DESC LIMIT 100`).all()
       ]);
       const month = await env.RFIT_DB.prepare(`SELECT COALESCE(SUM(amount_cents),0) AS total_cents,COUNT(*) AS count
-        FROM payments WHERE status='approved' AND paid_at >= strftime('%Y-%m-01T00:00:00Z','now')`).first();
+        FROM payments WHERE status='approved' AND date(paid_at) >= date('now','start of month')`).first();
       return Response.json({ok:true,totals:totals||{},month:month||{},payments:recent.results||[]},{headers:noStore});
     }
 
