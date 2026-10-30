@@ -236,6 +236,60 @@ document.addEventListener('DOMContentLoaded',async()=>{
     const bar=document.getElementById('journey-level-progress');if(bar)bar.style.width=next?Math.min(100,((points-current.min)/(next.min-current.min))*100)+'%':'100%';
   };
   renderAchievements();
+
+  // Calendário de consistência: últimos 84 dias, baseado nos check-ins reais.
+  const calendarNode=document.getElementById('journey-checkin-calendar');
+  if(calendarNode){
+    calendarNode.replaceChildren();
+    const activeDays=new Set(checkins.map(item=>String(item.created_at||item.checkin_date||'').slice(0,10)).filter(value=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)));
+    const today=new Date();today.setHours(0,0,0,0);
+    for(let offset=83;offset>=0;offset--){
+      const day=new Date(today);day.setDate(today.getDate()-offset);
+      const key=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
+      const cell=document.createElement('span');cell.className='journey-calendar-day'+(activeDays.has(key)?' is-active':'');cell.title=day.toLocaleDateString('pt-BR')+(activeDays.has(key)?' · Check-in realizado':' · Sem check-in');cell.setAttribute('aria-label',cell.title);calendarNode.append(cell);
+    }
+  }
+  // Comparação lado a lado com as imagens privadas já salvas no D1.
+  const beforeSelect=document.getElementById('journey-photo-before'),afterSelect=document.getElementById('journey-photo-after'),compareButton=document.getElementById('journey-photo-compare-button'),compareResult=document.getElementById('journey-photo-compare-result');
+  const refreshPhotoComparison=()=>{
+    if(!beforeSelect||!afterSelect)return;
+    const ordered=[...journeyPhotos].sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at));
+    [beforeSelect,afterSelect].forEach(select=>{const old=select.value;select.replaceChildren();const prompt=document.createElement('option');prompt.value='';prompt.textContent='Selecione uma foto';select.append(prompt);ordered.forEach(photo=>{const option=document.createElement('option');option.value=photo.id;option.textContent=dateText(photo.taken_at)+' · '+(({frente:'Frente',lado:'Lado',costas:'Costas',progresso:'Progresso geral'})[photo.photo_type]||'Foto');select.append(option);});if(ordered.some(photo=>photo.id===old))select.value=old;});
+    if(ordered.length>=2){if(!beforeSelect.value)beforeSelect.value=ordered[0].id;if(!afterSelect.value)afterSelect.value=ordered[ordered.length-1].id;}
+  };
+  refreshPhotoComparison();
+  compareButton?.addEventListener('click',()=>{
+    const pair=[{id:beforeSelect?.value,label:'Antes'},{id:afterSelect?.value,label:'Depois'}];
+    if(!pair[0].id||!pair[1].id||pair[0].id===pair[1].id){if(photoMessage)photoMessage.textContent='Escolha duas fotos diferentes para comparar.';return;}
+    compareResult.replaceChildren();pair.forEach(item=>{const photo=journeyPhotos.find(row=>row.id===item.id);if(!photo)return;const figure=document.createElement('figure'),image=document.createElement('img'),caption=document.createElement('figcaption');image.loading='lazy';image.alt='Foto '+item.label;image.src='/api/student/journey/photos/'+encodeURIComponent(photo.id)+'/image';caption.textContent=item.label+' · '+dateText(photo.taken_at);figure.append(image,caption);compareResult.append(figure);});compareResult.hidden=false;
+  });
+  // Resumo do mês atual, calculado sem criar ou alterar registros.
+  const monthNow=new Date(),monthKey=monthNow.getFullYear()+'-'+String(monthNow.getMonth()+1).padStart(2,'0');
+  const inMonth=value=>String(value||'').slice(0,7)===monthKey;
+  const monthCheckins=checkins.filter(item=>inMonth(item.created_at||item.checkin_date)).length;
+  const monthMeasurements=measurements.filter(item=>inMonth(item.measured_at||item.created_at)).length;
+  const monthPhotos=journeyPhotos.filter(item=>inMonth(item.taken_at||item.created_at)).length;
+  const monthCompleted=currentGoals.filter(item=>item.status==='completed'&&inMonth(item.completed_at)).length;
+  set('journey-month-label',monthNow.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
+  set('journey-month-checkins',String(monthCheckins));set('journey-month-measurements',String(monthMeasurements));set('journey-month-photos',String(monthPhotos));set('journey-month-goals',String(monthCompleted));
+  const highlight=document.getElementById('journey-month-highlight');
+  if(highlight)highlight.textContent=monthCheckins+monthMeasurements+monthPhotos>0?'Você realizou '+(monthCheckins+monthMeasurements+monthPhotos)+' registros neste mês. Continue valorizando cada passo!':'Seu mês está começando. O próximo registro será o primeiro deste período.';
+  document.getElementById('journey-month-print')?.addEventListener('click',()=>{
+    const reportWindow=window.open('','_blank');if(!reportWindow){window.print();return;}
+    const rows=[['Check-ins',monthCheckins],['Avaliações',monthMeasurements],['Fotos',monthPhotos],['Metas concluídas',monthCompleted]];
+    reportWindow.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo mensal R-Fit</title><style>body{font:16px Arial,sans-serif;color:#202b3a;padding:32px;max-width:760px;margin:auto}h1{font-size:26px}p{color:#657286}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0}.item{border:1px solid #dce2eb;border-radius:10px;padding:18px}.item b{display:block;font-size:28px;margin-bottom:6px}.note{padding:14px;background:#fff1f3;border-radius:8px}@media print{button{display:none}}</style></head><body><p>R-FIT · SUA EVOLUÇÃO</p><h1>Resumo mensal</h1><p>'+monthNow.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+'</p><div class="grid">'+rows.map(row=>'<div class="item"><b>'+row[1]+'</b>'+row[0]+'</div>').join('')+'</div><p class="note">'+(highlight?.textContent||'Cada registro conta.')+'</p><p>Relatório gerado a partir dos registros disponíveis na sua jornada R-Fit.</p><script>window.onload=()=>window.print()<\\/script></body></html>');
+    reportWindow.document.close();
+  });
+  // Orientações registradas pelo profissional para este aluno.
+  const notesList=document.getElementById('journey-professional-notes-list');
+  try{
+    const response=await fetch('/api/student/journey/notes',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    if(!response.ok)throw new Error('notes_unavailable');
+    const result=await response.json(),notes=Array.isArray(result.notes)?result.notes:[];
+    if(notesList){notesList.replaceChildren();if(!notes.length){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='Seu personal ainda não deixou orientações por aqui.';notesList.append(empty);}else{notes.forEach(note=>{const card=document.createElement('article');card.className='journey-professional-note';const author=document.createElement('strong'),body=document.createElement('p'),time=document.createElement('time');author.textContent=note.author_name||'Seu personal';body.textContent=note.note;time.textContent=dateText(note.created_at);card.append(author,body,time);notesList.append(card);});}}
+    notes.forEach(note=>addTimeline(items,'Orientação do personal',note.note,note.created_at,'✎'));
+  }catch(error){if(notesList){notesList.replaceChildren();const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='As orientações profissionais não estão disponíveis no momento.';notesList.append(empty);}}
+
   document.getElementById('journey-print-report')?.addEventListener('click',()=>window.print());
   const healthCard=document.getElementById('journey-health-card'),healthItems=document.getElementById('journey-health-items'),healthInfo=data.health_info||{};
   let formAnswers=data.anamnesis_answers?.form_answers||null;
