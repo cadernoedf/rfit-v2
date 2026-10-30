@@ -612,6 +612,26 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .student-id-fact small{color:#8993a3;font-size:.58rem;font-weight:900;letter-spacing:.07em}
 .student-id-fact strong{overflow-wrap:anywhere;color:#202b3b;font-size:.75rem;line-height:1.3}
 @media(max-width:760px){.student-id-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Cartão RG do aluno — hierarquia visual, evolução e alertas */
+.student-id-card{gap:13px;padding:18px 19px 16px;border-top-width:5px;box-shadow:0 7px 22px #1720330b}
+.student-id-card.plan-gold{border-top-color:#c9952e;background:linear-gradient(145deg,#fff 65%,#fff5dc)}
+.student-id-card.plan-gold .managed-student-plan{background:#fff0c9;color:#8b6111;border:1px solid #f0d99e;font-weight:850}
+.student-id-card.plan-gold .managed-student-avatar{box-shadow:0 0 0 3px #f7e8bd}
+.student-id-card .managed-student-main{align-items:center;gap:14px}
+.student-id-card .managed-student-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.student-id-card .managed-student-meta{gap:7px}
+.student-id-facts{grid-template-columns:1.35fr .9fr .85fr 1.2fr 1fr;gap:10px}
+.student-id-fact strong{font-size:.76rem}
+.student-id-alerts{display:flex;flex-wrap:wrap;gap:6px}
+.student-id-alert{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:.65rem;font-weight:800}
+.student-id-alert.alert-warning{background:#fff3dc;color:#94600a}
+.student-id-alert.alert-danger{background:#ffebed;color:#b42336}
+.student-id-alert.alert-muted{background:#eef1f5;color:#657184}
+.student-id-card .managed-student-actions{align-items:center}
+.student-id-card .managed-student-open{justify-self:end}
+@media(max-width:1100px){.student-id-facts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.student-id-card{padding:15px}.student-id-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.student-id-card .managed-student-main{gap:10px}.student-id-card .managed-student-avatar{width:52px;height:52px;flex-basis:52px}}
+
 
 .detail-header-actions{display:flex;align-items:center;gap:8px}
 .detail-header-actions .secondary-button{width:auto;min-width:85px;margin:0;padding:8px 12px;font-size:.75rem}
