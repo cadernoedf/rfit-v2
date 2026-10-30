@@ -50,10 +50,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-measure-date',body.measured_at?dateText(body.measured_at):'Sem medida registrada');
   set('journey-days-count',!sub?'—':Number(sub.lifetime)?'∞':sub.days_remaining===null||sub.days_remaining===undefined?'—':String(sub.days_remaining));
   set('journey-expiry-note',!sub?'Nenhum plano cadastrado':Number(sub.lifetime)?'👑 Acesso vitalício':sub.is_expired?'Acesso vencido em '+dateText(sub.expires_at):sub.expires_at?'Vence em '+dateText(sub.expires_at):'Validade não informada');
-  set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
-  set('journey-record-count',String(measurements.length+checkins.length)+' registros');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
+  set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
+  set('journey-record-count',String(measurements.length+checkins.length)+' registros');
   const heightMeters=Number(body.height_cm||0)/100;
   const checkinWeightPoints=checkins.filter(row=>row.weight_kg!==null&&row.weight_kg!==undefined&&Number(row.weight_kg)>0).map(row=>({measured_at:row.created_at||row.checkin_date,weight_kg:Number(row.weight_kg),bmi:heightMeters>0?Math.round((Number(row.weight_kg)/(heightMeters*heightMeters))*10)/10:null,source:'checkin'}));
   const evaluationPoints=measurements.map(row=>({...row,source:'evaluation'}));
