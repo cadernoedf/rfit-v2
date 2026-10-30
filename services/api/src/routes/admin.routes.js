@@ -117,7 +117,17 @@ export async function adminRoutes(request, env, url) {
       ]);
       const month = await env.RFIT_DB.prepare(`SELECT COALESCE(SUM(amount_cents),0) AS total_cents,COUNT(*) AS count
         FROM payments WHERE status='approved' AND date(paid_at) >= date('now','start of month')`).first();
-      return Response.json({ok:true,totals:totals||{},month:month||{},payments:recent.results||[]},{headers:noStore});
+      const schedule = await env.RFIT_DB.prepare(`SELECT
+        COUNT(CASE WHEN date(s.billing_starts_at) BETWEEN date('now') AND date('now','+30 days') THEN 1 END) AS upcoming_count,
+        COALESCE(SUM(CASE WHEN date(s.billing_starts_at) BETWEEN date('now') AND date('now','+30 days') THEN p.price_cents ELSE 0 END),0) AS upcoming_cents,
+        COUNT(CASE WHEN date(s.billing_starts_at)<date('now') THEN 1 END) AS overdue_count
+        FROM subscriptions s JOIN plans p ON p.id=s.plan_id
+        WHERE s.status='active' AND s.billing_starts_at IS NOT NULL`).first();
+      const billingRows = await env.RFIT_DB.prepare(`SELECT u.full_name,u.email,p.name AS plan_name,p.price_cents,s.billing_starts_at
+        FROM subscriptions s JOIN users u ON u.id=s.user_id JOIN plans p ON p.id=s.plan_id
+        WHERE s.status='active' AND s.billing_starts_at IS NOT NULL
+        ORDER BY s.billing_starts_at ASC LIMIT 100`).all();
+      return Response.json({ok:true,totals:totals||{},month:month||{},schedule:schedule||{},billing_schedule:billingRows.results||[],payments:recent.results||[]},{headers:noStore});
     }
 
     /* ===== CADASTRO ADMINISTRATIVO DE ALUNO ===== */
