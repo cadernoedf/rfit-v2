@@ -24,6 +24,25 @@ export async function studentRoutes(request, env, url) {
       let healthInfo={};try{healthInfo=JSON.parse(profile?.restrictions_json||'{}')}catch{}; return reply({ok:true,student:{name:user?.full_name||session.name||'',email:user?.email||session.email||'',phone:user?.phone||'',avatar_url:user?.avatar_url||''},subscription:sub?{plan_name:sub.plan_name||'Plano R-Fit',plan_code:sub.plan_code,lifetime:Number(sub.lifetime),expires_at:sub.expires_at,days_remaining:days,includes_training:Number(sub.includes_training),includes_nutrition:Number(sub.includes_nutrition)}:null,anamnesis_completed:Boolean(profile?.anamnesis_completed_at),anamnesis_answers:anamnesisAnswers,health_info:healthInfo,body:{weight_kg:measurement?.weight_kg??profile?.weight_kg??null,bmi,waist_cm:measurement?.waist_cm??null,measured_at:measurement?.measured_at||null},workout_available:Boolean(workout),workout_title:workout?.title||'',diet_available:Boolean(diet),diet_title:diet?.title||''});
     } catch(error) { console.error('student_dashboard_failed',error?.message||'unknown'); return reply({ok:false,error:'dashboard_unavailable'},503); }
   }
+  if (url.pathname === '/api/student/checkin') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method!=='POST')return reply({ok:false,error:'method_not_allowed'},405);
+    try{
+      const body=await request.json();
+      const number=(value,min,max)=>Number.isInteger(Number(value))&&Number(value)>=min&&Number(value)<=max;
+      if(!number(body.sleep_quality,1,5)||!number(body.energy,1,5)||!number(body.appetite,1,5)||!number(body.training_adherence,0,100)||!number(body.nutrition_adherence,0,100))return reply({ok:false,error:'invalid_checkin_fields'},400);
+      const weight=body.weight_kg===null||body.weight_kg===''||body.weight_kg===undefined?null:Number(String(body.weight_kg).replace(',','.'));
+      if(weight!==null&&(!Number.isFinite(weight)||weight<20||weight>400))return reply({ok:false,error:'invalid_weight'},400);
+      const notes=String(body.notes||'').trim().slice(0,2000);
+      const discomfort=body.discomfort?1:0;
+      const id=crypto.randomUUID();
+      const savedAt=new Date().toISOString();
+      await env.RFIT_DB.prepare("INSERT INTO daily_checkins(id,user_id,checkin_date,weight_kg,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes,created_at,updated_at) VALUES(?,?,date('now'),?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,checkin_date) DO UPDATE SET weight_kg=excluded.weight_kg,sleep_quality=excluded.sleep_quality,energy=excluded.energy,appetite=excluded.appetite,training_adherence=excluded.training_adherence,nutrition_adherence=excluded.nutrition_adherence,discomfort=excluded.discomfort,notes=excluded.notes,updated_at=excluded.updated_at")
+        .bind(id,session.sub,weight,Number(body.sleep_quality),Number(body.energy),Number(body.appetite),Number(body.training_adherence),Number(body.nutrition_adherence),discomfort,notes,savedAt,savedAt).run();
+      return reply({ok:true,saved:true,message:'Check-in salvo com sucesso.'});
+    }catch(error){console.error('student_daily_checkin_failed',error?.message||'unknown');return reply({ok:false,error:'checkin_save_failed'},503);}
+  }
   if (url.pathname === '/api/student/plans') {
     if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
     const session=await getSession(request,env);
