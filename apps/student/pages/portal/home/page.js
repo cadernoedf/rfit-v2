@@ -49,10 +49,26 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const input=checkinModal?.querySelector('[name="'+name+'"]');const output=document.getElementById(name==='training_adherence'?'training-adherence-value':'nutrition-adherence-value');
    input?.addEventListener('input',()=>{if(output)output.textContent=input.value+'%'});
  });
- document.getElementById('daily-checkin-form')?.addEventListener('submit',event=>{
+ document.getElementById('daily-checkin-form')?.addEventListener('submit',async event=>{
    event.preventDefault();
-   const status=document.getElementById('daily-checkin-message');
-   if(status)status.textContent='O formulário já abre dentro do painel. A gravação do check-in no banco ainda precisa ser conectada; não enviamos seus dados ainda.';
+   const form=event.currentTarget,status=document.getElementById('daily-checkin-message'),button=form.querySelector('[type="submit"]');
+   const selected=name=>Number(checkinModal.querySelector('[data-name="'+name+'"]')?.dataset.value||0);
+   const formData=new FormData(form);
+   const payload={weight_kg:formData.get('weight_kg')||null,sleep_quality:selected('sleep_quality'),energy:selected('energy'),appetite:selected('appetite'),training_adherence:Number(formData.get('training_adherence')),nutrition_adherence:Number(formData.get('nutrition_adherence')),discomfort:formData.has('discomfort'),notes:String(formData.get('notes')||'').trim()};
+   if(!payload.sleep_quality||!payload.energy||!payload.appetite){if(status)status.textContent='Selecione uma nota de 1 a 5 em cada avaliação.';return;}
+   if(button){button.disabled=true;button.textContent='Enviando…';}
+   if(status)status.textContent='Salvando seu check-in…';
+   try{
+     const response=await fetch('/api/student/checkin',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)});
+     const result=await response.json();
+     if(!response.ok||!result.ok)throw new Error(result.error||'checkin_save_failed');
+     if(status)status.textContent='✓ Check-in salvo com sucesso!';
+     form.reset();
+     checkinModal.querySelectorAll('.daily-checkin-scale').forEach(group=>{group.dataset.value='3';group.querySelectorAll('button').forEach((item,index)=>item.setAttribute('aria-pressed',index===2?'true':'false'));});
+     ['training-adherence-value','nutrition-adherence-value'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='80%';});
+     setTimeout(closeCheckin,900);
+   }catch(error){if(status)status.textContent=error.message==='invalid_checkin_fields'?'Confira as notas de sono, energia e apetite.':'Não foi possível salvar agora. Tente novamente.';console.error('daily_checkin_submit_failed',error);}
+   finally{if(button){button.disabled=false;button.textContent='Enviar check-in';}}
  });
  document.querySelector('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout()}finally{location.replace('/student/pages/login.html')}});
 });
