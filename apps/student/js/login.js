@@ -9,7 +9,32 @@ const errorMessages = {
   invalid_json: 'Os dados enviados estão inválidos.',
 };
 
+async function loadPortalPresentation(){
+ try{
+  const response=await fetch('/api/public/portal-config',{credentials:'same-origin',cache:'no-store'});
+  const data=await response.json();if(!response.ok||!data.ok)return;
+  const settings=data.settings||{};
+  const title=document.querySelector('.login-title'),intro=document.querySelector('#login-message-intro');
+  if(title&&settings.login_title)title.textContent=settings.login_title;
+  if(intro&&settings.login_message)intro.textContent=settings.login_message;
+  const list=document.querySelector('#login-featured-list'),section=document.querySelector('#login-featured');
+  const students=data.top_students||[];
+  if(list&&section&&students.length){
+   list.replaceChildren();
+   students.slice(0,5).forEach((student,index)=>{
+    const item=document.createElement('div');item.className='login-featured-item';
+    const rank=document.createElement('span');rank.className='login-featured-rank';rank.textContent=String(index+1).padStart(2,'0');
+    const avatar=document.createElement('span');avatar.className='login-featured-avatar';
+    if(student.avatar_url){const image=document.createElement('img');image.src=student.avatar_url;image.alt='';avatar.append(image)}else avatar.textContent=String(student.full_name||'R').trim().charAt(0).toUpperCase();
+    const name=document.createElement('strong');name.textContent=student.full_name||'Aluno R-Fit';item.append(rank,avatar,name);list.append(item);
+   });
+   section.hidden=false;
+  }
+ }catch(error){console.warn('rfit_login_presentation_unavailable',error);}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  loadPortalPresentation();
   const form = document.querySelector('#student-login');
   const message = document.querySelector('#login-message');
   if (!form || !message) return;
