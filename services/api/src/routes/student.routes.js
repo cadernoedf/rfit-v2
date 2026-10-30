@@ -37,7 +37,7 @@ export async function studentRoutes(request, env, url) {
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
     if(request.method!=='GET')return reply({ok:false,error:'method_not_allowed'},405);
     try{
-      const result=await env.RFIT_DB.prepare("SELECT id,weight_kg,height_cm,waist_cm,measured_at FROM student_measurements WHERE user_id=? ORDER BY measured_at ASC").bind(session.sub).all();
+      const result=await env.RFIT_DB.prepare("SELECT id,weight_kg,height_cm,waist_cm,body_fat_pct,measured_at,created_at FROM student_measurements WHERE user_id=? ORDER BY measured_at ASC,created_at ASC").bind(session.sub).all();
       const measurements=(result.results||[]).map(row=>{const height=Number(row.height_cm||0)/100,weight=Number(row.weight_kg||0);return {...row,bmi:height>0&&weight>0?Math.round(weight/(height*height)*10)/10:null};});
       return reply({ok:true,measurements});
     }catch(error){console.error('student_measurement_history_failed',error?.message||'unknown');return reply({ok:false,error:'measurement_history_unavailable'},503);}
