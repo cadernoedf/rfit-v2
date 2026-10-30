@@ -476,3 +476,42 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 @media(max-width:1100px){.overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.overview-hero{align-items:flex-start;flex-direction:column;padding:24px;min-height:0}.overview-hero-action{align-self:flex-start}.overview-bottom-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.professor-overview .overview-topbar{align-items:flex-start}.overview-metrics{gap:9px}.overview-metric-card{padding:14px}.overview-metric-value{font-size:1.75rem}.overview-panel{padding:16px}.overview-section-heading{align-items:flex-start;flex-direction:column}}
+
+
+/* ==========================================================================
+   14. PORTAL DO PROFESSOR — FINANCEIRO E CADASTRO
+   Estilos exclusivos dos módulos novos; sem regras globais ou sobrescritas.
+   ========================================================================== */
+.professor-finance,.professor-enrollment{max-width:1500px}
+.finance-hero,.enrollment-hero{position:relative;overflow:hidden;margin:25px 0;padding:27px 30px;border:1px solid #343a46;border-radius:19px;background:linear-gradient(112deg,#151820 0%,#252b36 70%,#351923 100%);color:#fff}
+.finance-hero{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.finance-hero h2,.enrollment-hero h2{margin:8px 0 5px;color:#fff;font-size:clamp(1.4rem,2.6vw,2rem);letter-spacing:-.04em}
+.finance-hero p,.enrollment-hero p{margin:0;color:#c7cbd4}
+.finance-hero .secondary-button{width:auto;min-width:145px;margin:0;color:#fff;background:#ffffff12;border-color:#ffffff35}
+.finance-transactions{margin-top:20px}
+.finance-transactions .overview-panel-heading{align-items:center}
+.finance-transactions .search-field{max-width:260px}
+.finance-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:.7rem;font-weight:800;white-space:nowrap}
+.finance-status-approved{background:#e8f7ee;color:#187443}
+.finance-status-pending{background:#fff4df;color:#98600b}
+.finance-status-rejected,.finance-status-cancelled{background:#fff0f1;color:#b42b40}
+.finance-status-refunded{background:#eff1f5;color:#5d6675}
+.finance-disclaimer{margin:15px 0;padding:13px 15px;border:1px solid #f1d9a9;border-radius:11px;background:#fffaf0;color:#815d24;font-size:.76rem;line-height:1.5}
+.enrollment-hero{margin-bottom:18px}
+.enrollment-panel{max-width:920px;padding:25px}
+.enrollment-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.enrollment-form-heading{grid-column:1/-1;padding-bottom:8px;border-bottom:1px solid #edf0f4}
+.enrollment-form-heading h2{margin:5px 0 0;color:#192231;font-size:1.2rem}
+.enrollment-form>label{display:grid;gap:7px;color:#455064;font-size:.8rem;font-weight:800}
+.enrollment-form input:not([type=checkbox]),.enrollment-form select{width:100%;min-height:43px;padding:10px 12px;border:1px solid #dce2eb;border-radius:10px;background:#fff;color:#172033;font:inherit;font-weight:500}
+.enrollment-form input:focus,.enrollment-form select:focus{outline:2px solid #ff5369;outline-offset:1px}
+.enrollment-form label small{color:#818b9b;font-size:.7rem;font-weight:500;line-height:1.5}
+.enrollment-form .enrollment-check{display:flex;align-items:center;gap:9px;grid-column:1/-1;padding:12px;border:1px solid #f2d6db;border-radius:10px;background:#fff7f8;color:#9c263a}
+.enrollment-check input{width:17px;height:17px;accent-color:#e52d49}
+#billing-delay-wrap{grid-column:1/-1}
+.enrollment-form .primary-button{grid-column:1/-1;margin-top:3px}
+.student-created{display:grid;gap:10px;margin-top:20px;padding:18px;border:1px solid #b9e2c8;border-radius:13px;background:#f2fbf5;color:#1e6139}
+.student-created h3,.student-created p{margin:0;color:inherit}
+.student-created .temporary-password{display:block;width:fit-content;padding:11px 14px;border:1px dashed #8abf9c;border-radius:9px;background:#fff;color:#173d27;font-size:1.05rem;letter-spacing:.08em;user-select:all}
+.student-created .secondary-button{width:fit-content;margin:0;color:#173d27;background:#fff;border-color:#b9d9c3}
+@media(max-width:760px){.finance-hero{align-items:flex-start;flex-direction:column;padding:22px}.finance-hero .secondary-button{width:auto}.finance-transactions .overview-panel-heading{align-items:flex-start;flex-direction:column}.finance-transactions .search-field{max-width:none;width:100%}.enrollment-form{grid-template-columns:1fr}.enrollment-panel{padding:17px}}
