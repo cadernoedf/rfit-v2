@@ -29,13 +29,13 @@ export async function studentRoutes(request, env, url) {
       if(request.method==='GET'){
         const rows=await env.RFIT_DB.prepare(`SELECT a.id,a.title,a.message,a.starts_at,a.ends_at,a.require_acknowledgement,a.created_at,
           r.read_at FROM portal_announcements a LEFT JOIN announcement_reads r ON r.announcement_id=a.id AND r.user_id=?
-          WHERE a.is_active=1 AND (a.starts_at IS NULL OR a.starts_at<=CURRENT_TIMESTAMP)
-          AND (a.ends_at IS NULL OR a.ends_at>=CURRENT_TIMESTAMP)
+          WHERE a.is_active=1 AND (a.starts_at IS NULL OR datetime(a.starts_at)<=CURRENT_TIMESTAMP)
+          AND (a.ends_at IS NULL OR datetime(a.ends_at)>=CURRENT_TIMESTAMP)
           ORDER BY a.created_at DESC LIMIT 100`).bind(session.sub).all();
         const announcements=(rows.results||[]).filter(item=>!item.read_at).filter(item=>{
           return true;
         });
-        const details=await env.RFIT_DB.prepare("SELECT id,target_user_ids_json,audience FROM portal_announcements WHERE is_active=1 AND (starts_at IS NULL OR starts_at<=CURRENT_TIMESTAMP) AND (ends_at IS NULL OR ends_at>=CURRENT_TIMESTAMP)").all();
+        const details=await env.RFIT_DB.prepare("SELECT id,target_user_ids_json,audience FROM portal_announcements WHERE is_active=1 AND (starts_at IS NULL OR datetime(starts_at)<=CURRENT_TIMESTAMP) AND (ends_at IS NULL OR datetime(ends_at)>=CURRENT_TIMESTAMP)").all();
         const allowed=new Set((details.results||[]).filter(item=>item.audience==='all'||(()=>{try{return JSON.parse(item.target_user_ids_json||'[]').includes(session.sub)}catch{return false}})()).map(item=>item.id));
         return reply({ok:true,announcements:announcements.filter(item=>allowed.has(item.id))});
       }
