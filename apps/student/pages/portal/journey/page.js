@@ -87,60 +87,109 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-checkin-count',String(checkins.length));
   const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,checkins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
 
-  const achievementDefs=[
-    {id:'first-checkin',icon:'✓',title:'Primeiro passo',desc:'Realizou seu primeiro check-in.',unlocked:checkins.length>=1},
-    {id:'five-checkins',icon:'★',title:'Ritmo constante',desc:'Completou 5 check-ins.',unlocked:checkins.length>=5},
-    {id:'ten-checkins',icon:'🏅',title:'Compromisso em ação',desc:'Completou 10 check-ins.',unlocked:checkins.length>=10},
-    {id:'thirty-checkins',icon:'🏆',title:'30 passos de evolução',desc:'Completou 30 check-ins.',unlocked:checkins.length>=30},
-    {id:'first-measurement',icon:'⚖',title:'Ponto de partida',desc:'Recebeu sua primeira avaliação corporal.',unlocked:measurements.length>=1},
-    {id:'five-measurements',icon:'📈',title:'Evolução acompanhada',desc:'Possui 5 avaliações corporais registradas.',unlocked:measurements.length>=5},
-    {id:'first-goal',icon:'🎯',title:'Olhar no objetivo',desc:'Definiu sua primeira meta pessoal.',unlocked:false}
-  ];
-  const achievementList=document.getElementById('journey-achievements-list');
-  const renderAchievements=(goals=[])=>{
-    const defs=achievementDefs.map(item=>item.id==='first-goal'?{...item,unlocked:goals.length>0}:item);
-    const unlocked=defs.filter(item=>item.unlocked).length;
-    set('journey-achievement-count',unlocked+' de '+defs.length+' desbloqueadas');
-    if(achievementList){achievementList.replaceChildren();defs.forEach(item=>{
-      const card=document.createElement('article');card.className='journey-achievement'+(item.unlocked?'':' is-locked');
-      const medal=document.createElement('span');medal.className='medal';medal.textContent=item.icon;
-      const title=document.createElement('strong');title.textContent=item.title;
-      const desc=document.createElement('small');desc.textContent=item.unlocked?'Conquista desbloqueada · '+item.desc:item.desc;
-      card.append(medal,title,desc);achievementList.append(card);
-    });}
-  };
   const goalsList=document.getElementById('journey-goals-list');
   const goalForm=document.getElementById('journey-goal-form');
+  const goalMessage=document.getElementById('journey-goal-message');
+  const photoForm=document.getElementById('journey-photo-form');
+  const photoGallery=document.getElementById('journey-photo-gallery');
+  const photoMessage=document.getElementById('journey-photo-message');
+  let currentGoals=[],journeyPhotos=[];
+  const refreshGoals=async()=>{
+    const response=await fetch('/api/student/journey/goals',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    if(!response.ok)throw new Error('goals_unavailable');
+    const data=await response.json();currentGoals=Array.isArray(data.goals)?data.goals:[];renderGoals(currentGoals);renderAchievements();return currentGoals;
+  };
   const renderGoals=(goals)=>{
     if(!goalsList)return;goalsList.replaceChildren();
-    if(!goals.length){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='Você ainda não definiu uma meta. Use o formulário abaixo para registrar seu próximo objetivo.';goalsList.append(empty);return;}
+    if(!goals.length){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='Você ainda não definiu uma meta. Registre seu próximo objetivo abaixo.';goalsList.append(empty);return;}
     goals.forEach(goal=>{
       const card=document.createElement('article');card.className='journey-goal-item';
       const title=document.createElement('strong');title.textContent=goal.title;
-      const values=document.createElement('p');values.textContent='Início: '+fmt(goal.start_value,goal.unit?' '+goal.unit:'')+' · Meta: '+fmt(goal.target_value,goal.unit?' '+goal.unit:'')+' · '+(goal.status==='active'?'Em andamento':goal.status==='completed'?'Concluída':'Pausada');
-      card.append(title,values);if(goal.notes){const note=document.createElement('p');note.textContent=goal.notes;card.append(note);}goalsList.append(card);
+      const current=goal.current_value===null||goal.current_value===undefined?'Aguardando avaliação':('Atual: '+fmt(goal.current_value,goal.unit?' '+goal.unit:''));
+      const target='Meta: '+fmt(goal.target_value,goal.unit?' '+goal.unit:'');
+      const status=goal.status==='completed'?'Concluída':goal.status==='paused'?'Pausada':'Em andamento';
+      const values=document.createElement('p');values.textContent='Início: '+fmt(goal.start_value,goal.unit?' '+goal.unit:'')+' · '+current+' · '+target+' · '+status;
+      card.append(title,values);
+      if(goal.progress_percent!==null&&goal.progress_percent!==undefined){const track=document.createElement('div');track.className='journey-goal-progress';const fill=document.createElement('i');fill.style.width=goal.progress_percent+'%';track.append(fill);const pct=document.createElement('p');pct.textContent=goal.progress_percent+'% do caminho até sua meta';card.append(track,pct);}
+      if(goal.completed_at){const done=document.createElement('p');done.textContent='Meta alcançada em '+dateText(goal.completed_at);card.append(done);}
+      if(goal.notes){const note=document.createElement('p');note.textContent=goal.notes;card.append(note);}
+      const actions=document.createElement('div');actions.className='journey-goal-actions';
+      const remove=document.createElement('button');remove.type='button';remove.textContent='Excluir meta';remove.addEventListener('click',async()=>{if(!confirm('Excluir esta meta?'))return;remove.disabled=true;try{const response=await fetch('/api/student/journey/goals/'+encodeURIComponent(goal.id),{method:'DELETE',credentials:'same-origin'});if(!response.ok)throw new Error('delete_failed');await refreshGoals();}catch(error){if(goalMessage)goalMessage.textContent='Não foi possível excluir a meta.';remove.disabled=false;}});actions.append(remove);card.append(actions);goalsList.append(card);
     });
   };
-  let currentGoals=[];
-  try{
-    const goalsResponse=await fetch('/api/student/journey/goals',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-    if(goalsResponse.ok){const goalsData=await goalsResponse.json();currentGoals=Array.isArray(goalsData.goals)?goalsData.goals:[];renderGoals(currentGoals);}
-    else renderGoals([]);
-  }catch(error){renderGoals([]);console.warn('journey_goals_load_failed');}
-  renderAchievements(currentGoals);
+  try{await refreshGoals();}catch(error){renderGoals([]);console.warn('journey_goals_load_failed');}
   if(goalForm)goalForm.addEventListener('submit',async event=>{
-    event.preventDefault();const submit=goalForm.querySelector('button[type="submit"]'),message=document.getElementById('journey-goal-message');
-    submit.disabled=true;if(message)message.textContent='Salvando objetivo…';
-    try{
-      const form=new FormData(goalForm),payload=Object.fromEntries(form.entries());
-      payload.start_value=payload.start_value===''?null:Number(payload.start_value);
-      payload.target_value=payload.target_value===''?null:Number(payload.target_value);
+    event.preventDefault();const submit=goalForm.querySelector('button[type="submit"]');submit.disabled=true;if(goalMessage)goalMessage.textContent='Salvando objetivo…';
+    try{const form=new FormData(goalForm),payload=Object.fromEntries(form.entries());payload.start_value=payload.start_value===''?null:Number(payload.start_value);payload.target_value=payload.target_value===''?null:Number(payload.target_value);
       const response=await fetch('/api/student/journey/goals',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)});
-      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');
-      const refreshed=await fetch('/api/student/journey/goals',{credentials:'same-origin',cache:'no-store'});const data=await refreshed.json();currentGoals=Array.isArray(data.goals)?data.goals:[];renderGoals(currentGoals);renderAchievements(currentGoals);goalForm.reset();if(message)message.textContent='Objetivo salvo com sucesso.';
-    }catch(error){if(message)message.textContent='Não foi possível salvar seu objetivo. Tente novamente.';console.error('journey_goal_save_failed',error)}
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');await refreshGoals();goalForm.reset();if(goalMessage)goalMessage.textContent='Objetivo salvo. A evolução será atualizada quando novas avaliações forem registradas.';
+    }catch(error){if(goalMessage)goalMessage.textContent='Não foi possível salvar seu objetivo. Confira os valores e tente novamente.';console.error('journey_goal_save_failed',error)}
     finally{submit.disabled=false;}
   });
+  const loadPhotos=async()=>{
+    const response=await fetch('/api/student/journey/photos',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    if(!response.ok)throw new Error('photos_unavailable');const data=await response.json();journeyPhotos=Array.isArray(data.photos)?data.photos:[];
+    if(photoGallery){photoGallery.replaceChildren();if(!journeyPhotos.length){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='Nenhuma foto registrada ainda. Sua primeira foto marcará o início da galeria.';photoGallery.append(empty);}
+      journeyPhotos.forEach(photo=>{const card=document.createElement('article');card.className='journey-photo-item';const image=document.createElement('img');image.loading='lazy';image.alt='Foto de evolução '+photo.photo_type;image.src='/api/student/journey/photos/'+encodeURIComponent(photo.id)+'/image';const info=document.createElement('div');const title=document.createElement('strong');title.textContent=({frente:'Frente',lado:'Lado',costas:'Costas',progresso:'Progresso geral'})[photo.photo_type]||'Foto de evolução';const date=document.createElement('small');date.textContent=dateText(photo.taken_at);info.append(title,date);if(photo.note){const note=document.createElement('small');note.textContent=photo.note;info.append(note);}const remove=document.createElement('button');remove.type='button';remove.textContent='Excluir foto';remove.addEventListener('click',async()=>{if(!confirm('Excluir esta foto permanentemente?'))return;remove.disabled=true;try{const result=await fetch('/api/student/journey/photos/'+encodeURIComponent(photo.id),{method:'DELETE',credentials:'same-origin'});if(!result.ok)throw new Error('photo_delete_failed');await loadPhotos();renderAchievements();}catch(error){if(photoMessage)photoMessage.textContent='Não foi possível excluir a foto.';remove.disabled=false;}});info.append(remove);card.append(image,info);photoGallery.append(card);});
+    }
+    return journeyPhotos;
+  };
+  try{await loadPhotos();}catch(error){if(photoGallery){photoGallery.replaceChildren();const msg=document.createElement('p');msg.className='journey-muted';msg.textContent='Não foi possível carregar a galeria agora.';photoGallery.append(msg);}console.warn('journey_photos_load_failed');}
+  const compressPhoto=async file=>{
+    if(!file||!file.type.startsWith('image/'))throw new Error('Selecione uma imagem válida.');
+    if(!('createImageBitmap'in window))throw new Error('Este navegador não oferece compressão local de imagem. Atualize o navegador.');
+    const bitmap=await createImageBitmap(file);let width=bitmap.width,height=bitmap.height;const maxSide=1280;
+    if(Math.max(width,height)>maxSide){const scale=maxSide/Math.max(width,height);width=Math.round(width*scale);height=Math.round(height*scale);}
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const context=canvas.getContext('2d');context.drawImage(bitmap,0,0,width,height);bitmap.close?.();
+    const toBlob=quality=>new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+    let blob=await toBlob(.78);if(blob&&blob.size>716800)blob=await toBlob(.62);
+    if(blob&&blob.size>716800){const scaled=document.createElement('canvas');scaled.width=Math.round(width*.78);scaled.height=Math.round(height*.78);scaled.getContext('2d').drawImage(canvas,0,0,scaled.width,scaled.height);blob=await new Promise(resolve=>scaled.toBlob(resolve,'image/jpeg',.58));}
+    if(!blob||blob.size>716800)throw new Error('Não foi possível reduzir a foto para menos de 700 KB. Escolha outra imagem.');
+    return blob;
+  };
+  if(photoForm)photoForm.addEventListener('submit',async event=>{
+    event.preventDefault();const submit=photoForm.querySelector('button[type="submit"]'),file=document.getElementById('journey-photo-file')?.files?.[0];submit.disabled=true;if(photoMessage)photoMessage.textContent='Comprimindo e enviando foto…';
+    try{const blob=await compressPhoto(file),form=new FormData(photoForm),params=new URLSearchParams({type:String(form.get('type')||'progresso'),date:String(form.get('date')||''),note:String(form.get('note')||'')});
+      const response=await fetch('/api/student/journey/photos?'+params.toString(),{method:'POST',credentials:'same-origin',headers:{'Content-Type':'image/jpeg'},body:blob});
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'photo_upload_failed');photoForm.reset();if(photoMessage)photoMessage.textContent='Foto salva com segurança no D1.';await loadPhotos();renderAchievements();
+    }catch(error){if(photoMessage)photoMessage.textContent=error.message==='image_too_large'?'A foto ficou maior que 700 KB após compressão.':error.message||'Não foi possível enviar a foto.';console.error('journey_photo_upload_failed',error)}
+    finally{submit.disabled=false;}
+  });
+  const dateFor=(records,index,field)=>records[index]?(records[index][field]||records[index].created_at||records[index].checkin_date||null):null;
+  const weekKey=value=>{const date=new Date(value);if(Number.isNaN(date.getTime()))return null;date.setUTCHours(0,0,0,0);const day=date.getUTCDay()||7;date.setUTCDate(date.getUTCDate()-day+1);return date.toISOString().slice(0,10);};
+  const weekStreak=()=>{
+    const keys=[...new Set(checkins.map(item=>weekKey(item.week_start||item.checkin_date||item.created_at)).filter(Boolean))].sort();
+    let best=0,run=0,previous=null,runEnd=null,bestEnd=null;
+    keys.forEach(key=>{const current=new Date(key+'T00:00:00Z');const expected=previous?new Date(new Date(previous+'T00:00:00Z').getTime()+7*86400000):null;run=previous&&current.getTime()===expected.getTime()?run+1:1;if(run>best){best=run;bestEnd=key;}previous=key;});
+    return {count:best,end:bestEnd};
+  };
+  const nthDate=(records,n,field)=>{const sorted=[...records].sort((a,b)=>new Date(a[field]||a.created_at||a.checkin_date||0)-new Date(b[field]||b.created_at||b.checkin_date||0));return sorted[n-1]?(sorted[n-1][field]||sorted[n-1].created_at||sorted[n-1].checkin_date):null;};
+  const achievementList=document.getElementById('journey-achievements-list');
+  const renderAchievements=()=>{
+    const streak=weekStreak(),completed=currentGoals.filter(goal=>goal.status==='completed'),firstPhoto=journeyPhotos.length?[...journeyPhotos].sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at))[0].taken_at:null;
+    const defs=[
+      {id:'first-checkin',icon:'✓',title:'Primeiro passo',desc:'Realizou seu primeiro check-in.',date:nthDate(checkins,1,'created_at')},
+      {id:'five-checkins',icon:'★',title:'Ritmo constante',desc:'Completou 5 check-ins.',date:nthDate(checkins,5,'created_at')},
+      {id:'ten-checkins',icon:'🏅',title:'Compromisso em ação',desc:'Completou 10 check-ins.',date:nthDate(checkins,10,'created_at')},
+      {id:'thirty-checkins',icon:'🏆',title:'30 passos de evolução',desc:'Completou 30 check-ins.',date:nthDate(checkins,30,'created_at')},
+      {id:'first-measurement',icon:'⚖',title:'Ponto de partida',desc:'Recebeu sua primeira avaliação corporal.',date:nthDate(measurements,1,'measured_at')},
+      {id:'five-measurements',icon:'📈',title:'Evolução acompanhada',desc:'Possui 5 avaliações corporais.',date:nthDate(measurements,5,'measured_at')},
+      {id:'first-goal',icon:'🎯',title:'Olhar no objetivo',desc:'Definiu sua primeira meta.',date:currentGoals.length?[...currentGoals].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0].created_at:null},
+      {id:'four-week-streak',icon:'🔥',title:'Quatro semanas firmes',desc:'Registrou check-ins em 4 semanas consecutivas.',date:streak.count>=4?streak.end:null},
+      {id:'eight-week-streak',icon:'🌟',title:'Constância de verdade',desc:'Registrou check-ins em 8 semanas consecutivas.',date:streak.count>=8?streak.end:null},
+      {id:'first-photo',icon:'📸',title:'Minha transformação',desc:'Adicionou sua primeira foto de evolução.',date:firstPhoto},
+      {id:'goal-complete',icon:'🏁',title:'Meta alcançada',desc:'Concluiu um objetivo acompanhado por avaliações.',date:completed.length?[...completed].sort((a,b)=>new Date(a.completed_at)-new Date(b.completed_at))[0].completed_at:null},
+      {id:'ten-photos',icon:'🖼',title:'Álbum de evolução',desc:'Registrou 10 fotos de acompanhamento.',date:journeyPhotos.length>=10?[...journeyPhotos].sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at))[9].taken_at:null}
+    ];
+    const unlocked=defs.filter(item=>item.date).length;set('journey-achievement-count',unlocked+' de '+defs.length+' desbloqueadas');
+    if(achievementList){achievementList.replaceChildren();defs.forEach(item=>{const card=document.createElement('article');card.className='journey-achievement'+(item.date?'':' is-locked');const medal=document.createElement('span');medal.className='medal';medal.textContent=item.icon;const title=document.createElement('strong');title.textContent=item.title;const desc=document.createElement('small');desc.textContent=item.date?'Desbloqueada em '+dateText(item.date):item.desc;card.append(medal,title,desc);achievementList.append(card);});}
+    const points=checkins.length+measurements.length*2+journeyPhotos.length+completed.length*3;
+    const levels=[{min:0,name:'Iniciante'},{min:5,name:'Comprometido'},{min:15,name:'Constante'},{min:30,name:'Focado'},{min:50,name:'Conquistador'}];
+    let current=levels[0],next=null;levels.forEach((level,index)=>{if(points>=level.min){current=level;next=levels[index+1]||null;}});
+    set('journey-level',current.name);set('journey-level-next',next?'Faltam '+Math.max(0,next.min-points)+' pontos para '+next.name: 'Nível máximo alcançado. Continue evoluindo!');
+    const bar=document.getElementById('journey-level-progress');if(bar)bar.style.width=next?Math.min(100,((points-current.min)/(next.min-current.min))*100)+'%':'100%';
+  };
+  renderAchievements();
   document.getElementById('journey-print-report')?.addEventListener('click',()=>window.print());
   const healthCard=document.getElementById('journey-health-card'),healthItems=document.getElementById('journey-health-items'),healthInfo=data.health_info||{};
   let formAnswers=data.anamnesis_answers?.form_answers||null;
