@@ -1,82 +1,33 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111318">
-  <title>R-Fit — Visão geral do professor</title>
-  <link rel="stylesheet" href="../../../../shared/css/rfit.css">
-  <script type="module" src="./page.js"></script>
-</head>
-<body class="admin-body">
-  <div class="portal-layout">
-    <!-- ===== IDENTIFICAÇÃO E NAVEGAÇÃO DO PROFESSOR ===== -->
-    <aside class="portal-sidebar" aria-label="Menu do professor">
-      <a class="portal-brand" href="/professor/">
-        <span class="brand-mark">R</span>
-        <span>R-FIT<small>PROFESSOR</small></span>
-      </a>
-      <nav class="portal-nav">
-        <a class="portal-nav-link is-active" href="../overview/index.html"><span>▦</span> Visão geral</a>
-        <a class="portal-nav-link" href="../students/index.html"><span>♙</span> Alunos</a>
-        <a class="portal-nav-link" href="../plans/index.html"><span>▤</span> Planos</a>
-        <a class="portal-nav-link" href="../settings/index.html"><span>⚙</span> Configurações</a>
-        <a class="portal-nav-link" href="../support/index.html"><span>☏</span> Suporte</a>
-      </nav>
-      <div class="sidebar-bottom">Sistema R-Fit</div>
-    </aside>
-
-    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
-    <main class="admin-shell portal-main professor-overview">
-      <header class="admin-topbar overview-topbar">
-        <div>
-          <span class="eyebrow">R-FIT · PAINEL DO PROFESSOR</span>
-          <h1 class="admin-title">Visão geral<span>.</span></h1>
-          <p id="professor-welcome">Validando sessão…</p>
-        </div>
-        <button id="logout" class="secondary-button admin-logout" type="button">Sair</button>
-      </header>
-
-      <!-- ===== DESTAQUE DO PAINEL ===== -->
-      <section class="overview-hero" aria-labelledby="overview-hero-title">
-        <div class="overview-hero-copy">
-          <span class="overview-kicker">CENTRAL DE COMANDO</span>
-          <h2 id="overview-hero-title">Seu trabalho, em um só lugar.</h2>
-          <p>Acompanhe alunos, planos e pontos que precisam da sua atenção.</p>
-        </div>
-        <a class="overview-hero-action" href="../students/index.html">Gerenciar alunos <span aria-hidden="true">→</span></a>
-        <div class="overview-hero-orbit" aria-hidden="true"></div>
-      </section>
-
-      <!-- ===== INDICADORES REAIS DO D1 ===== -->
-      <section class="overview-section" aria-labelledby="overview-metrics-title">
-        <div class="overview-section-heading">
-          <div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="overview-metrics-title">Resumo da consultoria</h2></div>
-          <span id="overview-updated" class="overview-updated">Aguardando dados</span>
-        </div>
-        <div id="overview-summary" class="overview-metrics" aria-live="polite">
-          <div class="overview-loading">Carregando indicadores do portal…</div>
-        </div>
-      </section>
-
-      <!-- ===== ATALHOS E PENDÊNCIAS ===== -->
-      <section class="overview-bottom-grid">
-        <article class="overview-panel overview-attention">
-          <div class="overview-panel-heading"><div><span class="section-kicker">PRIORIDADES</span><h2>O que merece atenção</h2></div><span class="overview-panel-icon">!</span></div>
-          <div id="overview-priorities" class="overview-priority-list">
-            <p class="overview-muted">Conferindo as pendências…</p>
-          </div>
-        </article>
-        <article class="overview-panel overview-shortcuts">
-          <div class="overview-panel-heading"><div><span class="section-kicker">ACESSO RÁPIDO</span><h2>Atalhos do professor</h2></div></div>
-          <a class="overview-shortcut" href="../students/index.html"><span class="overview-shortcut-icon">♙</span><span><strong>Meus alunos</strong><small>Consultar cadastro e acompanhar alunos</small></span><b>→</b></a>
-          <a class="overview-shortcut" href="../plans/index.html"><span class="overview-shortcut-icon">▤</span><span><strong>Planos</strong><small>Organizar os planos da consultoria</small></span><b>→</b></a>
-          <a class="overview-shortcut" href="../support/index.html"><span class="overview-shortcut-icon">✉</span><span><strong>Mensagens</strong><small>Responder aos alunos pelo suporte privado</small></span><b>→</b></a>
-          <a class="overview-shortcut" href="../settings/index.html"><span class="overview-shortcut-icon">⚙</span><span><strong>Configurações</strong><small>Preferências e dados do portal</small></span><b>→</b></a>
-        </article>
-      </section>
-      <p id="page-message" class="form-message overview-message" role="status" aria-live="polite"></p>
-    </main>
-  </div>
-</body>
-</html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111318"><title>R-Fit — Visão geral do professor</title>
+<link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./page.js"></script>
+</head><body class="admin-body"><div class="portal-layout">
+<!-- ===== IDENTIFICAÇÃO E NAVEGAÇÃO ===== -->
+<aside class="portal-sidebar" aria-label="Menu do professor">
+<a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a>
+<nav class="portal-nav">
+<a class="portal-nav-link is-active" href="../overview/index.html"><span>▦</span> Visão geral</a>
+<a class="portal-nav-link" href="../students/index.html"><span>♙</span> Alunos</a>
+<a class="portal-nav-link" href="../plans/index.html"><span>▤</span> Planos</a>
+<a class="portal-nav-link" href="../settings/index.html"><span>⚙</span> Configurações</a>
+<a class="portal-nav-link" href="../support/index.html"><span>☏</span> Suporte</a>
+</nav><div class="sidebar-bottom">Sistema R-Fit</div></aside>
+<!-- ===== CONTEÚDO PRINCIPAL ===== -->
+<main class="admin-shell portal-main professor-overview">
+<header class="admin-topbar overview-topbar"><div><span class="eyebrow">R-FIT · PAINEL DO PROFESSOR</span><h1 class="admin-title">Visão geral<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><button id="logout" class="secondary-button admin-logout" type="button">Sair</button></header>
+<!-- ===== DESTAQUE DO PAINEL ===== -->
+<section class="overview-hero" aria-labelledby="overview-hero-title"><div class="overview-hero-copy"><span class="overview-kicker">CENTRAL DE COMANDO</span><h2 id="overview-hero-title">Seu trabalho, em um só lugar.</h2><p>Acompanhe alunos, planos e pontos que precisam da sua atenção.</p></div><a class="overview-hero-action" href="../students/index.html">Gerenciar alunos <span aria-hidden="true">→</span></a><div class="overview-hero-orbit" aria-hidden="true"></div></section>
+<!-- ===== INDICADORES REAIS DO D1 ===== -->
+<section class="overview-section" aria-labelledby="overview-metrics-title"><div class="overview-section-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="overview-metrics-title">Resumo da consultoria</h2></div><span id="overview-updated" class="overview-updated">Aguardando dados</span></div><div id="overview-summary" class="overview-metrics" aria-live="polite"><div class="overview-loading">Carregando indicadores do portal…</div></div></section>
+<!-- ===== PENDÊNCIAS E ATALHOS ===== -->
+<section class="overview-bottom-grid">
+<article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">PRIORIDADES</span><h2>O que merece atenção</h2></div><span class="overview-panel-icon">!</span></div><div id="overview-priorities" class="overview-priority-list"><p class="overview-muted">Conferindo as pendências…</p></div></article>
+<article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ACESSO RÁPIDO</span><h2>Atalhos do professor</h2></div></div>
+<a class="overview-shortcut" href="../students/index.html"><span class="overview-shortcut-icon">♙</span><span><strong>Meus alunos</strong><small>Consultar cadastro e acompanhar alunos</small></span><b>→</b></a>
+<a class="overview-shortcut" href="../plans/index.html"><span class="overview-shortcut-icon">▤</span><span><strong>Planos</strong><small>Organizar os planos da consultoria</small></span><b>→</b></a>
+<a class="overview-shortcut" href="../support/index.html"><span class="overview-shortcut-icon">✉</span><span><strong>Mensagens</strong><small>Responder aos alunos pelo suporte privado</small></span><b>→</b></a>
+<a class="overview-shortcut" href="../settings/index.html"><span class="overview-shortcut-icon">⚙</span><span><strong>Configurações</strong><small>Preferências e dados do portal</small></span><b>→</b></a>
+</article></section><p id="page-message" class="form-message overview-message" role="status" aria-live="polite"></p>
+</main></div></body></html>
