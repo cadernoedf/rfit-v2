@@ -76,6 +76,54 @@ export async function studentRoutes(request, env, url) {
       return reply({ok:true,saved:true,message:'Check-in salvo com sucesso.'});
     }catch(error){console.error('student_daily_checkin_failed',error?.message||'unknown');return reply({ok:false,error:'checkin_save_failed'},503);}
   }
+  if (url.pathname === '/api/student/journey/photos') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method==='GET'){
+      try{
+        const result=await env.RFIT_DB.prepare("SELECT id,mime_type,byte_size,photo_type,note,taken_at,created_at FROM student_journey_photos WHERE user_id=? ORDER BY taken_at DESC,created_at DESC LIMIT 60").bind(session.sub).all();
+        return reply({ok:true,photos:result.results||[]});
+      }catch(error){console.error('journey_photos_list_failed',error?.message||'unknown');return reply({ok:false,error:'journey_photos_unavailable'},503);}
+    }
+    if(request.method==='POST'){
+      try{
+        const mime=(request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+        if(!['image/jpeg','image/png','image/webp'].includes(mime))return reply({ok:false,error:'unsupported_image_type'},415);
+        const declared=Number(request.headers.get('content-length')||0);
+        if(declared>716800)return reply({ok:false,error:'image_too_large'},413);
+        const bytes=new Uint8Array(await request.arrayBuffer());
+        if(!bytes.length||bytes.byteLength>716800)return reply({ok:false,error:'image_too_large'},413);
+        const signature=mime==='image/jpeg'?bytes[0]===0xff&&bytes[1]===0xd8:mime==='image/png'?bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47:bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46&&bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50;
+        if(!signature)return reply({ok:false,error:'invalid_image'},400);
+        const params=url.searchParams;
+        const photoType=['frente','lado','costas','progresso'].includes(params.get('type'))?params.get('type'):'progresso';
+        const note=String(params.get('note')||'').trim().slice(0,240);
+        const takenAt=params.get('date')&&/^\d{4}-\d{2}-\d{2}$/.test(params.get('date'))?params.get('date')+'T12:00:00.000Z':new Date().toISOString();
+        const id=crypto.randomUUID();
+        await env.RFIT_DB.prepare("INSERT INTO student_journey_photos(id,user_id,image_blob,mime_type,byte_size,photo_type,note,taken_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,session.sub,bytes,mime,bytes.byteLength,photoType,note,takenAt).run();
+        return reply({ok:true,saved:true,id,byte_size:bytes.byteLength},201);
+      }catch(error){console.error('journey_photo_save_failed',error?.message||'unknown');return reply({ok:false,error:'journey_photo_save_failed'},503);}
+    }
+    return reply({ok:false,error:'method_not_allowed'},405);
+  }
+  if(url.pathname.startsWith('/api/student/journey/photos/')&&url.pathname.endsWith('/image')&&request.method==='GET'){
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return new Response('Unauthorized',{status:401});
+    const id=url.pathname.split('/').filter(Boolean).slice(-2)[0];
+    try{
+      const row=await env.RFIT_DB.prepare("SELECT image_blob,mime_type FROM student_journey_photos WHERE id=? AND user_id=? LIMIT 1").bind(id,session.sub).first();
+      if(!row)return new Response('Not found',{status:404});
+      const bytes=row.image_blob instanceof ArrayBuffer?row.image_blob:row.image_blob?.buffer?row.image_blob:new Uint8Array(row.image_blob||[]);
+      return new Response(bytes,{headers:{'Content-Type':row.mime_type,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'inline'}});
+    }catch(error){console.error('journey_photo_read_failed',error?.message||'unknown');return new Response('Photo unavailable',{status:503});}
+  }
+  if(url.pathname.startsWith('/api/student/journey/photos/')&&request.method==='DELETE'){
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    const id=url.pathname.split('/').pop();
+    try{const result=await env.RFIT_DB.prepare("DELETE FROM student_journey_photos WHERE id=? AND user_id=?").bind(id,session.sub).run();return reply({ok:true,deleted:Boolean(result.meta?.changes)});}
+    catch(error){console.error('journey_photo_delete_failed',error?.message||'unknown');return reply({ok:false,error:'journey_photo_delete_failed'},503);}
+  }
   if (url.pathname === '/api/student/journey/goals') {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
