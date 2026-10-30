@@ -154,10 +154,19 @@ export async function studentRoutes(request, env, url) {
         const body=await request.json();
         const metric=['weight','waist','body_fat','fitness','custom'].includes(body.metric)?body.metric:'custom';
         const title=String(body.title||'').trim().slice(0,100);
-        const unit=String(body.unit||'').trim().slice(0,20);
+        const unit=({weight:'kg',waist:'cm',body_fat:'%',fitness:'',custom:''})[metric];
         const notes=String(body.notes||'').trim().slice(0,500);
-        const start=body.start_value===null||body.start_value===''||body.start_value===undefined?null:Number(body.start_value);
+        let start=body.start_value===null||body.start_value===''||body.start_value===undefined?null:Number(body.start_value);
         const target=body.target_value===null||body.target_value===''||body.target_value===undefined?null:Number(body.target_value);
+        if(start===null&&['weight','waist','body_fat'].includes(metric)){
+          const field=metric==='weight'?'weight_kg':metric==='waist'?'waist_cm':'body_fat_pct';
+          const latest=await env.RFIT_DB.prepare("SELECT "+field+" AS current_value FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 1").bind(session.sub).first();
+          if(latest?.current_value!==null&&latest?.current_value!==undefined)start=Number(latest.current_value);
+          else if(metric==='weight'){
+            const profile=await env.RFIT_DB.prepare("SELECT weight_kg AS current_value FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first();
+            if(profile?.current_value!==null&&profile?.current_value!==undefined)start=Number(profile.current_value);
+          }
+        }
         if(!title||start!==null&&!Number.isFinite(start)||target!==null&&!Number.isFinite(target)||start===null&&target===null)return reply({ok:false,error:'invalid_goal'},400);
         const id=crypto.randomUUID();
         await env.RFIT_DB.prepare("INSERT INTO student_journey_goals(id,user_id,metric,title,start_value,target_value,unit,notes) VALUES(?,?,?,?,?,?,?,?)").bind(id,session.sub,metric,title,start,target,unit,notes).run();
