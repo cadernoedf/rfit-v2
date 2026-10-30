@@ -47,9 +47,14 @@ export async function studentRoutes(request, env, url) {
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
     if(request.method!=='GET')return reply({ok:false,error:'method_not_allowed'},405);
     try{
-      const result=await env.RFIT_DB.prepare("SELECT id,week_start,answers_json,notes,created_at FROM weekly_checkins WHERE user_id=? ORDER BY week_start DESC,created_at DESC LIMIT 90").bind(session.sub).all();
-      const checkins=(result.results||[]).map(row=>{let answers={};try{answers=JSON.parse(row.answers_json||'{}')}catch{}return {...row,checkin_date:row.week_start,answers};});
-      return reply({ok:true,checkins,total:checkins.length});
+      const [weeklyResult,dailyResult]=await Promise.all([
+        env.RFIT_DB.prepare("SELECT id,week_start,answers_json,notes,created_at FROM weekly_checkins WHERE user_id=? ORDER BY week_start DESC,created_at DESC LIMIT 90").bind(session.sub).all(),
+        env.RFIT_DB.prepare("SELECT id,checkin_date,weight_kg,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes,created_at,updated_at FROM daily_checkins WHERE user_id=? ORDER BY checkin_date DESC,created_at DESC LIMIT 90").bind(session.sub).all()
+      ]);
+      const weekly=(weeklyResult.results||[]).map(row=>{let answers={};try{answers=JSON.parse(row.answers_json||'{}')}catch{}return {...row,kind:'weekly',checkin_date:row.week_start,answers};});
+      const daily=(dailyResult.results||[]).map(row=>({ ...row,kind:'daily',answers:{sleep_quality:row.sleep_quality,energy:row.energy,appetite:row.appetite,training_adherence:row.training_adherence,nutrition_adherence:row.nutrition_adherence,discomfort:row.discomfort},checkin_date:row.checkin_date }));
+      const checkins=[...weekly,...daily].sort((a,b)=>new Date(b.created_at||b.checkin_date)-new Date(a.created_at||a.checkin_date)).slice(0,90);
+      return reply({ok:true,checkins,total:checkins.length,daily_total:daily.length,weekly_total:weekly.length});
     }catch(error){console.error('student_checkins_list_failed',error?.message||'unknown');return reply({ok:false,error:'checkins_unavailable'},503);}
   }
   if (url.pathname === '/api/student/checkin') {
