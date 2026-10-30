@@ -23,8 +23,14 @@ document.addEventListener('DOMContentLoaded',async()=>{
     set('journey-bmi-value',bmi.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}));
     const badge=document.getElementById('journey-bmi-category');if(badge){badge.textContent=category.label;badge.style.color=category.color;badge.style.background=category.color+'18';}
     set('journey-bmi-description',category.desc);
-    const angle=-90+((Math.max(16,Math.min(45,bmi))-16)/29)*180;
-    document.getElementById('journey-bmi-needle')?.setAttribute('transform','rotate('+angle+' 90 95)');
+    const clamped=Math.max(16,Math.min(45,bmi));
+    let position;
+    if(clamped<18.5)position=((clamped-16)/2.5)*20;
+    else if(clamped<25)position=20+((clamped-18.5)/6.5)*25;
+    else if(clamped<30)position=45+((clamped-25)/5)*20;
+    else if(clamped<35)position=65+((clamped-30)/5)*17;
+    else position=82+((clamped-35)/10)*18;
+    const marker=document.getElementById('journey-bmi-marker');if(marker)marker.style.left=Math.max(0,Math.min(100,position))+'%';
     const miniBadge=document.getElementById('journey-bmi-category');if(miniBadge){miniBadge.textContent=category.label;miniBadge.style.color=category.color;miniBadge.style.background=category.color+'18';miniBadge.hidden=false;}
     gauge.hidden=false;
   }
