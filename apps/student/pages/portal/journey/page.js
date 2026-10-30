@@ -90,6 +90,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const goalsList=document.getElementById('journey-goals-list');
   const goalForm=document.getElementById('journey-goal-form');
   const goalMessage=document.getElementById('journey-goal-message');
+  const goalMetric=goalForm?.querySelector('select[name="metric"]'),goalUnit=goalForm?.querySelector('input[name="unit"]');
+  const syncGoalUnit=()=>{if(!goalUnit||!goalMetric)return;goalUnit.value=({weight:'kg',waist:'cm',body_fat:'%',fitness:'',custom:''})[goalMetric.value]??'';};
+  goalMetric?.addEventListener('change',syncGoalUnit);syncGoalUnit();
+
   const goalModal=document.getElementById('journey-goal-modal');
   const openGoalButton=document.getElementById('journey-open-goal');
   const closeGoalModal=()=>{if(goalModal)goalModal.hidden=true;};
