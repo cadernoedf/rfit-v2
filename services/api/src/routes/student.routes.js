@@ -124,6 +124,15 @@ export async function studentRoutes(request, env, url) {
     try{const result=await env.RFIT_DB.prepare("DELETE FROM student_journey_photos WHERE id=? AND user_id=?").bind(id,session.sub).run();return reply({ok:true,deleted:Boolean(result.meta?.changes)});}
     catch(error){console.error('journey_photo_delete_failed',error?.message||'unknown');return reply({ok:false,error:'journey_photo_delete_failed'},503);}
   }
+  if (url.pathname === '/api/student/journey/notes') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method!=='GET')return reply({ok:false,error:'method_not_allowed'},405);
+    try{
+      const result=await env.RFIT_DB.prepare("SELECT n.id,n.note,n.created_at,u.full_name AS author_name FROM student_journey_notes n JOIN users u ON u.id=n.author_user_id WHERE n.user_id=? ORDER BY n.created_at DESC LIMIT 100").bind(session.sub).all();
+      return reply({ok:true,notes:result.results||[]});
+    }catch(error){console.error('journey_notes_list_failed',error?.message||'unknown');return reply({ok:false,error:'journey_notes_unavailable'},503);}
+  }
   if (url.pathname === '/api/student/journey/goals') {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
