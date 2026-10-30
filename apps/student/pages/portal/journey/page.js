@@ -90,6 +90,14 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const goalsList=document.getElementById('journey-goals-list');
   const goalForm=document.getElementById('journey-goal-form');
   const goalMessage=document.getElementById('journey-goal-message');
+  const goalModal=document.getElementById('journey-goal-modal');
+  const openGoalButton=document.getElementById('journey-open-goal');
+  const closeGoalModal=()=>{if(goalModal)goalModal.hidden=true;};
+  openGoalButton?.addEventListener('click',()=>{if(goalModal)goalModal.hidden=false;goalForm?.querySelector('input[name="title"]')?.focus();});
+  goalModal?.querySelectorAll('[data-close-goal]').forEach(button=>button.addEventListener('click',closeGoalModal));
+  goalModal?.addEventListener('click',event=>{if(event.target===goalModal)closeGoalModal();});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&goalModal&&!goalModal.hidden)closeGoalModal();});
+
   const photoForm=document.getElementById('journey-photo-form');
   const photoGallery=document.getElementById('journey-photo-gallery');
   const photoMessage=document.getElementById('journey-photo-message');
@@ -122,7 +130,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     event.preventDefault();const submit=goalForm.querySelector('button[type="submit"]');submit.disabled=true;if(goalMessage)goalMessage.textContent='Salvando objetivo…';
     try{const form=new FormData(goalForm),payload=Object.fromEntries(form.entries());payload.start_value=payload.start_value===''?null:Number(payload.start_value);payload.target_value=payload.target_value===''?null:Number(payload.target_value);
       const response=await fetch('/api/student/journey/goals',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)});
-      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');await refreshGoals();goalForm.reset();document.getElementById('journey-goal-editor')?.removeAttribute('open');if(goalMessage)goalMessage.textContent='Objetivo salvo. A evolução será atualizada quando novas avaliações forem registradas.';
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'goal_save_failed');await refreshGoals();goalForm.reset();closeGoalModal();if(goalMessage)goalMessage.textContent='Objetivo salvo. A evolução será atualizada quando novas avaliações forem registradas.';
     }catch(error){if(goalMessage)goalMessage.textContent='Não foi possível salvar seu objetivo. Confira os valores e tente novamente.';console.error('journey_goal_save_failed',error)}
     finally{submit.disabled=false;}
   });
@@ -136,10 +144,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
   };
   try{await loadPhotos();}catch(error){if(photoGallery){photoGallery.replaceChildren();const msg=document.createElement('p');msg.className='journey-muted';msg.textContent='Não foi possível carregar a galeria agora.';photoGallery.append(msg);}console.warn('journey_photos_load_failed');}
   const cameraInput=document.getElementById('journey-photo-camera-input'),galleryInput=document.getElementById('journey-photo-file'),selectedText=document.getElementById('journey-photo-selected');
+  const photoDateInput=photoForm?.querySelector('input[name="date"]');if(photoDateInput&&!photoDateInput.value)photoDateInput.value=new Date().toISOString().slice(0,10);
   let selectedPhoto=null;
   document.getElementById('journey-photo-camera')?.addEventListener('click',()=>cameraInput?.click());
   document.getElementById('journey-photo-choose')?.addEventListener('click',()=>galleryInput?.click());
-  const selectPhoto=file=>{if(!file)return;selectedPhoto=file;if(selectedText)selectedText.textContent='Foto selecionada: '+file.name;};
+  const selectPhoto=file=>{if(!file)return;selectedPhoto=file;if(selectedText)selectedText.textContent='Foto pronta para envio: '+file.name;};
   cameraInput?.addEventListener('change',()=>selectPhoto(cameraInput.files?.[0]));
   galleryInput?.addEventListener('change',()=>selectPhoto(galleryInput.files?.[0]));
   const compressPhoto=async file=>{
