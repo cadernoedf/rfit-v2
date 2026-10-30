@@ -620,3 +620,11 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .student-measurements-panel{margin-top:16px}
 @media(max-width:1050px){.managed-students-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.students-management-heading{align-items:flex-start;flex-direction:column}.students-add-button{width:auto}.student-detail-grid{grid-template-columns:1fr}.student-profile-hero{align-items:flex-start;flex-wrap:wrap}.student-profile-contact{width:100%;margin:0;text-align:left}.detail-header-actions{flex-direction:column;align-items:stretch}.detail-header-actions .secondary-button{min-width:0}}
+
+.finance-schedule{margin:0 0 18px}
+.finance-overdue{padding:6px 10px;border-radius:999px;background:#fff0f1;color:#b52c40;font-size:.68rem;font-weight:900}
+.finance-billing-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid #edf0f4}
+.finance-billing-copy{display:grid;gap:3px;min-width:0}
+.finance-billing-copy strong{color:#1b2432;font-size:.8rem}
+.finance-billing-copy small{color:#8490a1;font-size:.7rem}
+.finance-billing-row>b{color:#1b2432;font-size:.85rem;white-space:nowrap}
