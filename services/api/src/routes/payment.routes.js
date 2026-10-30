@@ -70,6 +70,51 @@ async function confirmApprovedPayment(env, payment) {
 }
 
 export async function paymentRoutes(request, env, url) {
+  // TEMPORÁRIO: ativação simulada apenas para a conta de teste fixa.
+  // Remover este endpoint e o botão antes de promover o código para produção.
+  if (url.pathname === '/api/payments/test-activate') {
+    if (request.method !== 'POST') return reply({ok:false,error:'method_not_allowed'},405);
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'student') return reply({ok:false,error:'unauthenticated'},401);
+    // Autorizar pela identidade persistida da conta de teste, não por um ID de sessão presumido.
+    // Nunca confiar apenas no e-mail enviado pelo navegador.
+    const testUser = await env.RFIT_DB.prepare(
+      "SELECT id,email,role FROM users WHERE id=? AND role='student' LIMIT 1"
+    ).bind(session.sub).first();
+    if (!testUser || String(testUser.email || '').trim().toLowerCase() !== 'aluno@rfit.com.br') {
+      return reply({ok:false,error:'test_account_only'},403);
+    }
+    const origin = request.headers.get('Origin');
+    if (origin && origin !== url.origin) return reply({ok:false,error:'origin_not_allowed'},403);
+    let body; try { body = await request.json(); } catch { return reply({ok:false,error:'invalid_json'},400); }
+    const code = String(body.plan_code || '');
+    if (!['nutrition','training','combo','premium_lifetime'].includes(code)) return reply({ok:false,error:'invalid_plan'},400);
+    try {
+      const plan = await env.RFIT_DB.prepare(
+        'SELECT id,code,duration_days,lifetime FROM plans WHERE code=? AND is_active=1'
+      ).bind(code).first();
+      if (!plan) return reply({ok:false,error:'plan_unavailable'},409);
+      // A simulação concede exatamente 30 dias, inclusive para o plano vitalício.
+      // Nenhuma cobrança, pagamento ou confirmação do Mercado Pago é criada.
+      await env.RFIT_DB.prepare(
+        "UPDATE subscriptions SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND status='active'"
+      ).bind(session.sub).run();
+      const subscriptionId = crypto.randomUUID();
+      const startsAt = new Date();
+      const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+      await env.RFIT_DB.prepare(
+        "INSERT INTO subscriptions(id,user_id,plan_id,status,starts_at,expires_at,lifetime,payment_provider) VALUES(?,?,?,'active',?,?,0,'test')"
+      ).bind(subscriptionId,session.sub,plan.id,startsAt.toISOString(),expiresAt.toISOString()).run();
+      await env.RFIT_DB.prepare(
+        "UPDATE users SET status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='student'"
+      ).bind(session.sub).run();
+      return reply({ok:true,test_mode:true,subscription_id:subscriptionId,expires_at:expiresAt.toISOString(),message:'Acesso de teste ativado por 30 dias; nenhuma cobrança criada.'});
+    } catch (error) {
+      console.error('test_subscription_activation_failed', error?.message || 'unknown');
+      return reply({ok:false,error:'test_activation_failed'},503);
+    }
+  }
+
   if (url.pathname === '/api/payments/checkout') {
     if (request.method !== 'POST') return reply({ok:false,error:'method_not_allowed'},405);
     const session = await getSession(request, env);
