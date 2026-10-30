@@ -26,9 +26,10 @@ export async function adminRoutes(request, env, url) {
   const testAccessMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/test-access$/);
   const isTestAccess = Boolean(testAccessMatch);
   const journeyNoteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/journey-notes$/);
+  const assessmentMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/measurements$/);
   const isJourneyNote = Boolean(journeyNoteMatch);
 
-  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -69,6 +70,25 @@ export async function adminRoutes(request, env, url) {
       ]);
       if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
       return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null,checkins:checkins.results||[],anamnesis:anamnesis||null,journey_notes:journeyNotes.results||[]},{headers:noStore});
+    }
+
+    /* REGISTRAR AVALIAÇÃO DO ALUNO */
+    if (assessmentMatch && request.method === 'POST') {
+      const studentId=decodeURIComponent(assessmentMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id,height_cm FROM student_profiles WHERE user_id=?").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_profile_not_found'},{status:404,headers:noStore});
+      const body=await request.json(),measuredAt=String(body.measured_at||'');
+      const weight=body.weight_kg===''||body.weight_kg==null?null:Number(body.weight_kg);
+      const waist=body.waist_cm===''||body.waist_cm==null?null:Number(body.waist_cm);
+      const bmr=body.bmr_kcal===''||body.bmr_kcal==null?null:Number(body.bmr_kcal);
+      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(measuredAt)||(!weight&&!waist))return Response.json({ok:false,error:'invalid_assessment'},{status:400,headers:noStore});
+      if(weight!==null&&(!Number.isFinite(weight)||weight<1||weight>500))return Response.json({ok:false,error:'invalid_weight'},{status:400,headers:noStore});
+      if(waist!==null&&(!Number.isFinite(waist)||waist<1||waist>300))return Response.json({ok:false,error:'invalid_waist'},{status:400,headers:noStore});
+      if(bmr!==null&&(!Number.isFinite(bmr)||bmr<500||bmr>10000))return Response.json({ok:false,error:'invalid_bmr'},{status:400,headers:noStore});
+      const notes=[String(body.notes||'').trim(),bmr?('Gasto calórico basal: '+bmr+' kcal'):null].filter(Boolean).join(' | ').slice(0,1200);
+      await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,measured_at,notes) VALUES (?,?,?,?,?,?,?)').bind(crypto.randomUUID(),studentId,weight,student.height_cm||null,waist,measuredAt,notes||null).run();
+      if(weight!==null)await env.RFIT_DB.prepare('UPDATE student_profiles SET weight_kg=? WHERE user_id=?').bind(weight,studentId).run();
+      return Response.json({ok:true},{headers:noStore});
     }
 
     /* EXCLUSÃO DEFINITIVA DE ALUNO PELO PROFESSOR */
