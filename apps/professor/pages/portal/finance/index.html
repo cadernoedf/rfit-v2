@@ -1,12 +1,18 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111318"><title>R-Fit — Financeiro</title><link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./page.js"></script></head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111318"><title>R-Fit — Financeiro</title><link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./page.js"></script><style>
+/* Financeiro: atualizar dados imediatamente ao lado de Sair */
+.portal-main .professor-page-hero>.support-hero-actions{position:absolute;top:18px;right:20px;display:flex;align-items:center;gap:10px;z-index:2}
+.portal-main .professor-page-hero>.support-hero-actions>.professor-hero-action,
+.portal-main .professor-page-hero>.support-hero-actions>.admin-logout{position:static;top:auto;right:auto;grid-column:auto;grid-row:auto;margin:0}
+@media(max-width:600px){.portal-main .professor-page-hero>.support-hero-actions{top:14px;right:12px;gap:7px}.portal-main .professor-page-hero>.support-hero-actions>.professor-hero-action,.portal-main .professor-page-hero>.support-hero-actions>.admin-logout{min-width:58px;padding:7px 9px;font-size:.66rem}}
+</style></head>
 <body class="admin-body"><div class="portal-layout">
 <!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
 <aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav">
 <a class="portal-nav-link" href="../overview/index.html">▦ Visão geral</a><a class="portal-nav-link" href="../students/index.html">♙ Alunos</a><a class="portal-nav-link" href="../students/new.html">＋ Cadastrar aluno</a><a class="portal-nav-link" href="../plans/index.html">▤ Planos</a><a class="portal-nav-link is-active" href="../finance/index.html">▣ Financeiro</a><a class="portal-nav-link" href="../support/index.html">✉ Mensagens</a><a class="portal-nav-link" href="../settings/index.html">⚙ Configurações</a>
 </nav><div class="sidebar-bottom">Sistema R-Fit</div></aside>
 <main class="admin-shell portal-main professor-finance">
-<header class="admin-topbar professor-page-hero"><div class="professor-page-heading"><span class="eyebrow">R-FIT · GESTÃO FINANCEIRA</span><h1 class="admin-title">Financeiro<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><div class="professor-page-intro"><span class="overview-kicker">CONTROLE FINANCEIRO</span><h2>Clareza sobre cada recebimento.</h2><p>Valores calculados a partir dos pagamentos registrados no R-Fit.</p></div><button id="finance-refresh" class="secondary-button professor-hero-action" type="button">Atualizar dados</button><button id="logout" class="secondary-button admin-logout" type="button">Sair</button></header>
+<header class="admin-topbar professor-page-hero"><div class="professor-page-heading"><span class="eyebrow">R-FIT · GESTÃO FINANCEIRA</span><h1 class="admin-title">Financeiro<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><div class="professor-page-intro"><span class="overview-kicker">CONTROLE FINANCEIRO</span><h2>Clareza sobre cada recebimento.</h2><p>Valores calculados a partir dos pagamentos registrados no R-Fit.</p></div><div class="support-hero-actions"><button id="finance-refresh" class="secondary-button professor-hero-action" type="button">Atualizar dados</button><button id="logout" class="secondary-button admin-logout" type="button">Sair</button></div></header>
 
 <section class="overview-section"><div class="overview-section-heading"><div><span class="section-kicker">RESUMO</span><h2>Movimentação registrada</h2></div><span id="finance-updated" class="overview-updated">Aguardando dados</span></div>
 <div id="finance-metrics" class="overview-metrics"><div class="overview-loading">Carregando financeiro…</div></div></section>
