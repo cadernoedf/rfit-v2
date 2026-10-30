@@ -156,10 +156,12 @@ export async function adminRoutes(request, env, url) {
       const expiry=courtesy||plan.lifetime?null:(billingDate||new Date(now.getTime()+Math.max(1,Number(plan.duration_days)||30)*86400000).toISOString());
       const subscriptionId=crypto.randomUUID();
       try {
-        await env.RFIT_DB.prepare("INSERT INTO users(id,email,full_name,phone,password_hash,role,status) VALUES(?,?,?,?,?,'student','active')").bind(id,email,name,phone||null,passwordHash).run();
-        await env.RFIT_DB.prepare('INSERT INTO student_profiles(user_id) VALUES(?)').bind(id).run();
-        await env.RFIT_DB.prepare("INSERT INTO subscriptions(id,user_id,plan_id,status,starts_at,expires_at,lifetime,billing_starts_at,billing_cycle,payment_provider) VALUES(?,?,?,'active',?,?,?,?,?,'manual')").bind(subscriptionId,id,plan.id,now.toISOString(),expiry,plan.lifetime?1:0,billingDate,'monthly').run();
-        await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'student.created','user',id,JSON.stringify({plan_id:plan.id,courtesy,billing_starts_at:billingDate})).run();
+        await env.RFIT_DB.batch([
+          env.RFIT_DB.prepare("INSERT INTO users(id,email,full_name,phone,password_hash,role,status) VALUES(?,?,?,?,?,'student','active')").bind(id,email,name,phone||null,passwordHash),
+          env.RFIT_DB.prepare('INSERT INTO student_profiles(user_id) VALUES(?)').bind(id),
+          env.RFIT_DB.prepare("INSERT INTO subscriptions(id,user_id,plan_id,status,starts_at,expires_at,lifetime,billing_starts_at,billing_cycle,payment_provider) VALUES(?,?,?,'active',?,?,?,?,?,'manual')").bind(subscriptionId,id,plan.id,now.toISOString(),expiry,plan.lifetime?1:0,billingDate,'monthly'),
+          env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'student.created','user',id,JSON.stringify({plan_id:plan.id,courtesy,billing_starts_at:billingDate}))
+        ]);
         return Response.json({ok:true,student:{id,name,email,plan_name:plan.name,courtesy,billing_starts_at:billingDate},temporary_password:temporaryPassword,delivery:'manual'},{status:201,headers:noStore});
       } catch(error) {
         if(String(error?.message||'').toLowerCase().includes('unique'))return Response.json({ok:false,error:'email_already_registered'},{status:409,headers:noStore});
