@@ -128,8 +128,26 @@ export async function studentRoutes(request, env, url) {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
     if(request.method==='GET'){
-      try{const result=await env.RFIT_DB.prepare("SELECT id,metric,title,start_value,target_value,unit,notes,status,created_at,updated_at FROM student_journey_goals WHERE user_id=? ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END,created_at DESC").bind(session.sub).all();return reply({ok:true,goals:result.results||[]});}
-      catch(error){console.error('journey_goals_list_failed',error?.message||'unknown');return reply({ok:false,error:'journey_goals_unavailable'},503);}
+      try{
+        const [result,measurement,profile]=await Promise.all([
+          env.RFIT_DB.prepare("SELECT id,metric,title,start_value,target_value,unit,notes,status,created_at,updated_at,completed_at FROM student_journey_goals WHERE user_id=? ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END,created_at DESC").bind(session.sub).all(),
+          env.RFIT_DB.prepare("SELECT weight_kg,waist_cm,body_fat_pct FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 1").bind(session.sub).first(),
+          env.RFIT_DB.prepare("SELECT weight_kg FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first()
+        ]);
+        const goals=(result.results||[]).map(goal=>{
+          const current=goal.metric==='weight'?(measurement?.weight_kg??profile?.weight_kg??null):goal.metric==='waist'?(measurement?.waist_cm??null):goal.metric==='body_fat'?(measurement?.body_fat_pct??null):null;
+          const start=goal.start_value===null?null:Number(goal.start_value),target=goal.target_value===null?null:Number(goal.target_value),value=current===null?null:Number(current);
+          let progress=null,reached=false;
+          if(start!==null&&target!==null&&value!==null&&Number.isFinite(value)&&target!==start){
+            progress=Math.max(0,Math.min(100,Math.round(((value-start)/(target-start))*100)));
+            reached=target>start?value>=target:value<=target;
+          }
+          let status=goal.status,completedAt=goal.completed_at;
+          if(status==='active'&&reached){status='completed';completedAt=new Date().toISOString();env.RFIT_DB.prepare("UPDATE student_journey_goals SET status='completed',completed_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=? AND status='active'").bind(completedAt,goal.id,session.sub).run().catch(()=>{});}
+          return {...goal,status,completed_at:completedAt,current_value:value,progress_percent:progress};
+        });
+        return reply({ok:true,goals});
+      }catch(error){console.error('journey_goals_list_failed',error?.message||'unknown');return reply({ok:false,error:'journey_goals_unavailable'},503);}
     }
     if(request.method==='POST'){
       try{
