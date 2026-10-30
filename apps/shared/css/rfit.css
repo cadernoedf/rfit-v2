@@ -628,3 +628,38 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .finance-billing-copy strong{color:#1b2432;font-size:.8rem}
 .finance-billing-copy small{color:#8490a1;font-size:.7rem}
 .finance-billing-row>b{color:#1b2432;font-size:.85rem;white-space:nowrap}
+
+
+/* ==========================================================================
+   R-FIT | CABEÇALHO PADRÃO DO PORTAL DO PROFESSOR
+   Título, identificação e saudação reunidos no card escuro.
+   ========================================================================== */
+.portal-main .admin-topbar.professor-page-hero{
+ display:flex;align-items:center;justify-content:space-between;gap:20px;
+ min-height:142px;margin:0 0 22px;padding:25px 28px;
+ border:1px solid #343a46;border-radius:18px;
+ background:radial-gradient(circle at 88% -35%,#414958 0,transparent 34%),linear-gradient(112deg,#151820 0%,#242a35 72%,#321923 100%);
+ box-shadow:0 12px 30px #11182712;
+}
+.portal-main .professor-page-heading{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.portal-main .professor-page-hero .eyebrow{margin:0;color:#ff5368;font-size:.65rem;font-weight:900;letter-spacing:.19em}
+.portal-main .professor-page-hero .eyebrow::before{background:#ff435b}
+.portal-main .professor-page-hero .admin-title{margin:5px 0 0;color:#fff;font-size:clamp(1.75rem,3vw,2.35rem);line-height:1.05;letter-spacing:-.045em}
+.portal-main .professor-page-hero .admin-title span{color:#ff4059}
+.portal-main .professor-page-hero p{margin:3px 0 0;color:#c6ccd6;font-size:.78rem;line-height:1.4}
+.portal-main .professor-page-hero .admin-logout,
+.portal-main .professor-page-hero .detail-header-actions .secondary-button{
+ width:auto;min-width:76px;min-height:38px;margin:0;padding:8px 14px;
+ border:1px solid #ffffff2b;border-radius:10px;background:#ffffff0b;color:#fff;
+ font-size:.74rem;font-weight:800;
+}
+.portal-main .professor-page-hero .admin-logout:hover,
+.portal-main .professor-page-hero .detail-header-actions .secondary-button:hover{background:#ffffff18;border-color:#ffffff50}
+.portal-main .professor-page-hero .detail-header-actions{display:flex;align-items:center;gap:8px}
+@media(max-width:600px){
+ .portal-main .admin-topbar.professor-page-hero{min-height:118px;padding:19px 17px;gap:10px;border-radius:14px}
+ .portal-main .professor-page-hero .admin-title{font-size:1.65rem}
+ .portal-main .professor-page-hero .eyebrow{font-size:.57rem;letter-spacing:.13em}
+ .portal-main .professor-page-hero .detail-header-actions{flex-direction:row;align-items:center}
+ .portal-main .professor-page-hero .detail-header-actions .secondary-button{min-width:0;padding:7px 9px;font-size:.66rem}
+}
