@@ -35,6 +35,21 @@ export async function adminRoutes(request, env, url) {
   }
 
   try {
+    /* ===== CENTRAL WHATSAPP: ALUNOS E VENCIMENTOS ===== */
+    if (url.pathname === '/api/professor/message-center' && request.method === 'GET') {
+      const rows = await env.RFIT_DB.prepare(`SELECT u.id AS student_id,u.full_name,u.phone,u.email,u.avatar_url,u.status AS student_status,
+        s.status AS subscription_status,s.expires_at,s.lifetime,p.name AS plan_name,p.code AS plan_code
+        FROM subscriptions s
+        JOIN users u ON u.id=s.user_id
+        JOIN plans p ON p.id=s.plan_id
+        WHERE u.role='student'
+          AND s.id=(SELECT s2.id FROM subscriptions s2 WHERE s2.user_id=u.id ORDER BY s2.created_at DESC LIMIT 1)
+        ORDER BY CASE WHEN s.expires_at IS NULL THEN 1 ELSE 0 END ASC,
+          date(s.expires_at) ASC,u.full_name COLLATE NOCASE ASC
+        LIMIT 500`).all();
+      return Response.json({ok:true,students:rows.results||[]},{headers:noStore});
+    }
+
     /* ===== PERFIL COMPLETO DO ALUNO ===== */
     if (studentDetailMatch && request.method === 'GET') {
       const studentId=decodeURIComponent(studentDetailMatch[1]);
