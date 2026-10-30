@@ -130,10 +130,16 @@ document.addEventListener('DOMContentLoaded',async()=>{
   else addTimeline(items,'Complete sua anamnese','Preencha os dados iniciais para personalizar o acompanhamento.','','!');
   if(sub)addTimeline(items,'Plano ativo: '+(sub.plan_name||'R-Fit'),Number(sub.lifetime)?'Seu acesso é vitalício.':(sub.days_remaining===null?'Plano em andamento.':'Restam '+sub.days_remaining+' dias de acesso.'),sub.expires_at,'R');
   if(body.weight_kg!==null||body.waist_cm!==null)addTimeline(items,'Medidas corporais disponíveis','Peso: '+fmt(body.weight_kg,' kg')+' · Abdômen: '+fmt(body.waist_cm,' cm')+' · IMC: '+fmt(body.bmi),body.measured_at,'↗');
-  checkins.slice(0,8).reverse().forEach(item=>{
-    const answers=item.answers&&typeof item.answers==='object'?Object.entries(item.answers).map(([key,value])=>key+': '+(Array.isArray(value)?value.join(', '):String(value))).join(' · '):'Registro semanal recebido.';
-    const details=[answers,item.notes].filter(Boolean).join(' · ');
-    addTimeline(items,'Check-in semanal registrado',details,item.created_at||item.week_start||item.checkin_date,'✓');
+  checkins.slice(0,30).reverse().forEach(item=>{
+    const answers=item.answers&&typeof item.answers==='object'?item.answers:{};
+    const dailyLabels={sleep_quality:'Sono',energy:'Energia',appetite:'Apetite',training_adherence:'Treinos',nutrition_adherence:'Alimentação',discomfort:'Desconforto'};
+    const answersText=Object.entries(answers).filter(([key,value])=>value!==null&&value!==undefined&&value!=='').map(([key,value])=>{
+      const label=item.kind==='daily'?(dailyLabels[key]||key):key;
+      const display=key==='discomfort'?(Number(value)?'Sim':'Não'):(key==='sleep_quality'||key==='energy'||key==='appetite'?value+'/5':key.endsWith('_adherence')?value+'%':Array.isArray(value)?value.join(', '):String(value));
+      return label+': '+display;
+    }).join(' · ');
+    const details=[item.weight_kg?'Peso: '+fmt(item.weight_kg,' kg'):'',answersText,item.notes].filter(Boolean).join(' · ');
+    addTimeline(items,item.kind==='daily'?'Check-in diário registrado':'Check-in semanal registrado',details,item.created_at||item.week_start||item.checkin_date,'✓');
   });
   if(data.workout_available)addTimeline(items,'Treino disponível',data.workout_title||'Confira a prescrição de treino.','','↗');
   if(data.diet_available)addTimeline(items,'Plano alimentar disponível',data.diet_title||'Confira seu plano alimentar.','','↗');
