@@ -40,10 +40,12 @@ function render(data){
  const weight=latest.weight_kg??s.weight_kg;
  const height=latest.height_cm??s.height_cm;
  const bmi=weight&&height?Number(weight)/(Number(height)/100)**2:null;
+ const age=s.birth_date?(()=>{const birth=new Date(String(s.birth_date)+'T12:00:00');if(Number.isNaN(birth.getTime()))return null;const now=new Date();return now.getFullYear()-birth.getFullYear()-((now.getMonth()<birth.getMonth()||(now.getMonth()===birth.getMonth()&&now.getDate()<birth.getDate()))?1:0);})():null;
+ const bmiClassification=bmi===null?'IMC indisponível':age!==null&&age<20?'Classificação por idade não adulta':bmi<18.5?'Abaixo do peso':bmi<25?'Peso adequado':bmi<30?'Sobrepeso':bmi<35?'Obesidade grau I':bmi<40?'Obesidade grau II':'Obesidade grau III';
  const lastCheckin=(data.checkins||[])[0]?.checkin_date||latest.measured_at;
  const previous=[...measurements].slice(1).find(m=>m.weight_kg!==null&&m.weight_kg!==undefined);
  const weightDelta=previous&&latest.weight_kg!=null?Number(latest.weight_kg)-Number(previous.weight_kg):null;
- const metricCards=[['Peso atual',weight?Number(weight).toLocaleString('pt-BR')+' kg':'—',weightDelta===null?'':(weightDelta>0?'+':'')+weightDelta.toFixed(1).replace('.',',')+' kg desde a avaliação anterior'],['Cintura',latest.waist_cm?Number(latest.waist_cm).toLocaleString('pt-BR')+' cm':'—','Última medida registrada'],['IMC',bmi?bmi.toFixed(1).replace('.',','):'—',height?'Calculado com a altura cadastrada':'Altura não cadastrada'],['Último acompanhamento',lastCheckin?new Date(lastCheckin+'T12:00:00').toLocaleDateString('pt-BR'):'—','Data do registro mais recente']];
+ const metricCards=[['Peso atual',weight?Number(weight).toLocaleString('pt-BR')+' kg':'—',weightDelta===null?'':(weightDelta>0?'+':'')+weightDelta.toFixed(1).replace('.',',')+' kg desde a avaliação anterior'],['Cintura',latest.waist_cm?Number(latest.waist_cm).toLocaleString('pt-BR')+' cm':'—','Última medida registrada'],['IMC',bmi?bmi.toFixed(1).replace('.',','):'—',bmiClassification+(age!==null&&age<20?' · usar curva por idade e sexo':' · referência para adultos')],['Último acompanhamento',lastCheckin?new Date(lastCheckin+'T12:00:00').toLocaleDateString('pt-BR'):'—','Data do registro mais recente']];
  const metrics=$('#student-360-metrics');metrics.replaceChildren();
  metricCards.forEach(([label,value,hint])=>{const card=document.createElement('article');card.className='student-360-card';const l=document.createElement('span');l.textContent=label;const v=document.createElement('strong');v.textContent=value;card.append(l,v);if(hint){const small=document.createElement('small');small.textContent=hint;card.append(small);}metrics.append(card);});
  const evolution=$('#student-evolution');evolution.replaceChildren();
