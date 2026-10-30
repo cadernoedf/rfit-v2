@@ -12,6 +12,9 @@ export async function adminRoutes(request, env, url) {
   const isSettings = url.pathname === '/api/professor/settings';
   const isFinance = url.pathname === '/api/professor/finance';
   const isStudentCollection = url.pathname === '/api/professor/students';
+  const studentDetailMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)$/);
+  const workoutCreateMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/workouts$/);
+  const dietCreateMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/diets$/);
   const isAnnouncementCollection = url.pathname === '/api/professor/announcements';
   const announcementMatch = url.pathname.match(/^\/api\/professor\/announcements\/([^/]+)$/);
   const isAnnouncementItem = Boolean(announcementMatch);
@@ -24,7 +27,7 @@ export async function adminRoutes(request, env, url) {
   const journeyNoteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/journey-notes$/);
   const isJourneyNote = Boolean(journeyNoteMatch);
 
-  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -32,6 +35,69 @@ export async function adminRoutes(request, env, url) {
   }
 
   try {
+    /* ===== PERFIL COMPLETO DO ALUNO ===== */
+    if (studentDetailMatch && request.method === 'GET') {
+      const studentId=decodeURIComponent(studentDetailMatch[1]);
+      const [student,measurements,workouts,diets,subscription]=await Promise.all([
+        env.RFIT_DB.prepare(`SELECT u.id,u.full_name,u.email,u.phone,u.avatar_url,u.status,u.created_at,
+          sp.birth_date,sp.sex,sp.height_cm,sp.weight_kg,sp.goal,sp.training_frequency,sp.experience_level,sp.anamnesis_completed_at
+          FROM users u LEFT JOIN student_profiles sp ON sp.user_id=u.id WHERE u.id=? AND u.role='student'`).bind(studentId).first(),
+        env.RFIT_DB.prepare('SELECT id,weight_kg,height_cm,body_fat_pct,waist_cm,hip_cm,measured_at,notes FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 12').bind(studentId).all(),
+        env.RFIT_DB.prepare('SELECT id,title,goal,weekly_frequency,status,created_at,updated_at FROM workouts WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
+        env.RFIT_DB.prepare('SELECT id,title,goal,calories_target,status,created_at,updated_at FROM diets WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
+        env.RFIT_DB.prepare(`SELECT s.id,s.status,s.starts_at,s.expires_at,s.billing_starts_at,s.lifetime,p.name AS plan_name,p.price_cents
+          FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? ORDER BY s.created_at DESC LIMIT 1`).bind(studentId).first()
+      ]);
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null},{headers:noStore});
+    }
+
+    /* ===== CRIAR TREINO PERSONALIZADO ===== */
+    if (workoutCreateMatch && request.method === 'POST') {
+      const studentId=decodeURIComponent(workoutCreateMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      const body=await request.json(),title=String(body.title||'').trim().slice(0,140),goal=String(body.goal||'').trim().slice(0,500);
+      const frequency=Number(body.weekly_frequency||3),sessions=Array.isArray(body.sessions)?body.sessions.slice(0,7):[];
+      if(!title||!Number.isInteger(frequency)||frequency<1||frequency>7||!sessions.length)return Response.json({ok:false,error:'invalid_workout'},{status:400,headers:noStore});
+      const id=crypto.randomUUID();
+      await env.RFIT_DB.prepare("INSERT INTO workouts(id,user_id,title,goal,weekly_frequency,source,status,created_by) VALUES(?,?,?,?,?,'professor','active',?)").bind(id,studentId,title,goal,frequency,session.sub).run();
+      for(let index=0;index<sessions.length;index++){
+        const day=sessions[index],sessionId=crypto.randomUUID(),dayTitle=String(day.title||('Treino '+String.fromCharCode(65+index))).slice(0,100);
+        await env.RFIT_DB.prepare('INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)').bind(sessionId,id,index+1,dayTitle,String(day.notes||'').slice(0,500)).run();
+        const exercises=Array.isArray(day.exercises)?day.exercises.slice(0,20):[];
+        for(let order=0;order<exercises.length;order++){
+          const exercise=exercises[order],name=String(exercise.name||'').trim().slice(0,120);
+          if(!name)continue;
+          const sets=Number(exercise.sets||3),rest=Number(exercise.rest_seconds||60);
+          if(!Number.isInteger(sets)||sets<1||sets>20||!Number.isInteger(rest)||rest<0||rest>1800)continue;
+          await env.RFIT_DB.prepare('INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),sessionId,name,sets,String(exercise.reps||'12').slice(0,30),rest,order,String(exercise.notes||'').slice(0,300)).run();
+        }
+      }
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'workout.created','student',studentId,JSON.stringify({workout_id:id,title})).run();
+      return Response.json({ok:true,id},{status:201,headers:noStore});
+    }
+
+    /* ===== CRIAR DIETA PERSONALIZADA ===== */
+    if (dietCreateMatch && request.method === 'POST') {
+      const studentId=decodeURIComponent(dietCreateMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      const body=await request.json(),title=String(body.title||'').trim().slice(0,140),goal=String(body.goal||'').trim().slice(0,500);
+      const calories=body.calories_target===null||body.calories_target===''?null:Number(body.calories_target),meals=Array.isArray(body.meals)?body.meals.slice(0,12):[];
+      if(!title||!meals.length||(calories!==null&&(!Number.isInteger(calories)||calories<500||calories>10000)))return Response.json({ok:false,error:'invalid_diet'},{status:400,headers:noStore});
+      const id=crypto.randomUUID();
+      await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,?,?,'professor','active',?)").bind(id,studentId,title,goal,calories,session.sub).run();
+      for(let index=0;index<meals.length;index++){
+        const meal=meals[index],name=String(meal.name||'').trim().slice(0,100);
+        if(!name)continue;
+        const items=Array.isArray(meal.items)?meal.items.slice(0,30):[];
+        await env.RFIT_DB.prepare('INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,index+1,name,JSON.stringify(items.map(v=>String(v).slice(0,300))),String(meal.notes||'').slice(0,500)).run();
+      }
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'diet.created','student',studentId,JSON.stringify({diet_id:id,title})).run();
+      return Response.json({ok:true,id},{status:201,headers:noStore});
+    }
+
     /* ===== FINANCEIRO: somente pagamentos registrados ===== */
     if (isFinance && request.method === 'GET') {
       const [totals, recent] = await Promise.all([
