@@ -34,6 +34,30 @@
 .professor-student-detail .student-delete-button:hover{background:#941b2e}
 @media(max-width:1050px){.professor-student-detail .student-360-grid,.professor-student-detail .student-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.professor-student-detail .student-360-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.professor-student-detail .student-profile-hero{grid-template-columns:68px minmax(0,1fr);padding:18px}.professor-student-detail .student-profile-avatar{width:66px;height:66px}.professor-student-detail .student-profile-contact{grid-column:1/-1}.professor-student-detail .student-360-grid,.professor-student-detail .student-detail-grid{grid-template-columns:1fr}.professor-student-detail .student-anamnesis-list{grid-template-columns:1fr}.professor-student-detail .student-note-form{grid-template-columns:1fr}.professor-student-detail .student-danger-zone{align-items:flex-start;flex-direction:column}.professor-student-detail .student-delete-button{width:100%}}
+/* Ficha professor: acompanhamento no início e avaliação em modal */
+.professor-student-detail .student-journey-panel{display:grid;grid-template-columns:1fr;gap:12px;margin:0!important}
+.professor-student-detail .student-note-form{grid-template-columns:minmax(0,1fr) auto;align-items:end}
+.professor-student-detail .student-anamnesis-panel{width:100%;margin:0!important}
+.professor-student-detail .student-anamnesis-list{grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch}
+.professor-student-detail .student-anamnesis-item{min-height:72px}
+.professor-student-detail .student-anamnesis-item.anamnesis-wide{grid-column:span 2}
+.professor-student-detail .student-measurements-panel .overview-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.professor-student-detail .student-measurements-panel .overview-panel-heading>div{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.professor-student-detail .student-modal{display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;padding:20px}
+.professor-student-detail .student-modal.is-open{display:flex}
+.professor-student-detail .student-modal-backdrop{position:absolute;inset:0;background:rgba(22,29,43,.56);backdrop-filter:blur(3px)}
+.professor-student-detail .student-modal-dialog{position:relative;width:min(580px,100%);max-height:90vh;overflow:auto;padding:26px 24px 22px;border-radius:22px;background:#fff;box-shadow:0 25px 80px rgba(0,0,0,.22)}
+.professor-student-detail .student-modal-dialog h2{margin:0 36px 18px 0;color:#101827;font-size:1.45rem}
+.professor-student-detail .student-modal-close{position:absolute;right:18px;top:14px;border:0;background:transparent;color:#4b5563;font-size:1.7rem;cursor:pointer}
+.professor-student-detail .student-assessment-form{display:grid;gap:13px}
+.professor-student-detail .student-assessment-form label{display:grid;gap:6px;color:#485468;font-size:.78rem;font-weight:650}
+.professor-student-detail .student-assessment-form input,.professor-student-detail .student-assessment-form textarea{width:100%;min-height:46px;padding:11px 13px;border:1px solid #dfe3ea;border-radius:12px;background:#f8f8fa;color:#172033;font:inherit}
+.professor-student-detail .student-assessment-form textarea{min-height:86px;resize:vertical}
+.professor-student-detail .student-assessment-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.professor-student-detail .student-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+.professor-student-detail .student-modal-actions button{width:auto}
+@media(max-width:1050px){.professor-student-detail .student-anamnesis-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.professor-student-detail .student-anamnesis-list{grid-template-columns:1fr}.professor-student-detail .student-note-form{grid-template-columns:1fr}.professor-student-detail .student-assessment-fields{grid-template-columns:1fr}.professor-student-detail .student-measurements-panel .overview-panel-heading{align-items:flex-start;flex-direction:column}}
 </style></head>
 <body class="admin-body"><div class="portal-layout">
 <!-- ===== IDENTIFICAÇÃO E MENU DO PROFESSOR ===== -->
@@ -45,10 +69,9 @@
 <div class="student-profile-page">
 <section id="student-profile" class="student-profile-hero"><div class="overview-loading">Carregando perfil do aluno…</div></section>
 <section class="student-360-metrics" id="student-360-metrics" aria-label="Indicadores do aluno"></section>
-<section class="student-360-grid">
- <article class="overview-panel student-evolution-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO FÍSICA</span><h2>Acompanhamento das medidas</h2></div></div><div id="student-evolution"></div></article>
- <article class="overview-panel student-anamnesis-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ANAMNESE</span><h2>Informações e cuidados</h2></div></div><div id="student-anamnesis"></div></article>
-</section>
+<section class="overview-panel student-journey-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2>Observações do professor</h2></div></div><form id="journey-note-form" class="student-note-form"><textarea name="note" rows="3" maxlength="1200" placeholder="Registre uma observação importante sobre o aluno…"></textarea><button class="primary-button" type="submit">Salvar observação</button></form><div id="student-journey-notes"></div></section>
+<section class="overview-panel student-evolution-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO FÍSICA</span><h2>Acompanhamento das medidas</h2></div></div><div id="student-evolution"></div></section>
+<section class="overview-panel student-anamnesis-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ANAMNESE</span><h2>Informações e cuidados</h2></div></div><div id="student-anamnesis"></div></section>
 <section class="student-detail-grid">
  <article class="overview-panel"><div class="overview-panel-heading"><div><span class="section-kicker">TREINAMENTO</span><h2>Treinos cadastrados</h2></div></div><div id="student-workouts"></div>
   <details class="detail-create"><summary>＋ Adicionar treino</summary><form id="workout-form" class="detail-form">
@@ -69,8 +92,12 @@
   </form></details>
  </article>
 </section>
-<section class="overview-panel student-measurements-panel"><div class="overview-panel-heading"><div><span class="section-kicker">AVALIAÇÕES</span><h2>Histórico de avaliações</h2></div></div><div id="student-measurements"></div></section>
-<section class="overview-panel student-journey-panel"><div class="overview-panel-heading"><div><span class="section-kicker">ACOMPANHAMENTO</span><h2>Observações do professor</h2></div></div><form id="journey-note-form" class="student-note-form"><textarea name="note" rows="3" maxlength="1200" placeholder="Registre uma observação importante sobre o aluno…"></textarea><button class="primary-button" type="submit">Salvar observação</button></form><div id="student-journey-notes"></div></section>
+<section class="overview-panel student-measurements-panel"><div class="overview-panel-heading"><div><span class="section-kicker">EVOLUÇÃO</span><h2>Histórico de avaliações</h2></div><button class="primary-button" id="open-assessment" type="button">＋ Nova avaliação</button></div><div id="student-measurements"></div></section>
+<div class="student-modal" id="assessment-modal" aria-hidden="true"><div class="student-modal-backdrop" data-close-assessment></div><section class="student-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="assessment-title"><button class="student-modal-close" type="button" aria-label="Fechar" data-close-assessment>×</button><h2 id="assessment-title">Nova avaliação</h2><form id="assessment-form" class="student-assessment-form">
+<label>Data<input name="measured_at" type="date" required></label><div class="student-assessment-fields"><label>Peso (kg)<input name="weight_kg" type="number" min="1" max="500" step="0.1" placeholder="Ex.: 74,7"></label><label>Abdômen (cm)<input name="waist_cm" type="number" min="1" max="300" step="0.1" placeholder="Ex.: 99"></label></div>
+<label>Gasto calórico basal (kcal)<input name="bmr_kcal" type="number" min="500" max="10000" step="1" placeholder="Ex.: 1406"></label><label>Observações<textarea name="notes" rows="3" maxlength="1000" placeholder="Ex.: avaliação mensal, boa aderência…"></textarea></label>
+<div class="student-modal-actions"><button class="secondary-button" type="button" data-close-assessment>Cancelar</button><button class="primary-button" type="submit">Salvar avaliação</button></div></form></section></div>
+
 <section class="overview-panel student-danger-zone"><div><span class="section-kicker">GESTÃO DA CONTA</span><h2>Excluir aluno</h2><p>Esta ação remove a conta e os registros vinculados do R-Fit. Não poderá ser desfeita.</p></div><button id="delete-student" class="student-delete-button" type="button">Excluir aluno</button></section>
 </div>
 <p id="page-message" class="form-message" role="status" aria-live="polite"></p>
