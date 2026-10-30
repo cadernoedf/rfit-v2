@@ -99,7 +99,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(goalStart){
       const value=config.field&&latestEvaluation?latestEvaluation[config.field]:null;
       if(fillStart)goalStart.value=value!==null&&value!==undefined&&value!==''?String(value):'';
-      goalStart.placeholder=value!==null&&value!==undefined&&value!==''?'Última avaliação: '+String(value).replace('.',',')+(config.unit?' '+config.unit:''):'Sem avaliação registrada';
+      const hasValue=value!==null&&value!==undefined&&value!=='';
+      goalStart.placeholder=hasValue?'Última avaliação: '+String(value).replace('.',',')+(config.unit?' '+config.unit:''):'Nenhuma avaliação encontrada';
+      const baselineNote=document.getElementById('journey-goal-baseline-note');
+      if(baselineNote)baselineNote.textContent=hasValue?'Preenchido automaticamente com a última avaliação registrada pelo professor.':'Ainda não há avaliação deste indicador; você pode informar o valor inicial manualmente.';
+      if(hasValue)goalStart.title='Última avaliação do professor: '+String(value)+(config.unit?' '+config.unit:'');else goalStart.removeAttribute('title');
     }
   };
   goalMetric?.addEventListener('change',()=>syncGoalMetric(true));syncGoalMetric(true);
