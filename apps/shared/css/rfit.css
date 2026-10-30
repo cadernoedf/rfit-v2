@@ -417,3 +417,62 @@ body.student-body .sidebar-bottom{padding:10px 7px 0;font-size:.72rem}
 body.student-body .student-topbar .student-title{font-size:clamp(2rem,3.8vw,3rem)!important;line-height:1.08!important;letter-spacing:-.045em!important;margin:8px 0 5px!important;max-width:100%;overflow-wrap:normal;word-break:normal}
 body.student-body .student-topbar .student-title span{color:var(--rfit-red)}
 @media(max-width:700px){body.student-body .student-topbar .student-title{font-size:clamp(1.8rem,7vw,2.5rem)!important}}
+
+
+/* ==========================================================================
+   13. PORTAL DO PROFESSOR — VISÃO GERAL
+   Estilos escopados para não interferir nas demais páginas do R-Fit.
+   ========================================================================== */
+.professor-overview{max-width:1500px}
+.professor-overview .overview-topbar{align-items:center;padding-top:22px}
+.overview-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:190px;margin:26px 0 30px;padding:30px 34px;border:1px solid #343a46;border-radius:20px;background:linear-gradient(112deg,#151820 0%,#242a35 68%,#351923 100%);color:#fff;box-shadow:0 18px 42px #11182720}
+.overview-hero-copy{position:relative;z-index:1;max-width:650px}
+.overview-kicker{color:#ff5369;font-size:.68rem;font-weight:900;letter-spacing:.18em}
+.overview-hero h2{margin:10px 0 7px;color:#fff;font-size:clamp(1.5rem,3vw,2.25rem);line-height:1.12;letter-spacing:-.045em}
+.overview-hero p{margin:0;color:#c7cbd4;font-size:.94rem}
+.overview-hero-action{position:relative;z-index:1;display:inline-flex;align-items:center;gap:18px;flex:0 0 auto;padding:13px 17px;border:1px solid #ffffff30;border-radius:11px;background:#ffffff10;color:#fff;font-size:.83rem;font-weight:800;transition:background .16s ease,border-color .16s ease}
+.overview-hero-action:hover{background:#ffffff1c;border-color:#ffffff55}
+.overview-hero-action span{color:#ff5369;font-size:1.2rem}
+.overview-hero-orbit{position:absolute;z-index:-1;right:7%;top:-210px;width:390px;height:390px;border:1px solid #ffffff12;border-radius:50%;box-shadow:0 0 0 34px #ffffff05,0 0 0 70px #ffffff03;pointer-events:none}
+.overview-section{margin:0 0 28px}
+.overview-section-heading,.overview-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:15px}
+.overview-section-heading h2,.overview-panel-heading h2{margin:5px 0 0;color:#18202d;font-size:1.2rem;letter-spacing:-.025em}
+.overview-updated{color:#7a8495;font-size:.72rem}
+.overview-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.overview-metric-card{display:block;min-width:0;padding:17px 18px 16px;border:1px solid #e3e7ee;border-radius:15px;background:#fff;color:#18202d;box-shadow:0 5px 18px #17203308;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box-shadow:0 10px 24px #17203310}
+.overview-metric-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.overview-metric-top>span:first-child{color:#687386;font-size:.78rem;font-weight:700}
+.overview-metric-icon{display:grid;place-items:center;width:31px;height:31px;border-radius:10px;background:#fff0f2;color:#d62943;font-size:.95rem;font-weight:900}
+.overview-tone-success .overview-metric-icon{background:#eaf7ef;color:#23824d}
+.overview-tone-warning .overview-metric-icon{background:#fff5e7;color:#a96312}
+.overview-tone-muted .overview-metric-icon{background:#eff1f4;color:#70798a}
+.overview-metric-value{display:block;margin:12px 0 3px;color:#171b24;font-size:2rem;line-height:1;font-weight:900;letter-spacing:-.06em;font-variant-numeric:tabular-nums}
+.overview-metric-card small{color:#8a93a2;font-size:.7rem}
+.overview-bottom-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:16px}
+.overview-panel{min-width:0;padding:21px;border:1px solid #e3e7ee;border-radius:16px;background:#fff;box-shadow:0 5px 18px #17203308}
+.overview-panel-heading{margin-bottom:13px}
+.overview-panel-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#fff0f2;color:#d62943;font-weight:900}
+.overview-priority{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid #edf0f4;color:#18202d}
+.overview-priority-copy{display:grid;gap:3px;min-width:0}
+.overview-priority-copy strong{font-size:.82rem}
+.overview-priority-copy small{color:#8a93a2;font-size:.7rem}
+.overview-priority>b{display:grid;place-items:center;min-width:34px;height:34px;padding:0 8px;border-radius:10px;background:#fff0f2;color:#c8203b;font-size:.9rem}
+.overview-all-clear{display:flex;align-items:center;gap:12px;padding:15px 0}
+.overview-all-clear>span{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#eaf7ef;color:#23824d;font-weight:900}
+.overview-all-clear div{display:grid;gap:3px}
+.overview-all-clear strong{color:#263142;font-size:.82rem}
+.overview-all-clear small,.overview-muted{color:#8a93a2;font-size:.72rem}
+.overview-shortcut{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #edf0f4;color:#18202d}
+.overview-shortcut-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:11px;background:#fff0f2;color:#d62943;font-size:1rem}
+.overview-shortcut>span:nth-child(2){display:grid;gap:2px;min-width:0}
+.overview-shortcut strong{font-size:.8rem}
+.overview-shortcut small{color:#8a93a2;font-size:.68rem}
+.overview-shortcut>b{margin-left:auto;color:#d62943;font-size:1.1rem}
+.overview-shortcut:hover strong,.overview-priority:hover .overview-priority-copy strong{color:#c8203b}
+.overview-loading{grid-column:1/-1;padding:28px;border:1px dashed #d9dee7;border-radius:14px;color:#7c8798;text-align:center;font-size:.85rem}
+.overview-error{border-color:#f0c5cb;color:#a92b3c;background:#fff8f8}
+.overview-message{margin-top:12px}
+@media(max-width:1100px){.overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.overview-hero{align-items:flex-start;flex-direction:column;padding:24px;min-height:0}.overview-hero-action{align-self:flex-start}.overview-bottom-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.professor-overview .overview-topbar{align-items:flex-start}.overview-metrics{gap:9px}.overview-metric-card{padding:14px}.overview-metric-value{font-size:1.75rem}.overview-panel{padding:16px}.overview-section-heading{align-items:flex-start;flex-direction:column}}
