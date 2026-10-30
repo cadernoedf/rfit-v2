@@ -60,6 +60,30 @@
 @media(max-width:700px){.professor-student-detail .student-anamnesis-list{grid-template-columns:1fr}.professor-student-detail .student-note-form{grid-template-columns:1fr}.professor-student-detail .student-assessment-fields{grid-template-columns:1fr}.professor-student-detail .student-measurements-panel .overview-panel-heading{align-items:flex-start;flex-direction:column}}
 </style>
 <style>
+/* Perfil 360 — acabamento híbrido: painel de gestão + acompanhamento humano */
+.professor-student-detail .student-profile-hero{position:relative;grid-template-columns:82px minmax(0,1fr);gap:16px 20px;padding:22px 24px;background:linear-gradient(112deg,#fff 0%,#fff 72%,#fff5f6 100%);border-color:#f0dfe3;box-shadow:0 10px 30px rgba(155,31,54,.055)}
+.professor-student-detail .student-profile-avatar{width:76px;height:76px;box-shadow:0 0 0 5px #fff,0 0 0 7px #f8dce2}
+.professor-student-detail .student-profile-info h2{font-size:1.55rem;letter-spacing:-.035em}
+.professor-student-detail .student-profile-info p{margin-top:5px}
+.professor-student-detail .student-profile-contact{grid-column:2;justify-content:flex-start;gap:7px 18px}
+.professor-student-detail .student-profile-quick-actions{grid-column:2;display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.professor-student-detail .student-quick-button{display:inline-flex;align-items:center;justify-content:center;min-height:37px;padding:8px 13px;border:1px solid #e3e7ee;border-radius:10px;background:#fff;color:#465267;font-size:.76rem;font-weight:800;text-decoration:none;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+.professor-student-detail .student-quick-button:hover{transform:translateY(-1px);box-shadow:0 5px 14px #18203312}
+.professor-student-detail .student-quick-button.is-primary{border-color:#c92b47;background:linear-gradient(135deg,#d93652,#b91f3a);color:#fff}
+.professor-student-detail .student-quick-button.is-whatsapp{border-color:#ccebd8;background:#effaf3;color:#168047}
+.professor-student-detail .student-360-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff,#fbfcff)}
+.professor-student-detail .student-360-card:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,#e34a63,#f5b4bf)}
+.professor-student-detail .student-360-card:nth-child(2):before{background:linear-gradient(180deg,#3b82f6,#a9c8ff)}
+.professor-student-detail .student-360-card:nth-child(3):before{background:linear-gradient(180deg,#8b5cf6,#d2baff)}
+.professor-student-detail .student-360-card:nth-child(4):before{background:linear-gradient(180deg,#16a36a,#a6e5c4)}
+.professor-student-detail .student-profile-tab{transition:background .18s ease,color .18s ease,transform .18s ease}
+.professor-student-detail .student-profile-tab.is-active{background:linear-gradient(135deg,#29313e,#171d27);box-shadow:0 5px 13px #17203320}
+.professor-student-detail .student-summary-grid>.overview-panel{box-shadow:0 8px 24px rgba(20,35,60,.035)}
+.professor-student-detail .student-summary-attention{border-color:#f3e2e5!important}
+.professor-student-detail .student-journey-note{position:relative;padding:13px 12px 13px 18px;border-top:0;border-left:2px solid #f0c4cc;margin:0 0 7px;background:linear-gradient(90deg,#fff8f9,#fff);border-radius:0 10px 10px 0}
+.professor-student-detail .student-journey-note:before{content:"";position:absolute;left:-5px;top:17px;width:8px;height:8px;border-radius:50%;background:#d93652;box-shadow:0 0 0 3px #fff}
+.professor-student-detail .student-profile-tab-panel>.overview-panel{box-shadow:0 8px 26px rgba(20,35,60,.04)}
+@media(max-width:700px){.professor-student-detail .student-profile-hero{grid-template-columns:62px minmax(0,1fr);padding:17px}.professor-student-detail .student-profile-avatar{width:58px;height:58px}.professor-student-detail .student-profile-contact,.professor-student-detail .student-profile-quick-actions{grid-column:1/-1}.professor-student-detail .student-profile-quick-actions{display:grid;grid-template-columns:1fr 1fr}.professor-student-detail .student-quick-button{padding:9px 8px;text-align:center}.professor-student-detail .student-profile-quick-actions .is-whatsapp{grid-column:1/-1}}
 /* Perfil 360: navegação por abas e painéis independentes */
 .professor-student-detail .student-profile-tabs{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px;margin:0 0 16px;border:1px solid #e5eaf1;border-radius:14px;background:#fff;position:sticky;top:8px;z-index:20;box-shadow:0 5px 18px #17203308}
 .professor-student-detail .student-profile-tab{width:auto;min-height:40px;padding:9px 16px;border:0;border-radius:10px;background:transparent;color:#657187;font-size:.8rem;font-weight:800;cursor:pointer}
