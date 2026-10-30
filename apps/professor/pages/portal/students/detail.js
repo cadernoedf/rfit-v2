@@ -40,7 +40,31 @@ function render(data){
  const points=[...measurements].filter(m=>m.weight_kg!==null&&m.weight_kg!==undefined).reverse();
  if(points.length){const max=Math.max(...points.map(m=>Number(m.weight_kg))),min=Math.min(...points.map(m=>Number(m.weight_kg))),range=Math.max(1,max-min);const bars=document.createElement('div');bars.className='student-evolution-bars';points.forEach(m=>{const row=document.createElement('div');row.className='student-evolution-row';const date=document.createElement('span');date.textContent=new Date(m.measured_at).toLocaleDateString('pt-BR');const track=document.createElement('div');track.className='student-evolution-track';const fill=document.createElement('i');fill.style.width=(35+(Number(m.weight_kg)-min)/range*65)+'%';track.append(fill);const value=document.createElement('strong');value.textContent=Number(m.weight_kg).toLocaleString('pt-BR')+' kg';row.append(date,track,value);bars.append(row);});evolution.append(bars);}else evolution.textContent='Ainda não há medidas suficientes para mostrar a evolução.';
  const anamnesis=$('#student-anamnesis');anamnesis.replaceChildren();const an=data.anamnesis;
- if(an){const wrap=document.createElement('div');wrap.className='student-anamnesis-list';const status=document.createElement('strong');status.textContent='Anamnese registrada · versão '+an.version;const date=document.createElement('span');date.textContent='Concluída em '+new Date(an.completed_at).toLocaleDateString('pt-BR');wrap.append(status,date);try{const answers=JSON.parse(an.answers_json||'{}');Object.entries(answers).slice(0,8).forEach(([key,value])=>{const line=document.createElement('div');line.textContent=String(key).replace(/[_-]/g,' ')+': '+(typeof value==='object'?JSON.stringify(value):String(value));wrap.append(line);});}catch{}anamnesis.append(wrap);}else anamnesis.textContent='Anamnese ainda não preenchida.';
+ if(an){
+  const wrap=document.createElement('div');wrap.className='student-anamnesis-list';
+  const labels={birth_date:'Data de nascimento',sex:'Sexo',height_cm:'Altura',weight_kg:'Peso informado',goal:'Objetivo',training_frequency:'Frequência de treino',experience_level:'Experiência',health_conditions:'Condições de saúde',restrictions:'Restrições',medications:'Medicamentos',injuries:'Lesões ou cirurgias',allergies:'Alergias'};
+  const niceValue=(key,value)=>{
+   if(value===null||value===undefined||value==='')return '';
+   if(Array.isArray(value))return value.map(v=>String(v).replace(/[_-]/g,' ')).join(' · ');
+   if(typeof value==='object')return Object.entries(value).map(([k,v])=>labels[k]||k.replace(/[_-]/g,' ')).join(' · ');
+   if(key==='birth_date'){const d=new Date(String(value)+'T12:00:00');return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString('pt-BR');}
+   if(key==='height_cm')return String(value)+' cm';
+   if(key==='weight_kg')return String(value)+' kg';
+   if(key==='training_frequency')return String(value)+' vezes por semana';
+   if(key==='sex'){const s=String(value).toLowerCase();return s==='m'?'Masculino':s==='f'?'Feminino':String(value);}
+   return String(value).replace(/[_-]/g,' ');
+  };
+  try{
+   const answers=JSON.parse(an.answers_json||'{}');
+   Object.entries(answers).forEach(([key,value])=>{
+    const formatted=niceValue(key,value);if(!formatted)return;
+    const item=document.createElement('div');item.className='student-anamnesis-item';
+    const label=document.createElement('span');label.textContent=labels[key]||key.replace(/[_-]/g,' ').replace(/\\b\\w/g,ch=>ch.toUpperCase());
+    const content=document.createElement('strong');content.textContent=formatted;item.append(label,content);wrap.append(item);
+   });
+  }catch{}
+  const meta=document.createElement('div');meta.className='student-anamnesis-item';const metaLabel=document.createElement('span');metaLabel.textContent='Registro';const metaValue=document.createElement('strong');metaValue.textContent='Anamnese v'+an.version+' · '+new Date(an.completed_at).toLocaleDateString('pt-BR');meta.append(metaLabel,metaValue);wrap.prepend(meta);anamnesis.append(wrap);
+ }else anamnesis.textContent='Anamnese ainda não preenchida.';
  const notes=$('#student-journey-notes');notes.replaceChildren();(data.journey_notes||[]).forEach(item=>{const row=document.createElement('div');row.className='student-journey-note';const when=document.createElement('small');when.textContent=new Date(item.created_at).toLocaleString('pt-BR');const body=document.createElement('div');body.textContent=item.note;row.append(when,body);notes.append(row);});if(!(data.journey_notes||[]).length)notes.textContent='Nenhuma observação registrada.';
  const workoutBox=$('#student-workouts');workoutBox.replaceChildren();
  (data.workouts||[]).forEach(w=>workoutBox.append(makeListItem(w.title,(w.goal||'Sem objetivo')+' · '+w.weekly_frequency+'x por semana',w.status)));
