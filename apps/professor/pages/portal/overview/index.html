@@ -1,1 +1,86 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090a0d"><title>R-Fit — Visão geral</title><link rel="stylesheet" href="../../../../shared/css/rfit.css"><script type="module" src="./page.js"></script></head><body class="admin-body professor-overview"><div class="portal-layout"><aside class="portal-sidebar" aria-label="Menu do professor"><a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a><nav class="portal-nav"><a class="portal-nav-link" href="../overview/index.html">▦ Visão geral</a><a class="portal-nav-link" href="../students/index.html">♙ Alunos</a><a class="portal-nav-link" href="../plans/index.html">▤ Planos</a><a class="portal-nav-link" href="../settings/index.html">⚙ Configurações</a><a class="portal-nav-link" href="../support/index.html">☏ Suporte</a></nav><div class="sidebar-bottom">Sistema R-Fit</div></aside><main class="admin-shell portal-main"><header class="admin-topbar"><div><span class="eyebrow">R-FIT · PAINEL DO PROFESSOR</span><h1 class="admin-title">Visão geral<span>.</span></h1><p id="professor-welcome">Validando sessão…</p></div><nav class="overview-top-actions" aria-label="Ações rápidas"><a class="overview-action" href="../students/index.html">Gerenciar alunos</a><a class="overview-action" href="../support/index.html">1 conversa</a><a class="overview-action" href="../settings/index.html">Atualizar dados</a><button id="logout" class="secondary-button admin-logout" type="button">Sair</button></nav></header><section class="admin-section"><span class="section-kicker">RESUMO</span><h2>Visão geral</h2><p id="overview-summary">Indicadores da consultoria serão carregados a partir da API administrativa.</p><p id="page-message" class="form-message" role="status"></p></section></main></div></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111318">
+  <title>R-Fit — Visão geral do professor</title>
+  <link rel="stylesheet" href="../../../../shared/css/rfit.css">
+  <script type="module" src="./page.js"></script>
+</head>
+<body class="admin-body professor-overview">
+  <div class="portal-layout">
+    <aside class="portal-sidebar" aria-label="Menu do professor">
+      <a class="portal-brand" href="/professor/"><span class="brand-mark">R</span><span>R-FIT<small>PROFESSOR</small></span></a>
+      <nav class="portal-nav">
+        <a class="portal-nav-link is-active" aria-current="page" href="./index.html"><span>▦</span> Visão geral</a>
+        <a class="portal-nav-link" href="../students/index.html"><span>♙</span> Alunos</a>
+        <a class="portal-nav-link" href="../students/index.html#cadastrar"><span>＋</span> Cadastrar aluno</a>
+        <a class="portal-nav-link" href="../plans/index.html"><span>▤</span> Planos</a>
+        <a class="portal-nav-link" href="../plans/index.html#financeiro"><span>▣</span> Financeiro</a>
+        <a class="portal-nav-link" href="../support/index.html"><span>✉</span> Mensagens</a>
+        <a class="portal-nav-link" href="../settings/index.html"><span>⚙</span> Configurações</a>
+        <a class="portal-nav-link" href="../support/index.html"><span>☏</span> Suporte</a>
+      </nav>
+      <div class="sidebar-bottom">Sistema R-Fit</div>
+    </aside>
+
+    <main class="admin-shell portal-main">
+      <section class="command-hero" aria-label="Central de comando">
+        <div class="command-identity">
+          <span class="eyebrow">R-FIT · PAINEL DO PROFESSOR</span>
+          <h1 class="command-title">Visão geral<span>.</span></h1>
+          <p id="professor-welcome">Validando sessão…</p>
+        </div>
+        <div class="command-copy">
+          <span class="section-kicker">CENTRAL DE COMANDO</span>
+          <h2>Seu trabalho, em um só lugar.</h2>
+          <p>Acompanhe alunos, planos e pontos que precisam da sua atenção.</p>
+        </div>
+        <button id="logout" class="command-logout" type="button">Sair</button>
+        <a class="command-primary" href="../students/index.html">Gerenciar alunos <span>→</span></a>
+      </section>
+
+      <section class="overview-section" aria-labelledby="consultancy-title">
+        <div class="overview-section-heading">
+          <div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="consultancy-title">Resumo da consultoria</h2></div>
+          <span id="overview-updated" class="updated-label">Carregando dados…</span>
+        </div>
+        <p id="page-message" class="overview-message" role="status" aria-live="polite"></p>
+        <div class="overview-metrics">
+          <article class="overview-metric"><div class="metric-heading"><span>Alunos cadastrados</span><i>♙</i></div><strong id="metric-students">—</strong><small>Total de contas de alunos</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Alunos ativos</span><i>✓</i></div><strong id="metric-active">—</strong><small>Com status ativo</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Cadastros pendentes</span><i>•••</i></div><strong id="metric-pending">—</strong><small>Aguardando acompanhamento</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Alunos suspensos</span><i>Ⅱ</i></div><strong id="metric-suspended">—</strong><small>Com acesso suspenso</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Planos ativos</span><i>▤</i></div><strong id="metric-plans">—</strong><small>Disponíveis na consultoria</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Assinaturas ativas</span><i>◆</i></div><strong id="metric-subscriptions">—</strong><small>Com status ativo</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Pagamentos pendentes</span><i>R$</i></div><strong id="metric-payments">—</strong><small>Aguardando confirmação</small></article>
+          <article class="overview-metric"><div class="metric-heading"><span>Anamneses pendentes</span><i>☷</i></div><strong id="metric-anamnesis">—</strong><small>Ainda não preenchidas</small></article>
+        </div>
+      </section>
+
+      <div class="overview-lower-grid">
+        <section class="overview-panel" aria-labelledby="priorities-title">
+          <span class="section-kicker">PRIORIDADES</span>
+          <h2 id="priorities-title">O que merece atenção</h2>
+          <div class="priority-list">
+            <a href="../students/index.html"><span class="priority-icon">!</span><span><strong>Cadastros pendentes</strong><small id="priority-pending">Verifique novos alunos</small></span><b>→</b></a>
+            <a href="../plans/index.html"><span class="priority-icon">R$</span><span><strong>Pagamentos pendentes</strong><small id="priority-payments">Acompanhe as confirmações</small></span><b>→</b></a>
+            <a href="../students/index.html"><span class="priority-icon">☷</span><span><strong>Anamneses pendentes</strong><small id="priority-anamnesis">Aguardando preenchimento</small></span><b>→</b></a>
+          </div>
+        </section>
+        <section class="overview-panel" aria-labelledby="shortcuts-title">
+          <span class="section-kicker">ACESSO RÁPIDO</span>
+          <h2 id="shortcuts-title">Atalhos do professor</h2>
+          <div class="shortcut-grid">
+            <a href="../students/index.html"><span>♙</span><strong>Gerenciar alunos</strong><small>Perfis e acompanhamento</small></a>
+            <a href="../support/index.html"><span>✉</span><strong>Mensagens</strong><small>Converse com seus alunos</small></a>
+            <a href="../plans/index.html"><span>▤</span><strong>Planos</strong><small>Gerencie sua consultoria</small></a>
+            <a href="../settings/index.html"><span>⚙</span><strong>Atualizar dados</strong><small>Configurações do portal</small></a>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
