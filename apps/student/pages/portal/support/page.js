@@ -1,19 +1,29 @@
 /* R-Fit | mensageiro privado aluno-professor. */
 import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
 const $=selector=>document.querySelector(selector);
+let studentName='Aluno',studentAvatar='',professorName='Professor R-Fit',professorAvatar='';
 const dateLabel=value=>{const date=new Date(value);return Number.isNaN(date.getTime())?'':date.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+function initials(name){return String(name||'R-Fit').trim().split(/\\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase();}
+function avatarNode(name,url,className){
+ const wrap=document.createElement('span');wrap.className=className+' support-avatar';
+ if(url){const img=document.createElement('img');img.src=url;img.alt='Foto de '+(name||'usuário');img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{wrap.replaceChildren();wrap.textContent=initials(name);wrap.classList.add('avatar-fallback');},{once:true});wrap.append(img);}
+ else{wrap.textContent=initials(name);wrap.classList.add('avatar-fallback');}
+ return wrap;
+}
 function renderMessages(messages){
  const box=$('#support-messages');box.replaceChildren();
  if(!messages.length){const empty=document.createElement('div');empty.className='messenger-empty';empty.innerHTML='<span>✉</span><strong>Seu canal direto com o professor</strong><p>Envie sua primeira mensagem para começar.</p>';box.append(empty);return;}
- messages.forEach(item=>{const mine=item.sender_role==='student',row=document.createElement('div'),bubble=document.createElement('div'),meta=document.createElement('small');row.className='message-row '+(mine?'mine':'theirs');bubble.className='message-bubble';bubble.textContent=item.body;meta.className='message-meta';meta.textContent=(mine?'Você':'Professor')+' · '+dateLabel(item.created_at);row.append(bubble,meta);box.append(row);});
+ messages.forEach(item=>{const mine=item.sender_role==='student',row=document.createElement('div'),content=document.createElement('div'),bubble=document.createElement('div'),meta=document.createElement('small');row.className='message-row '+(mine?'mine':'theirs');const name=mine?studentName:professorName,photo=mine?studentAvatar:professorAvatar;const avatar=avatarNode(name,photo,'message-avatar');content.className='message-content';bubble.className='message-bubble';bubble.textContent=item.body;meta.className='message-meta';meta.textContent=(mine?'Você':professorName)+' · '+dateLabel(item.created_at);content.append(bubble,meta);row.append(avatar,content);box.append(row);});
  box.scrollTop=box.scrollHeight;
 }
 async function loadMessages(){
- const box=$('#support-messages');try{const response=await fetch('/api/student/support/messages',{credentials:'same-origin',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'support_unavailable');renderMessages(result.messages||[]);$('#page-message').textContent='';}
- catch(error){$('#page-message').textContent='Não foi possível carregar as mensagens. Tente atualizar.';console.error(error);}
+ try{const response=await fetch('/api/student/support/messages',{credentials:'same-origin',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'support_unavailable');studentName=result.student?.full_name||studentName;studentAvatar=result.student?.avatar_url||studentAvatar;professorName=result.professor?.full_name||professorName;professorAvatar=result.professor?.avatar_url||professorAvatar;
+  const contact=document.querySelector('.messenger-contact');if(contact){contact.replaceChildren(avatarNode(professorName,professorAvatar,'messenger-avatar'));const info=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');strong.textContent=professorName;small.textContent='Seu atendimento individual';info.append(strong,small);const lock=document.createElement('span');lock.className='contact-lock';lock.title='Conversa privada';lock.textContent='●';contact.append(info,lock);}
+  renderMessages(result.messages||[]);$('#page-message').textContent='';
+ }catch(error){$('#page-message').textContent='Não foi possível carregar as mensagens. Tente atualizar.';console.error(error);}
 }
 document.addEventListener('DOMContentLoaded',async()=>{
- try{const result=await getCurrentUser();if(result.user.role!=='student'){window.location.replace('/professor/');return;}$('#student-welcome').textContent='Olá, '+(result.user.name||result.user.email)+'.';await loadMessages();}
+ try{const result=await getCurrentUser();if(result.user.role!=='student'){window.location.replace('/professor/');return;}studentName=result.user.name||result.user.email||'Aluno';$('#student-welcome').textContent='Olá, '+studentName+'.';await loadMessages();}
  catch(error){window.location.replace('/student/pages/login.html');return;}
  $('#support-refresh').addEventListener('click',loadMessages);
  $('#support-form').addEventListener('submit',async event=>{
