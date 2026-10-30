@@ -808,3 +808,17 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .portal-main .professor-page-hero .overview-hero-action{min-height:40px;padding:10px 14px;font:inherit;font-size:.78rem;white-space:nowrap;cursor:pointer}
 .portal-main .professor-page-hero button.overview-hero-action{color:#fff}
 @media(max-width:760px){.portal-main .professor-page-hero .overview-hero-actions{justify-content:flex-start}.portal-main .professor-page-hero .overview-hero-action{flex:1 1 auto;justify-content:center}}
+
+
+/* R-FIT | acabamento visual das páginas de Planos e Configurações do professor */
+.professor-plans .admin-section,.professor-settings .admin-section{margin-top:26px;padding:22px;background:#fff;border:1px solid #e2e7ef;border-radius:16px;box-shadow:0 5px 18px #17203308;color:#18202d}
+.professor-plans .admin-section h2,.professor-settings .admin-section h2{margin:5px 0 16px;color:#18202d;font-size:1.25rem;letter-spacing:-.03em}
+.professor-plans #plans-list{display:grid;gap:10px;margin:14px 0 20px}
+.professor-plans .plan-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border:1px solid #e2e7ef;border-radius:13px;background:#f8f9fb;color:#18202d}
+.professor-plans .plan-row>div{display:grid;gap:5px;min-width:0}.professor-plans .plan-row strong{color:#18202d;font-size:.94rem}.professor-plans .plan-row p{margin:0;color:#718096;font-size:.78rem}
+.professor-plans .plan-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.professor-plans .plan-actions .secondary-button{width:auto;min-width:86px;min-height:36px;margin:0;padding:7px 11px;background:#fff;border:1px solid #dce2eb;color:#263247;font-size:.75rem}.professor-plans .plan-actions .secondary-button:hover{border-color:#ff5268;color:#b52b41}
+.professor-plans .admin-form,.professor-settings .admin-form{margin-top:18px;padding:20px;background:#f8f9fb;border:1px solid #e2e7ef;border-radius:13px;color:#18202d}.professor-plans .admin-form h3,.professor-settings .admin-form h3{color:#18202d}
+.professor-plans .admin-form label,.professor-settings .admin-form label{color:#39465a;font-weight:700}
+.professor-plans .admin-form input:not([type=checkbox]),.professor-plans .admin-form textarea,.professor-settings .admin-form input:not([type=checkbox]),.professor-settings .admin-form textarea,.professor-settings .admin-form select{width:100%;min-height:42px;padding:10px 12px;border:1px solid #dce2eb;border-radius:9px;background:#fff;color:#18202d}
+.professor-plans .admin-form .primary-button,.professor-settings .admin-form .primary-button{width:auto;min-width:160px}.professor-settings .settings-announcements{margin-top:24px;padding:20px;border:1px solid #e2e7ef;border-radius:14px;background:#fff}.professor-settings .settings-announcements h2{margin:6px 0;color:#18202d}
+@media(max-width:700px){.professor-plans .plan-row{align-items:flex-start;flex-direction:column}.professor-plans .plan-actions{width:100%}.professor-plans .plan-actions .secondary-button{flex:1}}
