@@ -4,6 +4,27 @@ const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 const reply=(data,status=200)=>Response.json(data,{status,headers});
 
 export async function studentRoutes(request, env, url) {
+  if (url.pathname === '/api/student/support/messages') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    try {
+      if(request.method==='GET'){
+        await env.RFIT_DB.prepare("UPDATE support_messages SET read_at=CURRENT_TIMESTAMP WHERE student_user_id=? AND sender_role IN ('professor','admin') AND read_at IS NULL").bind(session.sub).run();
+        const rows=await env.RFIT_DB.prepare("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE student_user_id=? ORDER BY created_at ASC,id ASC LIMIT 300").bind(session.sub).all();
+        return reply({ok:true,messages:rows.results||[]});
+      }
+      if(request.method==='POST'){
+        const body=await request.json(), message=String(body.message||'').trim();
+        if(!message||message.length>3000)return reply({ok:false,error:'invalid_message'},400);
+        const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student' AND status='active'").bind(session.sub).first();
+        if(!student)return reply({ok:false,error:'student_not_found'},404);
+        const id=crypto.randomUUID();
+        await env.RFIT_DB.prepare("INSERT INTO support_messages(id,student_user_id,sender_user_id,sender_role,body) VALUES(?,?,?,'student',?)").bind(id,session.sub,session.sub,message).run();
+        return reply({ok:true,id,created_at:new Date().toISOString()},201);
+      }
+      return reply({ok:false,error:'method_not_allowed'},405);
+    } catch(error){console.error('student_support_messages_failed',error?.message||'unknown');return reply({ok:false,error:'support_unavailable'},503);}
+  }
   if (url.pathname === '/api/student/dashboard') {
     if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
     const session=await getSession(request,env);
