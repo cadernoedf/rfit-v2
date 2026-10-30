@@ -171,14 +171,26 @@ document.addEventListener('DOMContentLoaded',async()=>{
   galleryInput?.addEventListener('change',()=>selectPhoto(galleryInput.files?.[0]));
   const compressPhoto=async file=>{
     if(!file||!file.type.startsWith('image/'))throw new Error('Selecione uma imagem válida.');
-    if(!('createImageBitmap'in window))throw new Error('Este navegador não oferece compressão local de imagem. Atualize o navegador.');
-    const bitmap=await createImageBitmap(file);let width=bitmap.width,height=bitmap.height;const maxSide=1280;
+    let bitmap;
+    try{bitmap=await createImageBitmap(file);}catch(error){throw new Error('Não foi possível abrir esta imagem neste aparelho. Tente selecionar outra foto.');}
+    let width=bitmap.width,height=bitmap.height;
+    const maxSide=1600;
     if(Math.max(width,height)>maxSide){const scale=maxSide/Math.max(width,height);width=Math.round(width*scale);height=Math.round(height*scale);}
-    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const context=canvas.getContext('2d');context.drawImage(bitmap,0,0,width,height);bitmap.close?.();
-    const toBlob=quality=>new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
-    let blob=await toBlob(.78);if(blob&&blob.size>716800)blob=await toBlob(.62);
-    if(blob&&blob.size>716800){const scaled=document.createElement('canvas');scaled.width=Math.round(width*.78);scaled.height=Math.round(height*.78);scaled.getContext('2d').drawImage(canvas,0,0,scaled.width,scaled.height);blob=await new Promise(resolve=>scaled.toBlob(resolve,'image/jpeg',.58));}
-    if(!blob||blob.size>716800)throw new Error('Não foi possível reduzir a foto para menos de 700 KB. Escolha outra imagem.');
+    const canvas=document.createElement('canvas'),context=canvas.getContext('2d');
+    if(!context){bitmap.close?.();throw new Error('Não foi possível preparar a foto neste aparelho.');}
+    const encode=(quality)=>new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+    let blob=null;
+    try{
+      for(let attempt=0;attempt<9;attempt++){
+        canvas.width=width;canvas.height=height;
+        context.clearRect(0,0,width,height);context.drawImage(bitmap,0,0,width,height);
+        const quality=[.82,.72,.62,.52,.45,.4,.36,.32,.28][attempt];
+        blob=await encode(quality);
+        if(blob&&blob.size<=716800)break;
+        if(attempt===2||attempt===4||attempt===6){width=Math.max(640,Math.round(width*.82));height=Math.max(640,Math.round(height*.82));}
+      }
+    }finally{bitmap.close?.();}
+    if(!blob||blob.size>716800)throw new Error('Não foi possível processar esta imagem. Tente novamente.');
     return blob;
   };
   if(photoForm)photoForm.addEventListener('submit',async event=>{
