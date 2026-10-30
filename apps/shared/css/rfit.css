@@ -454,3 +454,18 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 @media(max-width:1050px){.professor-overview .overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.professor-overview .command-hero{grid-template-columns:1fr 1.2fr}}
 @media(max-width:760px){.professor-overview .command-hero{grid-template-columns:1fr;gap:16px;padding:22px 20px 82px}.professor-overview .command-identity{padding:0 0 14px;border-right:0;border-bottom:1px solid #ffffff20}.professor-overview .command-copy{padding:0 80px 0 0}.professor-overview .command-primary{right:18px;bottom:17px}.professor-overview .overview-lower-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.professor-overview .portal-main{padding:14px 12px 30px}.professor-overview .overview-metrics{gap:8px}.professor-overview .overview-metric{min-height:118px;padding:12px}.professor-overview .metric-heading{font-size:.63rem}.professor-overview .overview-metric>strong{font-size:1.6rem}.professor-overview .overview-panel{padding:16px}.professor-overview .shortcut-grid{grid-template-columns:1fr}.professor-overview .command-logout{top:16px;right:14px}}
+
+/* Alinhamento das ações rápidas na central de comando do professor */
+.professor-overview .command-hero{padding-bottom:82px}
+.professor-overview .command-hero .overview-top-actions{position:absolute;right:28px;bottom:20px;display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin:0}
+.professor-overview .command-hero .overview-action,
+.professor-overview .command-hero .overview-top-actions #logout{display:inline-flex;align-items:center;justify-content:center;min-height:38px;width:auto;min-width:0;margin:0;padding:8px 13px;color:#fff;background:#ffffff0d;border:1px solid #ffffff35;border-radius:10px;font-size:.75rem;font-weight:800;line-height:1.2;white-space:nowrap;cursor:pointer}
+.professor-overview .command-hero .overview-action:hover,
+.professor-overview .command-hero .overview-top-actions #logout:hover{background:#ffffff1c;border-color:#ff5266}
+@media(max-width:760px){
+ .professor-overview .command-hero{padding-bottom:22px}
+ .professor-overview .command-hero .overview-top-actions{position:static;grid-column:1/-1;justify-content:flex-start;gap:8px}
+ .professor-overview .command-hero .overview-action,
+ .professor-overview .command-hero .overview-top-actions #logout{flex:1 1 auto}
+}
+@media(max-width:420px){.professor-overview .command-hero .overview-top-actions{display:grid;grid-template-columns:1fr 1fr}.professor-overview .command-hero .overview-top-actions .overview-action:first-child{grid-column:1/-1}}
