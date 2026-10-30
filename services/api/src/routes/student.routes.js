@@ -7,7 +7,7 @@ export async function studentRoutes(request, env, url) {
   /* ===== CONFIGURAÇÃO PÚBLICA DA TELA DE LOGIN ===== */
   if (url.pathname === '/api/public/portal-config' && request.method === 'GET') {
     try {
-      const rows=await env.RFIT_DB.prepare("SELECT setting_key,setting_value FROM portal_settings WHERE setting_key IN ('consultancy_name','login_title','login_message','login_top_students')").all();
+      const rows=await env.RFIT_DB.prepare("SELECT setting_key,setting_value FROM portal_settings WHERE setting_key IN ('consultancy_name','login_title','login_message','login_top_students','registration_enabled')").all();
       const settings=Object.fromEntries((rows.results||[]).map(row=>[row.setting_key,row.setting_value]));
       let topStudents=[];
       try {
@@ -17,7 +17,7 @@ export async function studentRoutes(request, env, url) {
           if(valid.length){const marks=valid.map(()=>'?').join(',');const result=await env.RFIT_DB.prepare(`SELECT id,full_name,avatar_url FROM users WHERE role='student' AND status='active' AND id IN (${marks})`).bind(...valid).all();const byId=new Map((result.results||[]).map(student=>[student.id,student]));topStudents=valid.map(id=>byId.get(id)).filter(Boolean);}
         }
       } catch {}
-      return reply({ok:true,settings:{consultancy_name:settings.consultancy_name||'R-Fit',login_title:settings.login_title||'Seu próximo nível começa aqui.',login_message:settings.login_message||'Entre para acessar seu espaço no R-Fit.'},top_students:topStudents});
+      return reply({ok:true,settings:{consultancy_name:settings.consultancy_name||'R-Fit',login_title:settings.login_title||'Seu próximo nível começa aqui.',login_message:settings.login_message||'Entre para acessar seu espaço no R-Fit.',registration_enabled:settings.registration_enabled!=='false'},top_students:topStudents});
     } catch(error){console.error('public_portal_config_failed',error?.message||'unknown');return reply({ok:false,error:'portal_config_unavailable'},503);}
   }
 
