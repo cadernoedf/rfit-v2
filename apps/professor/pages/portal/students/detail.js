@@ -32,7 +32,7 @@ function render(data){
  const quick=document.createElement('div');quick.className='student-profile-quick-actions';
  const digits=String(s.phone||'').replace(/\\D/g,'');
  if(digits.length>=10){const wa=document.createElement('a');wa.className='student-quick-button is-whatsapp';wa.href='https://wa.me/'+(digits.startsWith('55')?digits:'55'+digits);wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Conversar no WhatsApp';quick.append(wa);}
- const assessment=document.createElement('button');assessment.type='button';assessment.className='student-quick-button is-primary';assessment.textContent='＋ Registrar avaliação';assessment.addEventListener('click',()=>document.querySelector('[data-student-tab="evolution"]')?.click());quick.append(assessment);
+ const assessment=document.createElement('button');assessment.type='button';assessment.className='student-quick-button is-primary';assessment.textContent='＋ Registrar avaliação';assessment.addEventListener('click',()=>{document.querySelector('[data-student-tab="evolution"]')?.click();document.querySelector('#open-assessment')?.click();});quick.append(assessment);
  const workout=document.createElement('button');workout.type='button';workout.className='student-quick-button';workout.textContent='＋ Novo treino';workout.addEventListener('click',()=>{document.querySelector('[data-student-tab="workouts"]')?.click();document.querySelector('#workout-form')?.scrollIntoView({behavior:'smooth',block:'start'});});quick.append(workout);
  hero.append(avatar,info,actions,quick);
  const measurements=data.measurements||[];
