@@ -245,6 +245,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
     const details=[item.weight_kg?'Peso: '+fmt(item.weight_kg,' kg'):'',answersText,item.notes].filter(Boolean).join(' · ');
     addTimeline(items,item.kind==='daily'?'Check-in diário registrado':'Check-in semanal registrado',details,item.created_at||item.week_start||item.checkin_date,'✓');
   });
+  journeyPhotos.forEach(photo=>addTimeline(items,'Foto de evolução adicionada',(photo.note||'Registro visual · '+(photo.photo_type||'progresso')),photo.taken_at,'📸'));
+  currentGoals.forEach(goal=>{addTimeline(items,'Objetivo definido: '+goal.title,'Meta: '+fmt(goal.target_value,goal.unit?' '+goal.unit:''),goal.created_at,'🎯');if(goal.completed_at)addTimeline(items,'Objetivo alcançado: '+goal.title,'Parabéns por concluir esta meta!',goal.completed_at,'🏆');});
   if(data.workout_available)addTimeline(items,'Treino disponível',data.workout_title||'Confira a prescrição de treino.','','↗');
   if(data.diet_available)addTimeline(items,'Plano alimentar disponível',data.diet_title||'Confira seu plano alimentar.','','↗');
   if(!items.length)addTimeline(items,'Sua jornada começa agora','Seu personal poderá adicionar medidas, treino e dieta conforme o acompanhamento evoluir.','','•');
