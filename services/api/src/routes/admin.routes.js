@@ -6,6 +6,9 @@ const noStore = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 
 export async function adminRoutes(request, env, url) {
   if (!url.pathname.startsWith('/api/professor/')) return null;
+  const isSupportInbox = url.pathname === '/api/professor/support';
+  const supportThreadMatch = url.pathname.match(/^\/api\/professor\/support\/([^/]+)\/messages$/);
+  const isSupportThread = Boolean(supportThreadMatch);
   const isSettings = url.pathname === '/api/professor/settings';
   const isPlanCollection = url.pathname === '/api/professor/plans';
   const planMatch = url.pathname.match(/^\/api\/professor\/plans\/([^/]+)$/);
@@ -16,7 +19,7 @@ export async function adminRoutes(request, env, url) {
   const journeyNoteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/journey-notes$/);
   const isJourneyNote = Boolean(journeyNoteMatch);
 
-  if (request.method !== 'GET' && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
