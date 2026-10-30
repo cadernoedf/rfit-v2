@@ -44,8 +44,7 @@ function makeRow(s){
  if(s.avatar_url){const img=document.createElement('img');img.src=s.avatar_url;img.alt='';avatar.append(img);}else avatar.textContent=(s.full_name||'R').trim().charAt(0).toUpperCase();
  const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=s.full_name||'Aluno sem nome';const contact=document.createElement('small');contact.textContent=s.phone||s.email||'Contato não cadastrado';identity.append(name,contact);person.append(avatar,identity);
  const plan=document.createElement('div');const planName=document.createElement('span');planName.className='plan-name';planName.textContent=s.plan_name||'Plano';const expiry=document.createElement('small');expiry.style.display='block';expiry.textContent='Vencimento: '+dateLabel(s.expires_at);plan.append(planName,expiry);
- const status=document.createElement('div');const pill=document.createElement('span');pill.className='message-center-pill '+state.tone;p illText();
- function p illText(){pill.textContent=state.label;}status.append(pill);
+ const status=document.createElement('div');const pill=document.createElement('span');pill.className='message-center-pill '+state.tone;pill.textContent=state.label;status.append(pill);
  const digits=phoneDigits(s.phone);const action=document.createElement('a');action.className='message-center-action';action.textContent='Abrir WhatsApp';action.target='_blank';action.rel='noopener noreferrer';
  if(digits.length>=10){const number=digits.startsWith('55')?digits:'55'+digits;action.href='https://wa.me/'+number+'?text='+encodeURIComponent(messageFor(s,state));action.setAttribute('aria-label','Abrir WhatsApp e preparar mensagem para '+(s.full_name||'aluno'));}else{action.href='#';action.setAttribute('aria-disabled','true');action.title='Cadastre um telefone válido no perfil do aluno';}
  row.append(person,plan,status,action);return row;
