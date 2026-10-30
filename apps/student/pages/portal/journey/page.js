@@ -7,10 +7,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
  try{
   const auth=await getCurrentUser();if(auth.user.role!=='student'){location.replace('/professor/');return}
   set('student-welcome','Olá, '+(auth.user.name||auth.user.email)+'.');
-  const responses=await Promise.all([fetch('/api/student/checkins',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/anamnesis/status',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})]);
-  if(!responses[1].ok)throw new Error('dashboard_unavailable');
-  const checkinData=responses[0].ok?await responses[0].json():{checkins:[],total:0};
-  const data=await responses[1].json(),anamnesis=responses[2].ok?await responses[2].json():null;
+  const responses=await Promise.all([fetch('/api/student/measurements',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/checkins',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),fetch('/api/student/anamnesis/status',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})]);
+  if(!responses[2].ok)throw new Error('dashboard_unavailable');
+  const measurementData=responses[0].ok?await responses[0].json():{measurements:[]};
+  const checkinData=responses[1].ok?await responses[1].json():{checkins:[],total:0};
+  const data=await responses[2].json(),anamnesis=responses[3].ok?await responses[3].json():null;
   const body=data.body||{},sub=data.subscription;
   set('journey-goal',data.goal||'Construindo sua melhor versão.');
   set('journey-subtitle',data.anamnesis_completed?'Seus dados e registros ajudam você e seu personal a acompanhar sua evolução.':'Sua jornada fica mais personalizada quando você conclui a anamnese.');
@@ -49,6 +50,33 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
   set('journey-record-count',body.measured_at?'1 registro recente':'0 registros');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
+  const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
+  const chartMetrics={
+    weight:{label:'Peso corporal',unit:'kg',color:'#7650ee',value:r=>Number(r.weight_kg)},
+    waist:{label:'Circunferência abdominal',unit:'cm',color:'#f08a35',value:r=>Number(r.waist_cm)},
+    bmi:{label:'Índice de massa corporal',unit:'',color:'#2997dc',value:r=>Number(r.bmi)},
+    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#16a36a',value:r=>Number(r.basal_kcal)}
+  };
+  let activeMetric='weight';
+  const chartNode=document.getElementById('journey-chart'),captionNode=document.getElementById('journey-chart-caption');
+  const chartDate=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});};
+  const renderJourneyChart=()=>{
+    const metric=chartMetrics[activeMetric],points=measurements.map(row=>({date:row.measured_at,value:metric.value(row)})).filter(p=>Number.isFinite(p.value)&&p.value>0);
+    document.querySelectorAll('.journey-chart-toggle').forEach(button=>{const active=button.dataset.metric===activeMetric;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});
+    if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'avaliação':'avaliações');
+    if(!chartNode)return;
+    if(!points.length){chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">↗</span><strong>Seu histórico está começando</strong><p>Assim que seu personal registrar avaliações com este indicador, a evolução aparecerá aqui.</p></div>';return;}
+    if(points.length===1){const p=points[0];chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">✓</span><strong>Primeira avaliação registrada</strong><p>'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+' · '+chartDate(p.date)+'. Registros seguintes formarão a linha de evolução.</p></div>';return;}
+    const vals=points.map(p=>p.value),min=Math.min(...vals),max=Math.max(...vals),spread=max-min||Math.max(Math.abs(max)*.08,1),lo=min-spread*.18,hi=max+spread*.18;
+    const x=i=>38+i*(684/(points.length-1)),y=v=>20+(1-(v-lo)/(hi-lo))*145;
+    const coords=points.map((p,i)=>x(i)+','+y(p.value)).join(' ');
+    const grid=[35,80,125,170].map(gy=>'<line x1="38" y1="'+gy+'" x2="722" y2="'+gy+'" stroke="#e9edf3" stroke-dasharray="3 5"/>').join('');
+    const dots=points.map((p,i)=>'<g class="journey-chart-point" tabindex="0" role="img" aria-label="'+chartDate(p.date)+': '+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+'"><circle cx="'+x(i)+'" cy="'+y(p.value)+'" r="5" fill="#fff" stroke="'+metric.color+'" stroke-width="3"><title>'+chartDate(p.date)+' · '+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+'</title></circle><text x="'+x(i)+'" y="'+(y(p.value)-12)+'" text-anchor="middle" fill="#273043" font-size="11" font-weight="800">'+p.value.toLocaleString('pt-BR')</text></g>').join('');
+    const dates=points.map((p,i)=>i===0||i===points.length-1||i===Math.floor((points.length-1)/2)?'<text x="'+x(i)+'" y="194" text-anchor="middle" fill="#7b8494" font-size="10">'+chartDate(p.date)+'</text>':'').join('');
+    chartNode.innerHTML='<svg viewBox="0 0 760 205" role="img" aria-label="Gráfico de '+metric.label+' ao longo das avaliações">'+grid+'<polyline points="'+coords+'" fill="none" stroke="'+metric.color+'" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>'+dots+dates+'</svg>';
+  };
+  document.querySelectorAll('.journey-chart-toggle').forEach(button=>button.addEventListener('click',()=>{activeMetric=button.dataset.metric;renderJourneyChart();}));
+  renderJourneyChart();
   set('journey-checkin-count',String(checkins.length));
   const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,checkins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
 
