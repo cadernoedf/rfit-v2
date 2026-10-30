@@ -393,3 +393,13 @@ a[href="/api/health"]:hover { background: var(--rfit-red-hover); transform: tran
 
 /* Cadastro: orientação do campo obrigatório de celular */
 .register-phone-help { display:block; margin-top:-2px; color:var(--rfit-muted); font-size:.75rem; line-height:1.4; }
+
+
+/* 20. AÇÕES RÁPIDAS — VISÃO GERAL DO PROFESSOR
+   Estilos restritos à página overview; cada ação mantém seu próprio cartão. */
+.professor-overview .overview-top-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:10px;margin-left:auto}
+.professor-overview .overview-action{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 12px;color:#fff;background:#111318;border:1px solid #292d36;border-radius:8px;font-size:.82rem;font-weight:750;line-height:1.2;white-space:nowrap;transition:background .15s ease,border-color .15s ease}
+.professor-overview .overview-action:hover{background:#1b1e25;border-color:#ff3348}
+.professor-overview .overview-top-actions #logout{flex:0 0 auto;width:auto;min-width:72px;min-height:36px;margin:0;padding:7px 12px;color:#fff;background:#111318;border:1px solid #292d36;border-radius:8px}
+.professor-overview .overview-top-actions #logout:hover{background:#1b1e25;border-color:#ff3348}
+@media(max-width:760px){.professor-overview .admin-topbar{align-items:flex-start;flex-direction:column}.professor-overview .overview-top-actions{width:100%;justify-content:flex-start;flex-wrap:wrap;margin:0}.professor-overview .overview-action{flex:0 1 auto}}
