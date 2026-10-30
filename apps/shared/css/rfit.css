@@ -800,3 +800,11 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .student-shell .message-bubble{max-width:100%}
 .student-shell .messenger-contact .messenger-avatar{flex:0 0 42px;overflow:hidden}
 @media(max-width:600px){.student-shell .message-row{max-width:96%}}
+
+
+/* Ações rápidas alinhadas no cabeçalho do professor */
+.portal-main .professor-page-hero{flex-wrap:wrap}
+.portal-main .professor-page-hero .overview-hero-actions{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;flex:1 1 100%;flex-wrap:wrap;gap:9px;margin-top:2px}
+.portal-main .professor-page-hero .overview-hero-action{min-height:40px;padding:10px 14px;font:inherit;font-size:.78rem;white-space:nowrap;cursor:pointer}
+.portal-main .professor-page-hero button.overview-hero-action{color:#fff}
+@media(max-width:760px){.portal-main .professor-page-hero .overview-hero-actions{justify-content:flex-start}.portal-main .professor-page-hero .overview-hero-action{flex:1 1 auto;justify-content:center}}
