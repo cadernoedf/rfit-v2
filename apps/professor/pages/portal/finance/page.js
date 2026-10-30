@@ -20,6 +20,24 @@ function metric(label,value,detail,icon,tone='default'){
  const amount=document.createElement('strong');amount.className='overview-metric-value';amount.textContent=money(value);
  const note=document.createElement('small');note.textContent=detail;card.append(top,amount,note);return card;
 }
+function renderBilling(data){
+ const target=$('#finance-billing-rows');
+ target.replaceChildren();
+ $('#finance-overdue').textContent=Number(data.schedule?.overdue_count||0)+' vencido(s)';
+ const rows=data.billing_schedule||[];
+ if(!rows.length){
+  const empty=document.createElement('p');empty.className='overview-muted';empty.textContent='Nenhuma cobrança prevista cadastrada.';target.append(empty);return;
+ }
+ rows.forEach(item=>{
+  const row=document.createElement('div');row.className='finance-billing-row';
+  const copy=document.createElement('span');copy.className='finance-billing-copy';
+  const name=document.createElement('strong');name.textContent=item.full_name||item.email;
+  const plan=document.createElement('small');plan.textContent=item.plan_name+' · '+new Date(item.billing_starts_at).toLocaleDateString('pt-BR');
+  copy.append(name,plan);
+  const amount=document.createElement('b');amount.textContent=money(item.price_cents);
+  row.append(copy,amount);target.append(row);
+ });
+}
 function renderRows(){
  const body=$('#finance-rows'),q=$('#finance-search').value.trim().toLowerCase();body.replaceChildren();
  const rows=payments.filter(p=>[p.full_name,p.email,p.plan_name].some(v=>String(v||'').toLowerCase().includes(q)));
@@ -46,7 +64,7 @@ async function loadFinance(){
    metric('Estornos',totals.refunded_cents,'Valores registrados como estornados','↶','muted')
   ];
   const target=$('#finance-metrics');target.replaceChildren(...metrics);
-  payments=data.payments||[];renderRows();$('#finance-updated').textContent='Atualizado em '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  payments=data.payments||[];renderRows();renderBilling(data);$('#finance-updated').textContent='Atualizado em '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   $('#page-message').textContent=payments.length+' transação(ões) encontrada(s).';
  }catch(error){$('#page-message').textContent='Não foi possível carregar o financeiro. '+error.message;$('#finance-updated').textContent='Falha ao atualizar';}
  finally{$('#finance-refresh').disabled=false;}
