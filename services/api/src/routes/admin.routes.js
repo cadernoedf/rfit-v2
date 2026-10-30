@@ -123,7 +123,7 @@ export async function adminRoutes(request, env, url) {
     }
     if (isSettings && request.method === 'PUT') {
       const body = await request.json();
-      const allowed = new Set(['consultancy_name','login_title','login_message','registration_enabled','maintenance_mode']);
+      const allowed = new Set(['consultancy_name','login_title','login_message','registration_enabled','maintenance_mode','login_top_students']);
       const entries = Object.entries(body.settings || {}).map(([key,value]) => [key, typeof value === 'boolean' ? String(value) : value]);
       if (!entries.length || entries.some(([key,value])=>!allowed.has(key) || typeof value !== 'string' || value.length > 1000)) return Response.json({ok:false,error:'invalid_settings'},{status:400,headers:noStore});
       for (const [key,value] of entries) await env.RFIT_DB.prepare('INSERT INTO portal_settings(setting_key,setting_value,updated_by,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP').bind(key,value,session.sub).run();
