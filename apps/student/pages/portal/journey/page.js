@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         const quality=[.82,.72,.62,.52,.45,.4,.36,.32,.28][attempt];
         blob=await encode(quality);
         if(blob&&blob.size<=716800)break;
-        if(attempt===2||attempt===4||attempt===6){width=Math.max(640,Math.round(width*.82));height=Math.max(640,Math.round(height*.82));}
+        if(attempt===2||attempt===4||attempt===6){width=Math.max(1,Math.round(width*.82));height=Math.max(1,Math.round(height*.82));}
       }
     }finally{bitmap.close?.();}
     if(!blob||blob.size>716800)throw new Error('Não foi possível processar esta imagem. Tente novamente.');
