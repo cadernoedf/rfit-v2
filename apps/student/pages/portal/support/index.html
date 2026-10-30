@@ -65,16 +65,40 @@
 .support-dashboard-intro .support-status{flex:0 0 auto;color:#e4e7ed!important;background:#ffffff0c!important;border:1px solid #ffffff20!important}
 .support-page{margin-top:0!important}
 @media(max-width:650px){.support-dashboard-panel{padding:17px!important;border-radius:16px!important}.support-dashboard-heading{gap:10px}.support-dashboard-heading .student-title{font-size:1.9rem!important}.support-dashboard-heading #logout{padding:8px 12px!important}.support-dashboard-intro{align-items:flex-start;flex-direction:column;gap:12px}.support-dashboard-intro h2{font-size:18px!important}}
+
+/* Cabeçalho em uma única faixa, seguindo a composição horizontal da Minha evolução */
+.support-one-line{padding:20px 26px!important}
+.support-one-line .support-dashboard-heading{display:grid!important;grid-template-columns:minmax(300px,.82fr) minmax(0,2fr)!important;align-items:center!important;gap:0!important;min-height:145px;padding:0 0!important;border:0!important}
+.support-one-line .support-identity{min-width:0;padding:8px 28px 8px 5px;border-right:2px solid #ff3348}
+.support-one-line .support-identity .student-title{margin:7px 0!important}
+.support-one-line .support-dashboard-intro{min-width:0;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:22px!important;padding:8px 150px 8px 28px!important}
+.support-one-line .support-dashboard-intro>div:first-child{min-width:0}
+.support-one-line .support-dashboard-intro h2{margin:7px 0 5px!important;font-size:20px!important}
+.support-one-line .support-dashboard-intro p{max-width:560px!important}
+.support-one-line .support-dashboard-intro .support-status{flex:0 0 auto}
+.support-one-line .support-dashboard-heading #logout{position:absolute!important;top:22px!important;right:24px!important;width:auto!important;min-width:0!important}
+@media(max-width:1050px){
+ .support-one-line .support-dashboard-heading{grid-template-columns:minmax(245px,.75fr) minmax(0,1.5fr)!important}
+ .support-one-line .support-dashboard-intro{padding-right:125px!important;gap:12px!important}
+ .support-one-line .support-dashboard-intro .support-status{font-size:10px!important;padding:7px 9px!important}
+}
+@media(max-width:760px){
+ .support-one-line{padding:17px!important}
+ .support-one-line .support-dashboard-heading{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:15px!important}
+ .support-one-line .support-identity{border-right:0;border-bottom:2px solid #ff3348;padding:4px 0 14px!important}
+ .support-one-line .support-dashboard-intro{padding:0!important;align-items:flex-start!important;flex-direction:column!important}
+ .support-one-line .support-dashboard-heading #logout{top:17px!important;right:17px!important}
+}
 </style></head><body class="student-body"><div class="portal-layout"><aside class="portal-sidebar"><a class="portal-brand" href="/student/dashboard.html"><span class="brand-mark">R</span><span>R-FIT<small>ÁREA DO ALUNO</small></span></a><nav class="portal-nav"><a class="portal-nav-link" href="../home/index.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><span class="nav-label">Meu painel</span></a><a class="portal-nav-link" href="../plan/index.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="nav-label">Meu plano</span></a><a class="portal-nav-link" href="../training/index.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v6M3.5 10v4M18 9v6M20.5 10v4M6 12h12"/></svg></span><span class="nav-label">Meu treino</span></a><a class="portal-nav-link" href="../diet/index.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M5 12a7 7 0 0 0 14 0M12 5v3M8 6l1.5 2M16 6l-1.5 2"/></svg></span><span class="nav-label">Minha dieta</span></a><a class="portal-nav-link" href="../journey/index.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8 12 2.5 2.5L16 9"/></svg></span><span class="nav-label">Minha jornada e evolução</span></a><a class="portal-nav-link is-active" href="../support/index.html" aria-current="page"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><rect x="3.5" y="12" width="4" height="7" rx="1.5"/><rect x="16.5" y="12" width="4" height="7" rx="1.5"/><path d="M17 20h-5"/></svg></span><span class="nav-label">Suporte</span></a><a class="portal-nav-link" href="../settings/index.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3H3.7a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg></span><span class="nav-label">Configurações</span></a></nav><div class="sidebar-bottom">Sistema R-Fit</div></aside><main class="student-shell portal-main">
-<section class="support-dashboard-panel">
+<section class="support-dashboard-panel support-one-line">
   <header class="student-topbar support-dashboard-heading">
-    <div><span class="eyebrow">R-FIT · ÁREA DO ALUNO</span><h1 class="student-title">Suporte<span>.</span></h1><p id="student-welcome">Validando sessão…</p></div>
+    <div class="support-identity"><span class="eyebrow">R-FIT · ÁREA DO ALUNO</span><h1 class="student-title">Suporte<span>.</span></h1><p id="student-welcome">Validando sessão…</p></div>
+    <div class="support-dashboard-intro">
+      <div><span class="section-kicker">MENSAGENS PRIVADAS</span><h2>Fale com seu professor</h2><p>Este é um canal particular entre você e seu professor. Nenhum outro aluno pode ver suas mensagens.</p></div>
+      <div class="support-status"><span></span> Atendimento pelo portal</div>
+    </div>
     <button id="logout" class="secondary-button" type="button">Sair</button>
   </header>
-  <div class="support-dashboard-intro">
-    <div><span class="section-kicker">MENSAGENS PRIVADAS</span><h2>Fale com seu professor</h2><p>Este é um canal particular entre você e seu professor. Nenhum outro aluno pode ver suas mensagens.</p></div>
-    <div class="support-status"><span></span> Atendimento pelo portal</div>
-  </div>
 </section>
 <section class="student-panel support-page">
   
