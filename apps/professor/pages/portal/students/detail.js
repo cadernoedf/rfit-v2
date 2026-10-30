@@ -46,7 +46,7 @@ function render(data){
   const niceValue=(key,value)=>{
    if(value===null||value===undefined||value==='')return '';
    if(Array.isArray(value))return value.map(v=>String(v).replace(/[_-]/g,' ')).join(' · ');
-   if(typeof value==='object')return Object.entries(value).map(([k,v])=>labels[k]||k.replace(/[_-]/g,' ')).join(' · ');
+   if(typeof value==='object')return Object.entries(value).map(([k,v])=>{const label=labels[k]||k.replace(/[_-]/g,' ');const val=Array.isArray(v)?v.join(', '):typeof v==='object'?Object.values(v).filter(Boolean).join(', '):String(v??'');return val?label+': '+val:''}).filter(Boolean).join(' · ');
    if(key==='birth_date'){const d=new Date(String(value)+'T12:00:00');return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString('pt-BR');}
    if(key==='height_cm')return String(value)+' cm';
    if(key==='weight_kg')return String(value)+' kg';
@@ -58,7 +58,7 @@ function render(data){
    const answers=JSON.parse(an.answers_json||'{}');
    Object.entries(answers).forEach(([key,value])=>{
     const formatted=niceValue(key,value);if(!formatted)return;
-    const item=document.createElement('div');item.className='student-anamnesis-item';
+    const item=document.createElement('div');item.className='student-anamnesis-item';if(/health|restriction|medication|allerg|symptom|surgery|diagnos|observ|supplement/i.test(key))item.classList.add('anamnesis-wide');
     const label=document.createElement('span');label.textContent=labels[key]||key.replace(/[_-]/g,' ').replace(/\\b\\w/g,ch=>ch.toUpperCase());
     const content=document.createElement('strong');content.textContent=formatted;item.append(label,content);wrap.append(item);
    });
@@ -73,7 +73,7 @@ function render(data){
  (data.diets||[]).forEach(d=>dietBox.append(makeListItem(d.title,(d.goal||'Sem objetivo')+(d.calories_target?' · '+d.calories_target+' kcal':''),d.status)));
  if(!(data.diets||[]).length)dietBox.textContent='Nenhuma dieta cadastrada.';
  const measureBox=$('#student-measurements');measureBox.replaceChildren();
- (data.measurements||[]).forEach(m=>{const detail=[m.weight_kg?m.weight_kg+' kg':null,m.waist_cm?'Cintura '+m.waist_cm+' cm':null,m.body_fat_pct?'Gordura '+m.body_fat_pct+'%':null].filter(Boolean).join(' · ')||'Medidas registradas';measureBox.append(makeListItem(new Date(m.measured_at).toLocaleDateString('pt-BR'),detail,''));});
+ (data.measurements||[]).forEach(m=>{const detail=[m.weight_kg?m.weight_kg+' kg':null,m.waist_cm?'Abdômen '+m.waist_cm+' cm':null,m.body_fat_pct?'Gordura '+m.body_fat_pct+'%':null,m.notes||null].filter(Boolean).join(' · ')||'Medidas registradas';measureBox.append(makeListItem(new Date(m.measured_at+'T12:00:00').toLocaleDateString('pt-BR'),detail,''));});
  if(!(data.measurements||[]).length)measureBox.textContent='Nenhuma avaliação registrada.';
 }
 
@@ -106,6 +106,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
  catch{location.replace('/student/pages/login.html');return;}
  if(!studentId){message('Identificador do aluno não informado.');return;}
  try{render(await api('/api/professor/students/'+encodeURIComponent(studentId)));}catch(error){message('Não foi possível carregar o aluno: '+error.message);}
+ const modal=$('#assessment-modal'),assessmentForm=$('#assessment-form');
+ const closeAssessment=()=>{modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');};
+ $('#open-assessment')?.addEventListener('click',()=>{assessmentForm.elements.measured_at.value=new Date().toLocaleDateString('en-CA');modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');assessmentForm.elements.weight_kg.focus();});
+ modal.querySelectorAll('[data-close-assessment]').forEach(el=>el.addEventListener('click',closeAssessment));
+ document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAssessment();});
+ assessmentForm?.addEventListener('submit',async event=>{event.preventDefault();const button=assessmentForm.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(assessmentForm);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/measurements',{method:'POST',body:JSON.stringify({measured_at:fd.get('measured_at'),weight_kg:fd.get('weight_kg'),waist_cm:fd.get('waist_cm'),bmr_kcal:fd.get('bmr_kcal'),notes:fd.get('notes')})});assessmentForm.reset();closeAssessment();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Avaliação registrada com sucesso.','success');}catch(error){message('Não foi possível salvar a avaliação: '+error.message,'error');}finally{button.disabled=false;}});
  $('#journey-note-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,field=form.elements.note,button=form.querySelector('button');if(!field.value.trim())return;button.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/journey-notes',{method:'POST',body:JSON.stringify({note:field.value.trim()})});field.value='';render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Observação salva.','success');}catch(error){message('Não foi possível salvar a observação: '+error.message,'error');}finally{button.disabled=false;}});
  $('#delete-student')?.addEventListener('click',async()=>{const studentName=$('#student-title').textContent.replace(/\.$/,'');if(!confirm('ATENÇÃO: excluir '+studentName+'? A conta e os registros vinculados serão removidos permanentemente. Esta ação não pode ser desfeita.'))return;if(prompt('Para confirmar, digite EXCLUIR')!=='EXCLUIR')return;const button=$('#delete-student');button.disabled=true;button.textContent='Excluindo…';try{await api('/api/professor/students/'+encodeURIComponent(studentId),{method:'DELETE'});alert('Aluno excluído.');location.href='./index.html';}catch(error){button.disabled=false;button.textContent='Excluir aluno';message('Não foi possível excluir o aluno: '+error.message,'error');}});
  $('#add-workout-day').addEventListener('click',addWorkoutDay);addWorkoutDay();
