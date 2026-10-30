@@ -787,3 +787,16 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
  .portal-main .professor-page-hero>.professor-hero-count{grid-column:1!important;grid-row:3!important;justify-self:start}
  .admin-message{max-width:95%!important}
 }
+
+
+/* Mensagens do aluno: foto junto ao balão, mantendo alinhamento por remetente. */
+.student-shell .message-row{display:flex;flex-direction:row;align-items:flex-end;gap:8px;max-width:min(88%,620px)}
+.student-shell .message-row.mine{align-self:flex-end;flex-direction:row-reverse;align-items:flex-end}
+.student-shell .message-row.theirs{align-self:flex-start;align-items:flex-end}
+.student-shell .message-avatar{width:30px;height:30px;flex-basis:30px;border-radius:10px;font-size:10px}
+.student-shell .message-content{display:flex;flex-direction:column;min-width:0;gap:4px}
+.student-shell .message-row.mine .message-content{align-items:flex-end}
+.student-shell .message-row.theirs .message-content{align-items:flex-start}
+.student-shell .message-bubble{max-width:100%}
+.student-shell .messenger-contact .messenger-avatar{flex:0 0 42px;overflow:hidden}
+@media(max-width:600px){.student-shell .message-row{max-width:96%}}
