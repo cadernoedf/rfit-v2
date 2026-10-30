@@ -24,6 +24,16 @@ export async function studentRoutes(request, env, url) {
       let healthInfo={};try{healthInfo=JSON.parse(profile?.restrictions_json||'{}')}catch{}; return reply({ok:true,student:{name:user?.full_name||session.name||'',email:user?.email||session.email||'',phone:user?.phone||'',avatar_url:user?.avatar_url||''},subscription:sub?{plan_name:sub.plan_name||'Plano R-Fit',plan_code:sub.plan_code,lifetime:Number(sub.lifetime),expires_at:sub.expires_at,days_remaining:days,includes_training:Number(sub.includes_training),includes_nutrition:Number(sub.includes_nutrition)}:null,anamnesis_completed:Boolean(profile?.anamnesis_completed_at),anamnesis_answers:anamnesisAnswers,health_info:healthInfo,body:{weight_kg:measurement?.weight_kg??profile?.weight_kg??null,bmi,waist_cm:measurement?.waist_cm??null,measured_at:measurement?.measured_at||null},workout_available:Boolean(workout),workout_title:workout?.title||'',diet_available:Boolean(diet),diet_title:diet?.title||''});
     } catch(error) { console.error('student_dashboard_failed',error?.message||'unknown'); return reply({ok:false,error:'dashboard_unavailable'},503); }
   }
+  if (url.pathname === '/api/student/measurements') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method!=='GET')return reply({ok:false,error:'method_not_allowed'},405);
+    try{
+      const result=await env.RFIT_DB.prepare("SELECT id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at FROM student_measurements WHERE user_id=? ORDER BY measured_at ASC").bind(session.sub).all();
+      const measurements=(result.results||[]).map(row=>{const height=Number(row.height_cm||0)/100,weight=Number(row.weight_kg||0);return {...row,bmi:height>0&&weight>0?Math.round(weight/(height*height)*10)/10:null};});
+      return reply({ok:true,measurements});
+    }catch(error){console.error('student_measurement_history_failed',error?.message||'unknown');return reply({ok:false,error:'measurement_history_unavailable'},503);}
+  }
   if (url.pathname === '/api/student/checkins') {
     const session=await getSession(request,env);
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
