@@ -7,6 +7,7 @@ import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
 /* ===== IDENTIFICAÇÃO ===== */
 const $=(selector)=>document.querySelector(selector);
 const studentId=new URLSearchParams(location.search).get('id');
+let currentStudentSex='';
 const message=(text,state='')=>{const el=$('#page-message');el.textContent=text;el.dataset.state=state;};
 async function api(url,options={}){const response=await fetch(url,{credentials:'same-origin',cache:'no-store',...options,headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok){const error=new Error(data.error||'request_failed');error.stage=data.stage||null;throw error;}return data;}
 const money=(cents)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(cents||0)/100);
@@ -15,6 +16,7 @@ function makeListItem(title,detail,status){const item=document.createElement('di
 /* ===== RENDERIZAÇÃO DO PERFIL ===== */
 function render(data){
  const s=data.student,sub=data.subscription;
+ currentStudentSex=String(s.sex||'').toLowerCase();
  $('#student-title').textContent=s.full_name||'Aluno';
  const hero=$('#student-profile');hero.replaceChildren();
  const avatar=document.createElement('div');avatar.className='student-profile-avatar';
@@ -159,6 +161,26 @@ document.addEventListener('DOMContentLoaded',async()=>{
  catch{location.replace('/student/pages/login.html');return;}
  if(!studentId){message('Identificador do aluno não informado.');return;}
  try{render(await api('/api/professor/students/'+encodeURIComponent(studentId)));}catch(error){message('Não foi possível carregar o aluno: '+error.message);}
+
+ /* ===== AVALIAÇÃO FÍSICA AVANÇADA PREMIUM ===== */
+ const advancedUrl='/api/professor/students/'+encodeURIComponent(studentId)+'/advanced-assessments';
+ const advancedModal=$('#advanced-assessment-modal'),advancedForm=$('#advanced-assessment-form'),advancedHistory=$('#advanced-assessment-history');
+ const closeAdvanced=()=>{advancedModal?.classList.remove('is-open');advancedModal?.setAttribute('aria-hidden','true');};
+ function renderAdvanced(rows){
+   advancedHistory.replaceChildren();
+   if(!rows.length){advancedHistory.textContent='Nenhuma avaliação avançada registrada ainda.';return;}
+   const latest=rows[0],grid=document.createElement('div');grid.className='advanced-history-grid';
+   const cards=[['Gordura corporal',latest.body_fat_pct!=null?Number(latest.body_fat_pct).toFixed(1).replace('.',',')+'%':'—'],['Massa magra',latest.lean_mass_kg!=null?Number(latest.lean_mass_kg).toFixed(1).replace('.',',')+' kg':'—'],['IMC',latest.bmi!=null?Number(latest.bmi).toFixed(1).replace('.',','):'—'],['Massa de gordura',latest.fat_mass_kg!=null?Number(latest.fat_mass_kg).toFixed(1).replace('.',',')+' kg':'—'],['Cintura/estatura',latest.waist_height_ratio!=null?Number(latest.waist_height_ratio).toFixed(2).replace('.',','):'—'],['Densidade corporal',latest.body_density!=null?Number(latest.body_density).toFixed(4).replace('.',','):'—']];
+   cards.forEach(([label,value])=>{const card=document.createElement('div');card.className='advanced-result';const strong=document.createElement('strong');strong.textContent=value;const span=document.createElement('span');span.textContent=label;card.append(strong,span);grid.append(card);});advancedHistory.append(grid);
+   rows.forEach(row=>{const item=document.createElement('div');item.className='advanced-assessment-row';const date=document.createElement('strong');date.textContent=new Date(row.measured_at+'T12:00:00').toLocaleDateString('pt-BR');const detail=document.createElement('div');detail.textContent=['Peso '+(row.weight_kg??'—')+' kg','Cintura '+(row.waist_cm??'—')+' cm',row.body_fat_pct!=null?'Gordura '+Number(row.body_fat_pct).toFixed(1)+'%':'Dobras não calculadas'].join(' · ');item.append(date,detail);advancedHistory.append(item);});
+ }
+ async function loadAdvanced(){try{const d=await api(advancedUrl);renderAdvanced(d.assessments||[]);$('#advanced-assessment-panel').hidden=false;}catch(e){$('#advanced-assessment-panel').hidden=false;advancedHistory.textContent=e.message==='premium_required'?'Recurso exclusivo para alunos com assinatura Premium ativa.':'Não foi possível carregar as avaliações avançadas: '+e.message;$('#open-advanced-assessment').disabled=e.message==='premium_required';}}
+ $('#open-advanced-assessment')?.addEventListener('click',()=>{const now=new Date();advancedForm.elements.measured_at.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');advancedModal.classList.add('is-open');advancedModal.setAttribute('aria-hidden','false');});
+ advancedModal?.querySelectorAll('[data-close-advanced]').forEach(el=>el.addEventListener('click',closeAdvanced));
+ $('#print-advanced-report')?.addEventListener('click',()=>window.print());
+ advancedForm?.addEventListener('submit',async event=>{event.preventDefault();const button=advancedForm.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(advancedForm),payload={measured_at:fd.get('measured_at'),sex:currentStudentSex,skinfold_protocol:'',notes:fd.get('notes')};['weight_kg','height_cm','neck_cm','shoulder_cm','chest_cm','waist_cm','abdomen_cm','hip_cm','right_arm_cm','left_arm_cm','right_forearm_cm','left_forearm_cm','right_thigh_cm','left_thigh_cm','right_calf_cm','left_calf_cm'].forEach(k=>payload[k]=fd.get(k));const skin={};['pectoral','midaxillary','triceps','subscapular','abdominal','suprailiac','thigh'].forEach(k=>{const v=fd.get('skinfold_'+k);if(v)skin[k]=v;});if(Object.keys(skin).length){if(Object.keys(skin).length!==7)throw new Error('Para calcular Pollock 7, preencha as sete dobras.');payload.skinfold_protocol='pollock7';payload.skinfolds=skin;}else payload.skinfold_protocol='';await api(advancedUrl,{method:'POST',body:JSON.stringify(payload)});advancedForm.reset();closeAdvanced();await loadAdvanced();message('Avaliação física avançada salva.','success');}catch(e){message('Não foi possível salvar: '+e.message,'error');}finally{button.disabled=false;}});
+ loadAdvanced();
+
  const modal=$('#assessment-modal'),assessmentForm=$('#assessment-form');
  const closeAssessment=()=>{modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');};
  $('#open-assessment')?.addEventListener('click',()=>{const now=new Date();assessmentForm.elements.measured_at.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');assessmentForm.elements.weight_kg.focus();});
