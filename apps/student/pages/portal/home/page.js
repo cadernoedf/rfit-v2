@@ -2,12 +2,44 @@
 import {getCurrentUser,logout} from '../../../../shared/js/api-client.js';
 document.addEventListener('DOMContentLoaded',async()=>{
  const welcome=document.querySelector('#student-welcome'),message=document.querySelector('#page-message');
+ const notificationList=document.getElementById('home-notification-list');
+ const notificationCount=document.getElementById('home-notification-count');
+ const readAllButton=document.getElementById('home-notification-read-all');
+ const escapeNotification=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+ const renderHomeNotifications=async()=>{
+  if(!notificationList)return;
+  try{
+   const response=await fetch('/api/student/notifications',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'notifications_unavailable');
+   const items=Array.isArray(result.notifications)?result.notifications:[];
+   const unread=Number(result.unread_count||0);
+   if(notificationCount){notificationCount.textContent=unread>99?'99+':String(unread);notificationCount.hidden=unread===0;}
+   if(readAllButton)readAllButton.hidden=unread===0;
+   if(!items.length){notificationList.innerHTML='<div class="home-notification-empty">Você está em dia! Nenhuma notificação por enquanto.</div>';return;}
+   notificationList.innerHTML=items.map(item=>{
+    const date=item.created_at?new Date(item.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
+    const href=item.url&&item.url.startsWith('/student/')?item.url:'#';
+    return '<article class="home-notification-item '+(item.is_read?'read':'unread')+'"><span class="home-notification-dot" aria-hidden="true"></span><span class="home-notification-copy"><strong>'+escapeNotification(item.title)+'</strong><small>'+escapeNotification(item.message)+'</small><time>'+escapeNotification(date)+'</time></span>'+(item.is_read?'':'<button class="home-notification-read" type="button" data-notification-read="'+escapeNotification(item.id)+'">Marcar como lida</button>')+(href!=='#'?'<a class="home-notification-read" href="'+escapeNotification(href)+'" data-notification-open="'+escapeNotification(item.id)+'">Ver</a>':'')+'</article>';
+   }).join('');
+  }catch(error){notificationList.innerHTML='<div class="home-notification-empty">Não foi possível carregar as notificações agora.</div>';console.warn('home_notifications_unavailable',error);}
+ };
+ notificationList?.addEventListener('click',async event=>{
+  const read=event.target.closest('[data-notification-read]');
+  const open=event.target.closest('[data-notification-open]');
+  const id=read?.dataset.notificationRead||open?.dataset.notificationOpen;
+  if(!id)return;
+  try{const response=await fetch('/api/student/notifications/'+encodeURIComponent(id)+'/read',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}});if(response.ok&&read)renderHomeNotifications();}
+  catch(error){console.warn('home_notification_read_failed',error);}
+ });
+ readAllButton?.addEventListener('click',async()=>{readAllButton.disabled=true;try{const response=await fetch('/api/student/notifications/read-all',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}});if(response.ok)await renderHomeNotifications();}finally{readAllButton.disabled=false;}});
+ document.getElementById('home-notification-bell')?.addEventListener('click',renderHomeNotifications);
  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
  const fmt=(v,unit='')=>v===null||v===undefined||v===''||!Number.isFinite(Number(v))?'—':String(v).replace('.',',')+unit;
  const dateFmt=value=>{if(!value)return 'Sem avaliação registrada';const d=new Date(value);return Number.isNaN(d.getTime())?'':'Atualizado em '+d.toLocaleDateString('pt-BR')};
  try{
   const auth=await getCurrentUser();if(auth.user.role!=='student'){location.replace('/professor/');return}
   welcome.textContent='Olá, '+(auth.user.name||auth.user.email)+'.';
+  renderHomeNotifications();
   const response=await fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'dashboard_unavailable');
   const student=data.student||{},name=student.name||auth.user.name||'Aluno';
