@@ -67,23 +67,35 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const comparisonRoot=document.querySelector('.journey-comparison-rows');
   if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=firstMeasurement?.[key],last=lastMeasurement?.[key];if(first===null||first===undefined||last===null||last===undefined)return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será preenchido quando houver duas avaliações do professor com medidas disponíveis.';comparisonRoot.append(empty)}}
   set('journey-record-count',String(measurements.length)+' avaliações · '+checkins.length+' check-ins');
-  const heightMeters=Number(body.height_cm||0)/100;
-  const checkinWeightPoints=checkins.filter(row=>row.weight_kg!==null&&row.weight_kg!==undefined&&Number(row.weight_kg)>0).map(row=>({measured_at:row.created_at||row.checkin_date,weight_kg:Number(row.weight_kg),bmi:heightMeters>0?Math.round((Number(row.weight_kg)/(heightMeters*heightMeters))*10)/10:null,source:'checkin'}));
-  const evaluationPoints=measurements.map(row=>({...row,source:'evaluation'}));
-  const combinedWeightHistory=[...evaluationPoints,...checkinWeightPoints].sort((x,y)=>new Date(x.measured_at)-new Date(y.measured_at));
+  // Evolução corporal: exclusivamente avaliações registradas pelo professor.
+  const evaluationPoints=orderedMeasurements.map(row=>({...row,source:'evaluation'}));
   const chartMetrics={
-    weight:{label:'Peso corporal',unit:'kg',color:'#ef3348',value:r=>Number(r.weight_kg),source:'all'},
-    waist:{label:'Circunferência abdominal',unit:'cm',color:'#f08a35',value:r=>Number(r.waist_cm),source:'evaluation'},
-    bmi:{label:'Índice de massa corporal',unit:'',color:'#2997dc',value:r=>Number(r.bmi),source:'all'},
-    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#2997dc',value:r=>Number(r.bmr_kcal??r.basal_kcal),source:'evaluation'}
+    weight:{label:'Peso corporal',unit:'kg',color:'#ef3348',value:r=>Number(r.weight_kg)},
+    waist:{label:'Circunferência abdominal',unit:'cm',color:'#f08a35',value:r=>Number(r.waist_cm)},
+    bmi:{label:'Índice de massa corporal',unit:'',color:'#2997dc',value:r=>Number(r.bmi)},
+    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#2997dc',value:r=>Number(r.basal_kcal??r.bmr_kcal)}
   };
+  const trendText=(key,unit='')=>{
+    const first=orderedMeasurements.find(row=>row[key]!==null&&row[key]!==undefined&&row[key]!=='');
+    const last=[...orderedMeasurements].reverse().find(row=>row[key]!==null&&row[key]!==undefined&&row[key]!=='');
+    if(!first||!last)return 'Aguardando avaliações do professor';
+    const delta=Number(last[key])-Number(first[key]);
+    if(!Number.isFinite(delta))return 'Aguardando avaliações do professor';
+    if(Math.abs(delta)<0.005)return 'Sem alteração desde o início';
+    const down=delta<0,el=document.createElement('span');
+    el.textContent=(down?'↓ ':'↑ ')+Math.abs(delta).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' desde o início';
+    el.style.color=down?'#159b50':'#d33b4b';el.style.fontWeight='800';
+    return el;
+  };
+  const trendTargets=[['journey-weight-note','weight_kg',' kg'],['journey-waist-note','waist_cm',' cm'],['journey-bmi-note','bmi',''],['journey-kcal-note','basal_kcal',' kcal']];
+  trendTargets.forEach(([id,key,unit])=>{const target=document.getElementById(id);if(!target)return;const value=trendText(key,unit);target.replaceChildren();if(value instanceof Node)target.append(value);else target.textContent=value;});
   let activeMetric='weight';
   const chartNode=document.getElementById('journey-chart'),captionNode=document.getElementById('journey-chart-caption');
   const chartDate=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});};
   const renderJourneyChart=()=>{
-    const metric=chartMetrics[activeMetric],sourceRows=metric.source==='all'?combinedWeightHistory:measurements,points=sourceRows.map(row=>({date:row.measured_at,value:metric.value(row),source:row.source||'evaluation'})).filter(p=>Number.isFinite(p.value)&&p.value>0);
+    const metric=chartMetrics[activeMetric],points=measurements.map(row=>({date:row.measured_at,value:metric.value(row),source:'evaluation'})).filter(p=>Number.isFinite(p.value)&&p.value>0);
     document.querySelectorAll('.journey-chart-toggle').forEach(button=>{const active=button.dataset.metric===activeMetric;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});
-    if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'registro':'registros')+(activeMetric==='weight'?' (check-ins e avaliações)':activeMetric==='bmi'?' (calculado por registro)':' do professor');
+    if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'registro':'registros')+' · avaliações do professor';
     if(!chartNode)return;
     if(!points.length){chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">↗</span><strong>Seu histórico está começando</strong><p>Assim que seu personal registrar avaliações com este indicador, a evolução aparecerá aqui.</p></div>';return;}
     if(points.length===1){const p=points[0],y=92;chartNode.innerHTML='<div class="journey-single-point-chart"><svg viewBox="0 0 760 205" role="img" aria-label="Primeiro registro de '+metric.label+'"><line x1="38" y1="170" x2="722" y2="170" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="92" x2="722" y2="92" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="20" x2="722" y2="20" stroke="#e9edf3" stroke-dasharray="3 5"/><circle cx="380" cy="'+y+'" r="8" fill="#fff" stroke="'+metric.color+'" stroke-width="4"/><text x="380" y="68" text-anchor="middle" fill="#273043" font-size="15" font-weight="800">'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+'</text><text x="380" y="194" text-anchor="middle" fill="#7b8494" font-size="11">'+chartDate(p.date)+'</text></svg><div class="journey-chart-empty"><strong>Primeiro registro realizado</strong><p>O ponto já mostra sua medida inicial. Com a próxima avaliação, aparecerá a linha de evolução.</p></div></div>';return;}
