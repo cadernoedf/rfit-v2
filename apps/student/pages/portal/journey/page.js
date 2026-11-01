@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
  const organizeJourneyTabs=()=>{
   const root=document.getElementById('journey-tab-panels');if(!root||root.dataset.ready)return;
-  const groups={overview:['#journey-anamnesis','.journey-metrics','.journey-content-grid'],evolution:['#journey-monthly-summary','.journey-comparison','#journey-timeline'],assessment:['#student-advanced-assessment'],progress:['.journey-goals','#journey-goal-modal','.journey-achievements','.journey-photos','.journey-report-actions'],notes:['#journey-professional-notes','#journey-anamnesis-update']};
+  const groups={overview:['#journey-anamnesis','.journey-metrics','.journey-content-grid'],evolution:['#journey-monthly-summary','.journey-comparison','#journey-timeline'],assessment:['#student-advanced-assessment'],progress:['.journey-goals','#journey-goal-modal','.journey-photos','.journey-report-actions'],achievements:['.journey-achievements'],notes:['#journey-professional-notes','#journey-anamnesis-update']};
   Object.entries(groups).forEach(([key,selectors],index)=>{const panel=document.createElement('section');panel.className='journey-tab-panel'+(index===0?' is-active':'');panel.dataset.journeyPanel=key;panel.hidden=index!==0;selectors.forEach(selector=>{const node=document.querySelector(selector);if(node)panel.append(node)});root.append(panel)});
   const nav=document.querySelector('.journey-tabs');nav?.querySelectorAll('[data-journey-tab]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.journeyTab;nav.querySelectorAll('[data-journey-tab]').forEach(item=>{const active=item===button;item.classList.toggle('is-active',active);item.setAttribute('aria-selected',String(active))});root.querySelectorAll('[data-journey-panel]').forEach(panel=>{const active=panel.dataset.journeyPanel===key;panel.classList.toggle('is-active',active);panel.hidden=!active});}));
   const activateHash=()=>{if(location.hash==='#student-advanced-assessment'){nav?.querySelector('[data-journey-tab="assessment"]')?.click()}};
@@ -61,8 +61,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
    set('journey-kcal-note',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?'Estimativa diária registrada':'Kcal por dia · não informado');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
-  set('journey-weight-compare',fmt(body.weight_kg,' kg'));set('journey-waist-compare',fmt(body.waist_cm,' cm'));set('journey-bmi-compare',fmt(body.bmi));
-  set('journey-record-count',String(measurements.length+checkins.length)+' registros');
+  const orderedMeasurements=[...measurements].sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0));
+  const firstMeasurement=orderedMeasurements[0]||null,lastMeasurement=orderedMeasurements[orderedMeasurements.length-1]||null;
+  const comparisonRows=[['Peso','weight_kg',' kg'],['Abdômen','waist_cm',' cm'],['Gordura corporal','body_fat_pct','%'],['Massa magra','lean_mass_kg',' kg']];
+  const comparisonRoot=document.querySelector('.journey-comparison-rows');
+  if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=firstMeasurement?.[key],last=lastMeasurement?.[key];if(first===null||first===undefined||last===null||last===undefined)return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será preenchido quando houver duas avaliações do professor com medidas disponíveis.';comparisonRoot.append(empty)}}
+  set('journey-record-count',String(measurements.length)+' avaliações · '+checkins.length+' check-ins');
   const heightMeters=Number(body.height_cm||0)/100;
   const checkinWeightPoints=checkins.filter(row=>row.weight_kg!==null&&row.weight_kg!==undefined&&Number(row.weight_kg)>0).map(row=>({measured_at:row.created_at||row.checkin_date,weight_kg:Number(row.weight_kg),bmi:heightMeters>0?Math.round((Number(row.weight_kg)/(heightMeters*heightMeters))*10)/10:null,source:'checkin'}));
   const evaluationPoints=measurements.map(row=>({...row,source:'evaluation'}));
@@ -82,7 +86,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'registro':'registros')+(activeMetric==='weight'?' (check-ins e avaliações)':activeMetric==='bmi'?' (calculado por registro)':' do professor');
     if(!chartNode)return;
     if(!points.length){chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">↗</span><strong>Seu histórico está começando</strong><p>Assim que seu personal registrar avaliações com este indicador, a evolução aparecerá aqui.</p></div>';return;}
-    if(points.length===1){const p=points[0],y=92;chartNode.innerHTML='<svg viewBox="0 0 760 205" role="img" aria-label="Primeiro registro de '+metric.label+'"><line x1="38" y1="170" x2="722" y2="170" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="92" x2="722" y2="92" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="20" x2="722" y2="20" stroke="#e9edf3" stroke-dasharray="3 5"/><circle cx="380" cy="'+y+'" r="8" fill="#fff" stroke="'+metric.color+'" stroke-width="4"/><text x="380" y="68" text-anchor="middle" fill="#273043" font-size="15" font-weight="800">'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+'</text><text x="380" y="194" text-anchor="middle" fill="#7b8494" font-size="11">'+chartDate(p.date)+'</text></svg><div class="journey-chart-empty"><strong>Primeiro registro realizado</strong><p>O ponto já mostra sua medida inicial. Com a próxima avaliação, aparecerá a linha de evolução.</p></div>';return;}
+    if(points.length===1){const p=points[0],y=92;chartNode.innerHTML='<div class="journey-single-point-chart"><svg viewBox="0 0 760 205" role="img" aria-label="Primeiro registro de '+metric.label+'"><line x1="38" y1="170" x2="722" y2="170" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="92" x2="722" y2="92" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="20" x2="722" y2="20" stroke="#e9edf3" stroke-dasharray="3 5"/><circle cx="380" cy="'+y+'" r="8" fill="#fff" stroke="'+metric.color+'" stroke-width="4"/><text x="380" y="68" text-anchor="middle" fill="#273043" font-size="15" font-weight="800">'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+'</text><text x="380" y="194" text-anchor="middle" fill="#7b8494" font-size="11">'+chartDate(p.date)+'</text></svg><div class="journey-chart-empty"><strong>Primeiro registro realizado</strong><p>O ponto já mostra sua medida inicial. Com a próxima avaliação, aparecerá a linha de evolução.</p></div></div>';return;}
     const vals=points.map(p=>p.value),min=Math.min(...vals),max=Math.max(...vals),spread=max-min||Math.max(Math.abs(max)*.08,1),lo=min-spread*.18,hi=max+spread*.18;
     const x=i=>38+i*(684/(points.length-1)),y=v=>20+(1-(v-lo)/(hi-lo))*145;
     const coords=points.map((p,i)=>x(i)+','+y(p.value)).join(' ');
@@ -250,7 +254,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const calendarNode=document.getElementById('journey-checkin-calendar');
   if(calendarNode){
     calendarNode.replaceChildren();
-    const activeDays=new Set(checkins.map(item=>String(item.created_at||item.checkin_date||'').slice(0,10)).filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value)));
+    const activeDays=new Set(checkins.map(item=>String(item.checkin_date||item.week_start||item.created_at||'').slice(0,10)).filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value)));
     const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const calendarStart=new Date(today);calendarStart.setDate(today.getDate()-mondayOffset-77);
     for(let offset=0;offset<84;offset++){
       const day=new Date(calendarStart);day.setDate(calendarStart.getDate()+offset);
@@ -352,14 +356,14 @@ document.addEventListener('DOMContentLoaded',async()=>{
       return label+': '+display;
     }).join(' · ');
     const details=[item.weight_kg?'Peso: '+fmt(item.weight_kg,' kg'):'',answersText,item.notes].filter(Boolean).join(' · ');
-    addTimeline(items,item.kind==='daily'?'Check-in diário registrado':'Check-in semanal registrado',details,item.created_at||item.week_start||item.checkin_date,'✓');
+    addTimeline(items,item.kind==='daily'?'Check-in diário registrado':'Check-in semanal registrado',details,item.checkin_date||item.week_start||item.created_at,'✓');
   });
   journeyPhotos.forEach(photo=>addTimeline(items,'Foto de evolução adicionada',(photo.note||'Registro visual · '+(photo.photo_type||'progresso')),photo.taken_at,'📸'));
   currentGoals.forEach(goal=>{addTimeline(items,'Objetivo definido: '+goal.title,'Meta: '+fmt(goal.target_value,goal.unit?' '+goal.unit:''),goal.created_at,'🎯');if(goal.completed_at)addTimeline(items,'Objetivo alcançado: '+goal.title,'Parabéns por concluir esta meta!',goal.completed_at,'🏆');});
   if(data.workout_available)addTimeline(items,'Treino disponível',data.workout_title||'Confira a prescrição de treino.','','↗');
   if(data.diet_available)addTimeline(items,'Plano alimentar disponível',data.diet_title||'Confira seu plano alimentar.','','↗');
   if(!items.length)addTimeline(items,'Sua jornada começa agora','Seu personal poderá adicionar medidas, treino e dieta conforme o acompanhamento evoluir.','','•');
-  const list=document.getElementById('journey-timeline-list');list.replaceChildren();
+  const list=document.getElementById('journey-timeline-list');list.replaceChildren();items.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
   items.forEach(item=>{const li=document.createElement('li'),dot=document.createElement('span'),wrap=document.createElement('div'),title=document.createElement('strong'),desc=document.createElement('p'),time=document.createElement('time');dot.className='journey-timeline-dot';dot.textContent=item.mark;title.textContent=item.title;desc.textContent=item.description;if(item.date){time.textContent=dateText(item.date);time.dateTime=item.date}wrap.append(title,desc);if(item.date)wrap.append(time);li.append(dot,wrap);list.append(li)});
   // Avaliações avançadas registradas pelo professor: histórico liberado ao aluno.
   try{
