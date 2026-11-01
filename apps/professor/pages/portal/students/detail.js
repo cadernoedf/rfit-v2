@@ -17,6 +17,14 @@ function makeListItem(title,detail,status){const item=document.createElement('di
 function render(data){
  const s=data.student,sub=data.subscription;
  currentStudentSex=String(s.sex||'').toLowerCase();
+ if(!['m','f','male','female','masculino','feminino'].includes(currentStudentSex)&&data.anamnesis?.answers_json){
+  try{
+   const answers=JSON.parse(data.anamnesis.answers_json);
+   const normalizeSex=value=>{const v=String(value??'').trim().toLowerCase();if(['m','male','masculino','homem'].includes(v))return 'm';if(['f','female','feminino','mulher'].includes(v))return 'f';return '';};
+   const findSex=(obj)=>{if(!obj||typeof obj!=='object')return '';for(const [key,value] of Object.entries(obj)){if(/sexo|sex|g[eê]nero|gender/i.test(key)){const direct=normalizeSex(value);if(direct)return direct;if(value&&typeof value==='object'){const nested=findSex(value);if(nested)return nested;}}if(value&&typeof value==='object'){const nested=findSex(value);if(nested)return nested;}}return '';};
+   currentStudentSex=findSex(answers)||currentStudentSex;
+  }catch{}
+ }
  $('#student-title').textContent=s.full_name||'Aluno';
  const hero=$('#student-profile');hero.replaceChildren();
  const avatar=document.createElement('div');avatar.className='student-profile-avatar';
