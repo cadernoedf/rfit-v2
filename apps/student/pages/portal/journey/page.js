@@ -101,6 +101,34 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const latestValue=(...keys)=>{for(let i=orderedMeasurements.length-1;i>=0;i--){for(const key of keys){const value=orderedMeasurements[i]?.[key];if(value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0)return Number(value);}}return null;};
   const currentValues={weight_kg:latestValue('weight_kg'),waist_cm:latestValue('waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm'),bmi:latestValue('bmi'),basal_kcal:latestValue('basal_kcal','bmr_kcal','kcal')};
   if(!currentValues.bmi&&currentValues.weight_kg){const h=latestValue('height_cm')||baselineHeight;if(h){const hm=h>3?h/100:h;currentValues.bmi=Math.round(currentValues.weight_kg/(hm*hm)*10)/10;}}
+  // Resumo inteligente: linguagem descritiva, sem interpretar mudanças como diagnóstico.
+  const summarySet=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value;};
+  const summaryFormat=(value,unit)=>Math.abs(value).toLocaleString('pt-BR',{maximumFractionDigits:1})+(unit?' '+unit:'');
+  const startParts=[];
+  if(baseline.weight_kg!==null&&baseline.weight_kg!==undefined&&currentValues.weight_kg!==null){const d=currentValues.weight_kg-baseline.weight_kg;startParts.push('Peso: '+(d===0?'sem alteração':summaryFormat(d,'kg')+(d<0?' a menos':' a mais')));}
+  if(baseline.waist_cm!==null&&baseline.waist_cm!==undefined&&currentValues.waist_cm!==null){const d=currentValues.waist_cm-baseline.waist_cm;startParts.push('Abdômen: '+(d===0?'sem alteração':summaryFormat(d,'cm')+(d<0?' a menos':' a mais')));}
+  summarySet('journey-smart-summary-start',startParts.length?startParts.join(' · '):'Ainda faltam dados para comparar');
+  const nowForSummary=new Date(),cutoffSummary=nowForSummary.getTime()-30*86400000;
+  const recentAssessments=orderedMeasurements.filter(row=>{const date=new Date(row.measured_at||row.created_at||0);return !Number.isNaN(date.getTime())&&date.getTime()>=cutoffSummary;});
+  if(recentAssessments.length>=2){
+    const first=recentAssessments[0],last=recentAssessments[recentAssessments.length-1];
+    const recentDelta=(keys)=>{const get=row=>{for(const key of keys){const value=row?.[key];if(value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value)))return Number(value);}return null;};const a=get(first),b=get(last);return a===null||b===null?null:b-a;};
+    const changes=[];const weightDelta=recentDelta(['weight_kg']),waistDelta=recentDelta(['waist_cm','abdomen_cm','abdominal_cm']);
+    if(weightDelta!==null)changes.push('peso '+(weightDelta>0?'+':'')+summaryFormat(weightDelta,'kg'));
+    if(waistDelta!==null)changes.push('abdômen '+(waistDelta>0?'+':'')+summaryFormat(waistDelta,'cm'));
+    summarySet('journey-smart-summary-recent',changes.length?changes.join(' · '):'Avaliações registradas');
+  }else if(recentAssessments.length===1){summarySet('journey-smart-summary-recent','1 avaliação registrada');}
+  else{summarySet('journey-smart-summary-recent','Nenhuma avaliação nos últimos 30 dias');}
+  const latestAssessment=orderedMeasurements[orderedMeasurements.length-1];
+  if(latestAssessment){
+    const latestDate=new Date(latestAssessment.measured_at||latestAssessment.created_at||0);
+    const daysSince=Math.max(0,Math.floor((nowForSummary-latestDate)/86400000));
+    summarySet('journey-smart-summary-next',daysSince>=45?'Considere agendar uma nova avaliação':'Continue registrando sua rotina');
+    summarySet('journey-smart-summary-next-note',daysSince>=45?'Sua última avaliação foi há '+daysSince+' dias. Converse com seu personal sobre a próxima.':'Última avaliação: '+dateText(latestAssessment.measured_at||latestAssessment.created_at)+'.');
+  }else{
+    summarySet('journey-smart-summary-next','Faça sua primeira avaliação');
+    summarySet('journey-smart-summary-next-note','Seu personal poderá registrar as medidas para iniciar o histórico.');
+  }
   const comparisonRoot=document.getElementById('journey-body-comparison');
   const comparisonMetrics=[
     {key:'weight_kg',label:'Peso',emoji:'⚖️',unit:'kg',digits:1,startLabel:'Anamnese'},
