@@ -412,6 +412,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
       const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'gamification_unavailable');
       gamificationState=data;
       set('journey-achievement-count',data.unlocked_count+' de '+data.total_achievements+' desbloqueadas');
+       const nextTrophy=(data.achievements||[]).find(item=>!item.unlocked);
+       const trophyPanel=document.getElementById('journey-next-trophy');
+       if(trophyPanel&&nextTrophy){trophyPanel.hidden=false;set('journey-next-trophy-title',nextTrophy.icon+' '+nextTrophy.title);set('journey-next-trophy-description',nextTrophy.description||'Continue registrando sua evolução para desbloquear.');set('journey-next-trophy-xp','Recompensa: +'+Number(nextTrophy.xp||0)+' XP');}
+       else if(trophyPanel){trophyPanel.hidden=false;set('journey-next-trophy-title','Coleção completa!');set('journey-next-trophy-description','Você desbloqueou todas as conquistas disponíveis.');set('journey-next-trophy-xp','');}
       set('journey-level',data.level_name);
       set('journey-level-number',String(data.level));
       set('journey-xp-total',Number(data.xp||0).toLocaleString('pt-BR')+' XP acumulados');
