@@ -4,6 +4,38 @@ const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 const reply=(data,status=200)=>Response.json(data,{status,headers});
 
 export async function studentRoutes(request, env, url) {
+  /* ===== CENTRAL DE NOTIFICAÇÕES DO ALUNO ===== */
+  if (url.pathname === '/api/student/notifications' || /^\/api\/student\/notifications\/[^/]+\/read$/.test(url.pathname) || url.pathname === '/api/student/notifications/read-all') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    try{
+      if(url.pathname==='/api/student/notifications'&&request.method==='GET'){
+        const sub=await env.RFIT_DB.prepare("SELECT id,expires_at,lifetime,status FROM subscriptions WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
+        if(sub&&sub.status==='active'&&!Number(sub.lifetime)&&sub.expires_at){
+          const expiry=new Date(sub.expires_at),days=Math.ceil((expiry-new Date())/86400000);
+          if(Number.isFinite(expiry.getTime())&&days>=0&&days<=7){
+            const title='Seu plano está próximo do vencimento';
+            const message=days===0?'Seu plano vence hoje. Fale com seu personal para renovar o acesso.':'Seu plano vence em '+days+' '+(days===1?'dia':'dias')+'. Fale com seu personal para renovar o acesso.';
+            await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app','plan_expiring',?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),session.sub,JSON.stringify({title,message,url:'/student/pages/portal/settings/index.html'}),'plan-expiry:'+sub.id+':'+String(sub.expires_at).slice(0,10)).run();
+          }
+        }
+        const rows=await env.RFIT_DB.prepare("SELECT id,template_code,payload_json,created_at,read_at FROM notifications WHERE user_id=? AND channel='in_app' AND status='sent' ORDER BY created_at DESC LIMIT 30").bind(session.sub).all();
+        const notifications=(rows.results||[]).map(row=>{let payload={};try{payload=JSON.parse(row.payload_json||'{}')}catch{}return {id:row.id,type:row.template_code,title:payload.title||'Aviso do R-Fit',message:payload.message||'',url:payload.url||'',created_at:row.created_at,read_at:row.read_at,is_read:Boolean(row.read_at)}});
+        return reply({ok:true,notifications,unread_count:notifications.filter(n=>!n.is_read).length});
+      }
+      if(url.pathname==='/api/student/notifications/read-all'&&request.method==='POST'){
+        await env.RFIT_DB.prepare("UPDATE notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=? AND channel='in_app' AND status='sent' AND read_at IS NULL").bind(session.sub).run();
+        return reply({ok:true});
+      }
+      const match=url.pathname.match(/^\/api\/student\/notifications\/([^/]+)\/read$/);
+      if(match&&request.method==='POST'){
+        const result=await env.RFIT_DB.prepare("UPDATE notifications SET read_at=COALESCE(read_at,CURRENT_TIMESTAMP) WHERE id=? AND user_id=? AND channel='in_app' AND status='sent'").bind(decodeURIComponent(match[1]),session.sub).run();
+        if(!result.meta?.changes)return reply({ok:false,error:'notification_not_found'},404);
+        return reply({ok:true});
+      }
+      return reply({ok:false,error:'method_not_allowed'},405);
+    }catch(error){console.error('student_notifications_failed',error?.message||'unknown');return reply({ok:false,error:'notifications_unavailable'},503);}
+  }
   /* ===== CONFIGURAÇÃO PÚBLICA DA TELA DE LOGIN ===== */
   if (url.pathname === '/api/public/portal-config' && request.method === 'GET') {
     try {
