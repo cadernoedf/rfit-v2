@@ -60,6 +60,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
    set('journey-kcal',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?Math.round(Number(kcalValue)).toLocaleString('pt-BR')+' kcal':'—');
    set('journey-kcal-note',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?'Estimativa diária registrada':'Kcal por dia · não informado');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
+  const weekStart=new Date();weekStart.setHours(0,0,0,0);weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));
+  const weekCheckins=checkins.filter(item=>{const raw=item.checkin_date||item.week_start||item.created_at;if(!raw)return false;const d=new Date(raw);return !Number.isNaN(d.getTime())&&d>=weekStart;}).length;
+  set('journey-week-checkins',String(weekCheckins));
+  set('journey-today-title',weekCheckins===0?'Sua semana está começando!':weekCheckins===1?'Você já deu o primeiro passo!':weekCheckins+' check-ins registrados nesta semana!');
+  set('journey-today-message',weekCheckins===0?'Registre seu check-in para acompanhar sua rotina. Suas medidas corporais são atualizadas nas avaliações do professor.':'Continue mantendo sua rotina. Seus check-ins mostram sua consistência; sua evolução corporal vem das avaliações do professor.');
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
   const orderedMeasurements=[...measurements].sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0));
   const lastMeasurement=orderedMeasurements[orderedMeasurements.length-1]||null;
