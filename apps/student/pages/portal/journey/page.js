@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   else addTimeline(items,'Complete sua anamnese','Preencha os dados iniciais para personalizar o acompanhamento.','','!');
   if(sub)addTimeline(items,'Plano ativo: '+(sub.plan_name||'R-Fit'),Number(sub.lifetime)?'Seu acesso é vitalício.':(sub.days_remaining===null?'Plano em andamento.':'Restam '+sub.days_remaining+' dias de acesso.'),sub.expires_at,'R');
   if(body.weight_kg!==null||body.waist_cm!==null)addTimeline(items,'Medidas corporais disponíveis','Peso: '+fmt(body.weight_kg,' kg')+' · Abdômen: '+fmt(body.waist_cm,' cm')+' · IMC: '+fmt(body.bmi),body.measured_at,'↗');
-  checkins.slice(0,30).reverse().forEach(item=>{
+  ([...checkins].sort((a,b)=>new Date(b.checkin_date||b.week_start||b.created_at||0)-new Date(a.checkin_date||a.week_start||a.created_at||0)).slice(0,30).reverse()).forEach(item=>{
     const answers=item.answers&&typeof item.answers==='object'?item.answers:{};
     const dailyLabels={sleep_quality:'Sono',energy:'Energia',appetite:'Apetite',training_adherence:'Treinos',nutrition_adherence:'Alimentação',discomfort:'Desconforto'};
     const answersText=Object.entries(answers).filter(([key,value])=>value!==null&&value!==undefined&&value!=='').map(([key,value])=>{
