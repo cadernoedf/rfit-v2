@@ -287,7 +287,7 @@ export async function studentRoutes(request, env, url) {
       for(const row of goalRows)if(row.status==='completed'||row.completed_at)await award('goal:'+row.id,'goal','Meta pessoal concluída: '+row.title,150,row.completed_at||row.created_at);
       let previousPayment=null,renewalCount=0,upgradeCount=0;
       for(const row of paymentRows){
-        const currentPrice=Number(row.price_cents||row.amount_cents||0),previousPrice=Number(previousPayment?.price_cents||0);
+        const currentPrice=Number(row.price_cents||row.amount_cents||0),previousPrice=Number(previousPayment?.price_cents||previousPayment?.amount_cents||0);
         let type='plan_first',xp=100,description='Plano R-Fit ativado';
         if(previousPayment){if(currentPrice>previousPrice){type='plan_upgrade';xp=150;description='Upgrade de plano realizado';upgradeCount++;}else{type='plan_renewal';xp=200;description='Plano renovado';renewalCount++;}}
         if(row.idempotency_key)await award('payment:'+row.idempotency_key,type,description,xp,row.paid_at);
