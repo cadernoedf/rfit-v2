@@ -896,3 +896,14 @@ body.student-body *::-webkit-scrollbar-thumb:hover {
 body.student-body *::-webkit-scrollbar-corner {
   background: #f1f3f6;
 }
+
+
+/* Student area uses a light interface; override the global dark native scrollbar scheme. */
+html:has(body.student-body) {
+  color-scheme: light !important;
+  scrollbar-color: #c5cbd5 #f1f3f6 !important;
+  scrollbar-width: thin;
+}
+body.student-body {
+  color-scheme: light !important;
+}
