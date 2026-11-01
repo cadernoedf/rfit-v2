@@ -234,6 +234,16 @@ document.addEventListener('DOMContentLoaded',async()=>{
       const values=document.createElement('p');values.textContent='Início: '+fmt(goal.start_value,goal.unit?' '+goal.unit:'')+' · '+current+' · '+target+' · '+status;
       card.append(title,values);
       if(goal.progress_percent!==null&&goal.progress_percent!==undefined){const track=document.createElement('div');track.className='journey-goal-progress';const fill=document.createElement('i');fill.style.width=goal.progress_percent+'%';track.append(fill);const pct=document.createElement('p');pct.textContent=goal.progress_percent+'% do caminho até sua meta';card.append(track,pct);}
+      if(goal.current_value!==null&&goal.current_value!==undefined&&goal.target_value!==null&&goal.target_value!==undefined){
+        const start=Number(goal.start_value),currentValue=Number(goal.current_value),targetValue=Number(goal.target_value);
+        if(Number.isFinite(currentValue)&&Number.isFinite(targetValue)){
+          const increasing=Number.isFinite(start)?targetValue>=start:targetValue>=currentValue;
+          const remaining=Math.max(0,increasing?targetValue-currentValue:currentValue-targetValue);
+          const distance=document.createElement('p');distance.className='journey-goal-distance';
+          distance.textContent=remaining===0?'🎉 Meta alcançada!': 'Faltam '+fmt(remaining,goal.unit?' '+goal.unit:'')+' para alcançar sua meta.';
+          card.append(distance);
+        }
+      }
       if(goal.completed_at){const done=document.createElement('p');done.textContent='Meta alcançada em '+dateText(goal.completed_at);card.append(done);}
       if(goal.notes){const note=document.createElement('p');note.textContent=goal.notes;card.append(note);}
       const actions=document.createElement('div');actions.className='journey-goal-actions';
