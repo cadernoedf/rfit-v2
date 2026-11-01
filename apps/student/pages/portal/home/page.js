@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&checkinModal&&!checkinModal.hidden)closeCheckin();});
  checkinModal?.querySelectorAll('.daily-checkin-scale').forEach(group=>{
    const name=group.dataset.name;
-   for(let value=1;value<=5;value++){const button=document.createElement('button');button.type='button';button.textContent=String(value);button.setAttribute('aria-pressed',value===3?'true':'false');button.addEventListener('click',()=>{group.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed','false'));button.setAttribute('aria-pressed','true');group.dataset.value=String(value)});group.append(button)}
+   for(let value=1;value<=5;value++){const button=document.createElement('button');button.type='button';button.textContent=String(value);button.setAttribute('aria-label','Nota '+value+' de 5');button.title='Nota '+value+' de 5';button.setAttribute('aria-pressed',value===3?'true':'false');button.addEventListener('click',()=>{group.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed','false'));button.setAttribute('aria-pressed','true');group.dataset.value=String(value)});group.append(button)}
    group.dataset.value='3';
  });
  ['training_adherence','nutrition_adherence'].forEach(name=>{
