@@ -89,12 +89,39 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const latestValue=(...keys)=>{for(let i=orderedMeasurements.length-1;i>=0;i--){for(const key of keys){const value=orderedMeasurements[i]?.[key];if(value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0)return Number(value);}}return null;};
   const currentValues={weight_kg:latestValue('weight_kg'),waist_cm:latestValue('waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm'),bmi:latestValue('bmi'),basal_kcal:latestValue('basal_kcal','bmr_kcal','kcal')};
   if(!currentValues.bmi&&currentValues.weight_kg){const h=latestValue('height_cm')||baselineHeight;if(h){const hm=h>3?h/100:h;currentValues.bmi=Math.round(currentValues.weight_kg/(hm*hm)*10)/10;}}
-  const initialBmi=baseline.bmi,latestBmi=currentValues.bmi;
-  const setBmiValue=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});};
-  setBmiValue('journey-bmi-initial',initialBmi);setBmiValue('journey-bmi-latest',latestBmi);
-  const bmiChange=document.getElementById('journey-bmi-change');
-  if(bmiChange){if(Number.isFinite(Number(initialBmi))&&Number.isFinite(Number(latestBmi))){const delta=Number(latestBmi)-Number(initialBmi);bmiChange.textContent=Math.abs(delta)<0.05?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' pontos';}else{bmiChange.textContent='Aguardando dados suficientes';}}
-  set('journey-record-count',String(measurements.length)+' avaliações');
+  const comparisonRoot=document.getElementById('journey-body-comparison');
+  const comparisonMetrics=[
+    {key:'weight_kg',label:'Peso',unit:'kg',digits:1},
+    {key:'waist_cm',label:'Abdômen',unit:'cm',digits:1},
+    {key:'bmi',label:'IMC',unit:'',digits:1}
+  ];
+  if(comparisonRoot){
+    comparisonRoot.replaceChildren();
+    comparisonMetrics.forEach(metric=>{
+      const initial=baseline[metric.key],latest=currentValues[metric.key];
+      const card=document.createElement('article');card.className='journey-body-metric';
+      const head=document.createElement('div');head.className='journey-body-metric-head';
+      const label=document.createElement('strong');label.textContent=metric.label;
+      const unit=document.createElement('span');unit.textContent=metric.unit||'índice';
+      head.append(label,unit);
+      const values=document.createElement('div');values.className='journey-body-values';
+      const makeValue=(caption,value,current=false)=>{
+        const wrap=document.createElement('div');wrap.className='journey-body-value'+(current?' journey-body-value-current':'');
+        const small=document.createElement('small');small.textContent=caption;
+        const strong=document.createElement('strong');
+        strong.textContent=value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toLocaleString('pt-BR',{minimumFractionDigits:metric.digits,maximumFractionDigits:metric.digits})+(metric.unit?' '+metric.unit:'');
+        wrap.append(small,strong);return wrap;
+      };
+      values.append(makeValue('Inicial',initial),Object.assign(document.createElement('span'),{className:'journey-body-arrow',textContent:'→'}),makeValue('Última avaliação',latest,true));
+      const delta=document.createElement('div');delta.className='journey-body-delta';
+      if(initial!==null&&initial!==undefined&&latest!==null&&latest!==undefined&&Number.isFinite(Number(initial))&&Number.isFinite(Number(latest))){
+        const diff=Number(latest)-Number(initial);
+        delta.textContent=Math.abs(diff)<0.005?'Sem alteração':(diff>0?'+':'')+diff.toLocaleString('pt-BR',{minimumFractionDigits:metric.digits,maximumFractionDigits:metric.digits})+(metric.unit?' '+metric.unit:'');
+        delta.classList.add(Math.abs(diff)<0.005?'is-neutral':diff<0?'is-down':'is-up');
+      }else{delta.textContent='Aguardando dados iniciais e avaliação';}
+      card.append(head,values,delta);comparisonRoot.append(card);
+    });
+  }
   set('journey-record-count',String(measurements.length)+' avaliações · '+checkins.length+' check-ins');
   // Evolução corporal: exclusivamente avaliações registradas pelo professor.
   const evaluationPoints=orderedMeasurements.map(row=>({...row,source:'evaluation'}));
