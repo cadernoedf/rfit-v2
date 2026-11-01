@@ -272,12 +272,12 @@ export async function studentRoutes(request, env, url) {
       const userId=session.sub;
       const award=async(key,type,description,xp,sourceAt)=>env.RFIT_DB.prepare('INSERT OR IGNORE INTO student_xp_events(id,user_id,event_key,event_type,description,xp,source_at) VALUES(?,?,?,?,?,?,?)').bind(crypto.randomUUID(),userId,key,type,description,xp,sourceAt||null).run();
       const [daily,weekly,measurements,goals,photos,profile,payments,workouts,diets,manualAwards]=await Promise.all([
-        env.RFIT_DB.prepare('SELECT id,checkin_date,created_at FROM daily_checkins WHERE user_id=? ORDER BY checkin_date,created_at').bind(userId).all(),
+        env.RFIT_DB.prepare('SELECT id,checkin_date,weight_kg,water_liters,created_at FROM daily_checkins WHERE user_id=? ORDER BY checkin_date,created_at').bind(userId).all(),
         env.RFIT_DB.prepare('SELECT id,week_start,created_at FROM weekly_checkins WHERE user_id=? ORDER BY week_start,created_at').bind(userId).all(),
         env.RFIT_DB.prepare("SELECT id,measured_at FROM student_measurements WHERE user_id=? UNION ALL SELECT id,measured_at FROM advanced_assessments WHERE user_id=? ORDER BY measured_at,id").bind(userId,userId).all(),
         env.RFIT_DB.prepare('SELECT id,title,status,created_at,completed_at FROM student_journey_goals WHERE user_id=? ORDER BY created_at').bind(userId).all(),
         env.RFIT_DB.prepare('SELECT id,taken_at,created_at FROM student_journey_photos WHERE user_id=? ORDER BY taken_at,created_at').bind(userId).all(),
-        env.RFIT_DB.prepare('SELECT anamnesis_completed_at FROM student_profiles WHERE user_id=? LIMIT 1').bind(userId).first(),
+        env.RFIT_DB.prepare('SELECT anamnesis_completed_at,weight_kg FROM student_profiles WHERE user_id=? LIMIT 1').bind(userId).first(),
         env.RFIT_DB.prepare("SELECT p.id,p.idempotency_key,p.paid_at,p.amount_cents,pc.plan_id,pl.code AS plan_code,pl.name AS plan_name,pl.price_cents FROM payments p LEFT JOIN payment_checkouts pc ON pc.provider_payment_id=p.provider_payment_id LEFT JOIN plans pl ON pl.id=pc.plan_id WHERE p.user_id=? AND p.status='approved' ORDER BY COALESCE(p.paid_at,p.created_at),p.id").bind(userId).all(),
         env.RFIT_DB.prepare("SELECT id,title,created_at FROM workouts WHERE user_id=? ORDER BY created_at LIMIT 1").bind(userId).first(),
         env.RFIT_DB.prepare("SELECT id,title,created_at FROM diets WHERE user_id=? ORDER BY created_at LIMIT 1").bind(userId).first(),
@@ -304,6 +304,7 @@ export async function studentRoutes(request, env, url) {
       const orderedWeeks=[...weeks].sort();let bestStreak=0,streak=0,prev=null;
       for(const week of orderedWeeks){const d=new Date(week+'T12:00:00Z');if(prev&&Math.round((d-prev)/604800000)===1)streak++;else streak=1;bestStreak=Math.max(bestStreak,streak);prev=d;}
       const completedGoals=goalRows.filter(g=>g.status==='completed'||g.completed_at);
+      const hydrationDays=new Set(dailyRows.filter(row=>{const weight=Number(row.weight_kg||profile?.weight_kg||0),water=Number(row.water_liters);if(!(weight>0)||!Number.isFinite(water)||water<0)return false;return water>=Math.round(weight*0.05*10)/10;}).map(row=>row.checkin_date).filter(Boolean));
       const defs=[
         {code:'first-checkin',icon:'✓',title:'Primeiro passo',description:'Realizou seu primeiro check-in.',unlocked:dailyRows.length+weeklyRows.length>=1,date:dailyRows[0]?.created_at||weeklyRows[0]?.created_at,xp:50},
         {code:'five-checkins',icon:'★',title:'Ritmo constante',description:'Completou 5 check-ins.',unlocked:dailyRows.length+weeklyRows.length>=5,date:(dailyRows.concat(weeklyRows).sort((a,b)=>String(a.created_at||a.checkin_date).localeCompare(String(b.created_at||b.week_start)))[4]?.created_at),xp:50},
@@ -312,6 +313,7 @@ export async function studentRoutes(request, env, url) {
         {code:'fifty-checkins',icon:'🥇',title:'50 vezes por você',description:'Completou 50 check-ins.',unlocked:dailyRows.length+weeklyRows.length>=50,date:null,xp:150},
         {code:'hundred-checkins',icon:'💯',title:'Centenário R-Fit',description:'Completou 100 check-ins.',unlocked:dailyRows.length+weeklyRows.length>=100,date:null,xp:250},
         {code:'anamnesis-complete',icon:'📋',title:'Minha história registrada',description:'Preencheu sua anamnese e compartilhou seu ponto de partida.',unlocked:Boolean(profile?.anamnesis_completed_at),date:profile?.anamnesis_completed_at,xp:100},
+        {code:'hydration-seven-days',icon:'💧',title:'Hidratação em dia',description:'Atingiu sua meta diária de água em 7 dias diferentes.',unlocked:hydrationDays.size>=7,date:null,xp:100},
         {code:'first-workout',icon:'🏋️',title:'Primeiro treino recebido',description:'Seu primeiro treino foi disponibilizado pelo professor.',unlocked:Boolean(workouts),date:workouts?.created_at,xp:50},
         {code:'first-diet',icon:'🥗',title:'Plano alimentar recebido',description:'Seu primeiro plano alimentar foi disponibilizado.',unlocked:Boolean(diets),date:diets?.created_at,xp:50},
         {code:'first-assessment',icon:'⚖️',title:'Ponto de partida',description:'Recebeu sua primeira avaliação corporal.',unlocked:measureRows.length>=1,date:measureRows[0]?.measured_at,xp:50},

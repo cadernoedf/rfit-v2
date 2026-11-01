@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
  const fmt=(v,unit='')=>v===null||v===undefined||v===''||!Number.isFinite(Number(v))?'—':String(v).replace('.',',')+unit;
  const dateFmt=value=>{if(!value)return 'Sem avaliação registrada';const d=new Date(value);return Number.isNaN(d.getTime())?'':'Atualizado em '+d.toLocaleDateString('pt-BR')};
+ let hydrationWeightKg=0;
  try{
   const auth=await getCurrentUser();if(auth.user.role!=='student'){location.replace('/professor/');return}
   welcome.textContent='Olá, '+(auth.user.name||auth.user.email)+'.';
@@ -79,7 +80,23 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const sub=data.subscription;
   set('home-plan-name',sub?.plan_name||'Sem plano ativo');
   set('home-plan-days',!sub?'Escolha seu plano':Number(sub.lifetime)?'Acesso vitalício':sub.days_remaining===null||sub.days_remaining===undefined?'Validade não informada':'Restam '+sub.days_remaining+' '+(sub.days_remaining===1?'dia':'dias'));
-  const body=data.body||{};
+  const body=data.body||{};hydrationWeightKg=Number(body.weight_kg||0);
+  const updateHydrationCard=consumedValue=>{
+   const goal=hydrationWeightKg>0?Math.round(hydrationWeightKg*0.05*10)/10:null;
+   const consumed=consumedValue===null||consumedValue===undefined||consumedValue===''?null:Number(consumedValue);
+   const fmtLiters=value=>Number(value||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' L';
+   const pct=goal&&consumed!==null?Math.min(100,Math.round(consumed/goal*100)):0;
+   const put=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+   put('home-hydration-goal',goal?fmtLiters(goal):'Aguardando peso');
+   put('home-hydration-consumed',consumed===null?'Não informado':fmtLiters(consumed));
+   put('home-hydration-remaining',goal&&consumed!==null?fmtLiters(Math.max(0,goal-consumed)):'—');
+   put('home-hydration-status',goal?'Meta sugerida calculada pelo seu peso atual ('+hydrationWeightKg.toLocaleString('pt-BR',{maximumFractionDigits:1})+' kg).':'Cadastre seu peso na anamnese ou avaliação para calcular sua meta.');
+   const bar=document.getElementById('home-hydration-progress'),track=document.querySelector('.home-hydration-track');if(bar)bar.style.width=pct+'%';if(track)track.setAttribute('aria-valuenow',String(pct));
+   put('home-hydration-progress-label',consumed===null?'Registre a água consumida no check-in diário.':pct>=100?'Meta diária alcançada! Excelente trabalho.':pct+'% da meta · faltam '+fmtLiters(Math.max(0,(goal||0)-consumed)));
+  };
+  const loadHydration=async()=>{try{const r=await fetch('/api/student/checkins',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});const d=await r.json();if(!r.ok||!d.ok)throw new Error('checkins_unavailable');const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const row=(d.checkins||[]).find(item=>item.kind==='daily'&&item.checkin_date===today);updateHydrationCard(row?.water_liters??null);}catch(error){updateHydrationCard(null);console.warn('home_hydration_unavailable',error);}};
+  loadHydration();
+  document.getElementById('home-hydration-checkin')?.addEventListener('click',()=>document.getElementById('open-daily-checkin')?.click());
    const nextTitle=document.getElementById('home-next-title'),nextDescription=document.getElementById('home-next-description'),nextLink=document.getElementById('home-next-link');
    if(!data.anamnesis_completed){if(nextTitle)nextTitle.textContent='Complete sua anamnese';if(nextDescription)nextDescription.textContent='Esse é o primeiro passo para personalizar seu acompanhamento.';if(nextLink){nextLink.href='/student/pages/portal/anamnesis/index.html';nextLink.textContent='Responder anamnese →';}}
    else if(!data.workout_available){if(nextTitle)nextTitle.textContent='Confira seu treino';if(nextDescription)nextDescription.textContent='Seu personal ainda pode disponibilizar ou atualizar sua prescrição.';if(nextLink){nextLink.href='../training/index.html';nextLink.textContent='Abrir meu treino →';}}
@@ -161,6 +178,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
      const result=await response.json();
      if(!response.ok||!result.ok)throw new Error(result.error||'checkin_save_failed');
      if(status)status.textContent='✓ Check-in salvo com sucesso!';
+     updateHydrationCard(payload.water_liters);
      form.reset();
      checkinModal.querySelectorAll('.daily-checkin-scale').forEach(group=>{group.dataset.value='3';group.querySelectorAll('button').forEach((item,index)=>item.setAttribute('aria-pressed',index===2?'true':'false'));});
      ['training-adherence-value','nutrition-adherence-value'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='80%';});
