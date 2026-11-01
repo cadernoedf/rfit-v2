@@ -177,7 +177,7 @@ export async function studentRoutes(request, env, url) {
     try{
       const [weeklyResult,dailyResult]=await Promise.all([
         env.RFIT_DB.prepare("SELECT id,week_start,answers_json,notes,created_at FROM weekly_checkins WHERE user_id=? ORDER BY week_start DESC,created_at DESC LIMIT 90").bind(session.sub).all(),
-        env.RFIT_DB.prepare("SELECT id,checkin_date,weight_kg,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes,created_at,updated_at FROM daily_checkins WHERE user_id=? ORDER BY checkin_date DESC,created_at DESC LIMIT 90").bind(session.sub).all()
+        env.RFIT_DB.prepare("SELECT id,checkin_date,weight_kg,water_liters,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes,created_at,updated_at FROM daily_checkins WHERE user_id=? ORDER BY checkin_date DESC,created_at DESC LIMIT 90").bind(session.sub).all()
       ]);
       const weekly=(weeklyResult.results||[]).map(row=>{let answers={};try{answers=JSON.parse(row.answers_json||'{}')}catch{}return {...row,kind:'weekly',checkin_date:row.week_start,answers};});
       const daily=(dailyResult.results||[]).map(row=>({ ...row,kind:'daily',answers:{sleep_quality:row.sleep_quality,energy:row.energy,appetite:row.appetite,training_adherence:row.training_adherence,nutrition_adherence:row.nutrition_adherence,discomfort:row.discomfort},checkin_date:row.checkin_date }));
@@ -194,13 +194,15 @@ export async function studentRoutes(request, env, url) {
       const number=(value,min,max)=>Number.isInteger(Number(value))&&Number(value)>=min&&Number(value)<=max;
       if(!number(body.sleep_quality,1,5)||!number(body.energy,1,5)||!number(body.appetite,1,5)||!number(body.training_adherence,0,100)||!number(body.nutrition_adherence,0,100))return reply({ok:false,error:'invalid_checkin_fields'},400);
       const weight=body.weight_kg===null||body.weight_kg===''||body.weight_kg===undefined?null:Number(String(body.weight_kg).replace(',','.'));
+      const water=body.water_liters===null||body.water_liters===''||body.water_liters===undefined?null:Number(String(body.water_liters).replace(',','.'));
+      if(water!==null&&(!Number.isFinite(water)||water<0||water>10))return reply({ok:false,error:'invalid_water_intake'},400);
       if(weight!==null&&(!Number.isFinite(weight)||weight<20||weight>400))return reply({ok:false,error:'invalid_weight'},400);
       const notes=String(body.notes||'').trim().slice(0,2000);
       const discomfort=body.discomfort?1:0;
       const id=crypto.randomUUID();
       const savedAt=new Date().toISOString();
-      await env.RFIT_DB.prepare("INSERT INTO daily_checkins(id,user_id,checkin_date,weight_kg,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes,created_at,updated_at) VALUES(?,?,date('now'),?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,checkin_date) DO UPDATE SET weight_kg=excluded.weight_kg,sleep_quality=excluded.sleep_quality,energy=excluded.energy,appetite=excluded.appetite,training_adherence=excluded.training_adherence,nutrition_adherence=excluded.nutrition_adherence,discomfort=excluded.discomfort,notes=excluded.notes,updated_at=excluded.updated_at")
-        .bind(id,session.sub,weight,Number(body.sleep_quality),Number(body.energy),Number(body.appetite),Number(body.training_adherence),Number(body.nutrition_adherence),discomfort,notes,savedAt,savedAt).run();
+      await env.RFIT_DB.prepare("INSERT INTO daily_checkins(id,user_id,checkin_date,weight_kg,water_liters,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes,created_at,updated_at) VALUES(?,?,date('now'),?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,checkin_date) DO UPDATE SET weight_kg=excluded.weight_kg,water_liters=excluded.water_liters,sleep_quality=excluded.sleep_quality,energy=excluded.energy,appetite=excluded.appetite,training_adherence=excluded.training_adherence,nutrition_adherence=excluded.nutrition_adherence,discomfort=excluded.discomfort,notes=excluded.notes,updated_at=excluded.updated_at")
+        .bind(id,session.sub,weight,water,Number(body.sleep_quality),Number(body.energy),Number(body.appetite),Number(body.training_adherence),Number(body.nutrition_adherence),discomfort,notes,savedAt,savedAt).run();
       return reply({ok:true,saved:true,message:'Check-in salvo com sucesso.'});
     }catch(error){console.error('student_daily_checkin_failed',error?.message||'unknown');return reply({ok:false,error:'checkin_save_failed'},503);}
   }
