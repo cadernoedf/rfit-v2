@@ -205,23 +205,42 @@ document.addEventListener('DOMContentLoaded',async()=>{
   }
   // Consistência: somente check-ins diários contam como dias registrados.
   const dailyCheckins=checkins.filter(item=>item.kind==='daily');
-  const localDayKey=value=>{const date=value instanceof Date?value:new Date(value);if(Number.isNaN(date.getTime()))return '';const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);return parts.find(part=>part.type==='year').value+'-'+parts.find(part=>part.type==='month').value+'-'+parts.find(part=>part.type==='day').value;};
+  const localDayKey=value=>{
+    if(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value))return value;
+    const date=value instanceof Date?value:new Date(value);
+    if(Number.isNaN(date.getTime()))return '';
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+    return parts.find(part=>part.type==='year').value+'-'+parts.find(part=>part.type==='month').value+'-'+parts.find(part=>part.type==='day').value;
+  };
   const currentDayKey=localDayKey(new Date()),currentMonthKey=currentDayKey.slice(0,7);
-  const dailyDates=[...new Set(dailyCheckins.map(item=>String(item.checkin_date||'').slice(0,10)).filter(value=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)))].sort().reverse();
+  const dailyDates=[...new Set(dailyCheckins.map(item=>localDayKey(item.checkin_date||item.created_at)).filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value)))].sort().reverse();
   const monthDailyDays=new Set(dailyDates.filter(value=>value.slice(0,7)===currentMonthKey)).size;
-  const averageField=field=>{const values=dailyCheckins.map(item=>Number(item[field])).filter(value=>Number.isFinite(value)&&value>=0&&value<=100);return values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):null;};
-  const monthDailyCheckins=dailyCheckins.filter(item=>localDayKey(item.checkin_date||item.created_at).slice(0,7)===currentMonthKey);\n  const trainingAverage=averageFieldFrom(monthDailyCheckins,'training_adherence'),foodAverage=averageFieldFrom(monthDailyCheckins,'nutrition_adherence');
+  const monthDailyCheckins=dailyCheckins.filter(item=>localDayKey(item.checkin_date||item.created_at).slice(0,7)===currentMonthKey);
+  const averageFieldFrom=(source,field)=>{
+    const values=source.map(item=>Number(item[field])).filter(value=>Number.isFinite(value)&&value>=0&&value<=100);
+    return values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):null;
+  };
+  const trainingAverage=averageFieldFrom(monthDailyCheckins,'training_adherence');
+  const foodAverage=averageFieldFrom(monthDailyCheckins,'nutrition_adherence');
   let streak=0;
   const yesterdayDate=new Date();yesterdayDate.setDate(yesterdayDate.getDate()-1);
   const streakStart=dailyDates.includes(currentDayKey)?currentDayKey:localDayKey(yesterdayDate);
-  if(dailyDates.includes(streakStart)){let cursor=new Date(streakStart+'T12:00:00Z');for(;;){const key=cursor.toISOString().slice(0,10);if(!dailyDates.includes(key))break;streak++;cursor.setUTCDate(cursor.getUTCDate()-1);}}
+  if(dailyDates.includes(streakStart)){
+    let cursor=new Date(streakStart+'T12:00:00Z');
+    for(;;){const key=cursor.toISOString().slice(0,10);if(!dailyDates.includes(key))break;streak++;cursor.setUTCDate(cursor.getUTCDate()-1);}
+  }
   const setStat=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value;};
   setStat('journey-consistency-days',String(monthDailyDays));
   setStat('journey-consistency-training',trainingAverage===null?'—':trainingAverage+'%');
   setStat('journey-consistency-food',foodAverage===null?'—':foodAverage+'%');
   setStat('journey-consistency-streak',String(streak));
-  set('journey-checkin-count',String(checkins.length));
-  const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,dailyCheckins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
+  set('journey-checkin-count',String(monthDailyDays));
+  const ring=document.querySelector('.journey-ring');
+  if(ring){
+    const daysInMonth=new Date(Number(currentMonthKey.slice(0,4)),Number(currentMonthKey.slice(5,7)),0).getDate();
+    const progress=daysInMonth?Math.min(100,monthDailyDays/daysInMonth*100):0;
+    ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';
+  }
 
   const goalsList=document.getElementById('journey-goals-list');
   const goalForm=document.getElementById('journey-goal-form');
