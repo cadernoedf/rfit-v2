@@ -181,8 +181,45 @@ document.addEventListener('DOMContentLoaded',async()=>{
   };
   document.querySelectorAll('.journey-chart-toggle').forEach(button=>button.addEventListener('click',()=>{activeMetric=button.dataset.metric;renderJourneyChart();}));
   renderJourneyChart();
+  // Comparação objetiva entre as duas avaliações mais recentes, sem misturar check-ins.
+  const deltaRoot=document.querySelector('#journey-evaluation-delta .journey-evaluation-delta-grid');
+  if(deltaRoot){
+    deltaRoot.replaceChildren();
+    const metrics=[['Peso','weight_kg','kg'],['Abdômen','waist_cm','cm'],['IMC','bmi',''],['Kcal basal','basal_kcal','kcal']];
+    const validRows=[...measurements].sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0));
+    metrics.forEach(([label,key,unit])=>{
+      const fieldValue=row=>{const value=key==='basal_kcal'?(row?.basal_kcal??row?.bmr_kcal):key==='waist_cm'?(row?.waist_cm??row?.abdomen_cm??row?.abdominal_cm):row?.[key];return value===null||value===undefined||value===''||!Number.isFinite(Number(value))?null:Number(value);};
+      const rows=validRows.map(row=>({row,value:fieldValue(row)})).filter(item=>item.value!==null);
+      const card=document.createElement('article');card.className='journey-evaluation-delta-item';
+      const name=document.createElement('span');name.textContent=label;
+      const value=document.createElement('strong'),note=document.createElement('small');
+      if(rows.length>=2){
+        const previous=rows[rows.length-2],latest=rows[rows.length-1],diff=latest.value-previous.value;
+        value.textContent=(diff>0?'+':'')+diff.toLocaleString('pt-BR',{maximumFractionDigits:key==='kcal'?0:1})+(unit?' '+unit:'');
+        note.textContent='Anterior '+previous.value.toLocaleString('pt-BR')+' → atual '+latest.value.toLocaleString('pt-BR');
+        value.style.color=Math.abs(diff)<0.005?'#7b8494':diff<0?'#159b50':'#d33b4b';
+      }else if(rows.length===1){value.textContent=rows[0].value.toLocaleString('pt-BR')+(unit?' '+unit:'');note.textContent='Aguardando próxima avaliação';}
+      else{value.textContent='—';note.textContent='Sem registro disponível';}
+      card.append(name,value,note);deltaRoot.append(card);
+    });
+  }
+  // Consistência: somente check-ins diários contam como dias registrados.
+  const dailyCheckins=checkins.filter(item=>item.kind==='daily');
+  const localDayKey=value=>{const date=value instanceof Date?value:new Date(value);if(Number.isNaN(date.getTime()))return '';const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);return parts.find(part=>part.type==='year').value+'-'+parts.find(part=>part.type==='month').value+'-'+parts.find(part=>part.type==='day').value;};
+  const currentDayKey=localDayKey(new Date()),currentMonthKey=currentDayKey.slice(0,7);
+  const dailyDates=[...new Set(dailyCheckins.map(item=>String(item.checkin_date||'').slice(0,10)).filter(value=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)))].sort().reverse();
+  const monthDailyDays=new Set(dailyDates.filter(value=>value.slice(0,7)===currentMonthKey)).size;
+  const averageField=field=>{const values=dailyCheckins.map(item=>Number(item[field])).filter(value=>Number.isFinite(value)&&value>=0&&value<=100);return values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):null;};
+  const trainingAverage=averageField('training_adherence'),foodAverage=averageField('nutrition_adherence');
+  let streak=0;
+  if(dailyDates.length){let cursor=new Date((dailyDates.includes(currentDayKey)?currentDayKey:dailyDates.includes(localDayKey(new Date(Date.now()-86400000)))?localDayKey(new Date(Date.now()-86400000)):dailyDates[0])+'T12:00:00Z');for(;;){const key=cursor.toISOString().slice(0,10);if(!dailyDates.includes(key))break;streak++;cursor.setUTCDate(cursor.getUTCDate()-1);}}
+  const setStat=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value;};
+  setStat('journey-consistency-days',String(monthDailyDays));
+  setStat('journey-consistency-training',trainingAverage===null?'—':trainingAverage+'%');
+  setStat('journey-consistency-food',foodAverage===null?'—':foodAverage+'%');
+  setStat('journey-consistency-streak',String(streak));
   set('journey-checkin-count',String(checkins.length));
-  const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,checkins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
+  const ring=document.querySelector('.journey-ring');if(ring){const progress=Math.min(100,dailyCheckins.length/30*100);ring.style.background='conic-gradient(#ff3348 '+(progress*3.6)+'deg,#eceff4 0deg 360deg)';}
 
   const goalsList=document.getElementById('journey-goals-list');
   const goalForm=document.getElementById('journey-goal-form');
