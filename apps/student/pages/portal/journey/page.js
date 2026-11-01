@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('journey-month-label',monthNow.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
   set('journey-month-checkins',String(monthCheckins));set('journey-month-measurements',String(monthMeasurements));set('journey-month-photos',String(monthPhotos));set('journey-month-goals',String(monthCompleted));
   const highlight=document.getElementById('journey-month-highlight');
-  if(highlight)highlight.textContent=monthCheckins+monthMeasurements+monthPhotos>0?'Você realizou '+(monthCheckins+monthMeasurements+monthPhotos)+' registros neste mês. Continue valorizando cada passo!':'Seu mês está começando. O próximo registro será o primeiro deste período.';
+  if(highlight){const total=monthCheckins+monthMeasurements+monthPhotos;highlight.textContent=total>0?'Neste mês: '+monthCheckins+' check-ins · '+monthMeasurements+' avaliações · '+monthPhotos+' fotos ('+total+' registros no total).':'Seu mês está começando. O próximo registro será o primeiro deste período.';}
   document.getElementById('journey-month-print')?.addEventListener('click',()=>{
     const reportWindow=window.open('','_blank');if(!reportWindow){window.print();return;}
     const rows=[['Check-ins',monthCheckins],['Avaliações',monthMeasurements],['Fotos',monthPhotos],['Metas concluídas',monthCompleted]];
