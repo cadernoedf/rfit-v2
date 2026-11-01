@@ -269,16 +269,19 @@ export async function studentRoutes(request, env, url) {
     try{
       const userId=session.sub;
       const award=async(key,type,description,xp,sourceAt)=>env.RFIT_DB.prepare('INSERT OR IGNORE INTO student_xp_events(id,user_id,event_key,event_type,description,xp,source_at) VALUES(?,?,?,?,?,?,?)').bind(crypto.randomUUID(),userId,key,type,description,xp,sourceAt||null).run();
-      const [daily,weekly,measurements,goals,photos,profile,payments]=await Promise.all([
+      const [daily,weekly,measurements,goals,photos,profile,payments,workouts,diets,manualAwards]=await Promise.all([
         env.RFIT_DB.prepare('SELECT id,checkin_date,created_at FROM daily_checkins WHERE user_id=? ORDER BY checkin_date,created_at').bind(userId).all(),
         env.RFIT_DB.prepare('SELECT id,week_start,created_at FROM weekly_checkins WHERE user_id=? ORDER BY week_start,created_at').bind(userId).all(),
         env.RFIT_DB.prepare("SELECT id,measured_at FROM student_measurements WHERE user_id=? UNION ALL SELECT id,measured_at FROM advanced_assessments WHERE user_id=? ORDER BY measured_at,id").bind(userId,userId).all(),
         env.RFIT_DB.prepare('SELECT id,title,status,created_at,completed_at FROM student_journey_goals WHERE user_id=? ORDER BY created_at').bind(userId).all(),
         env.RFIT_DB.prepare('SELECT id,taken_at,created_at FROM student_journey_photos WHERE user_id=? ORDER BY taken_at,created_at').bind(userId).all(),
         env.RFIT_DB.prepare('SELECT anamnesis_completed_at FROM student_profiles WHERE user_id=? LIMIT 1').bind(userId).first(),
-        env.RFIT_DB.prepare("SELECT p.id,p.idempotency_key,p.paid_at,p.amount_cents,pc.plan_id,pl.code AS plan_code,pl.name AS plan_name,pl.price_cents FROM payments p LEFT JOIN payment_checkouts pc ON pc.provider_payment_id=p.provider_payment_id LEFT JOIN plans pl ON pl.id=pc.plan_id WHERE p.user_id=? AND p.status='approved' ORDER BY COALESCE(p.paid_at,p.created_at),p.id").bind(userId).all()
+        env.RFIT_DB.prepare("SELECT p.id,p.idempotency_key,p.paid_at,p.amount_cents,pc.plan_id,pl.code AS plan_code,pl.name AS plan_name,pl.price_cents FROM payments p LEFT JOIN payment_checkouts pc ON pc.provider_payment_id=p.provider_payment_id LEFT JOIN plans pl ON pl.id=pc.plan_id WHERE p.user_id=? AND p.status='approved' ORDER BY COALESCE(p.paid_at,p.created_at),p.id").bind(userId).all(),
+        env.RFIT_DB.prepare("SELECT id,title,created_at FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at LIMIT 1").bind(userId).first(),
+        env.RFIT_DB.prepare("SELECT id,title,created_at FROM diets WHERE user_id=? AND status='active' ORDER BY created_at LIMIT 1").bind(userId).first(),
+        env.RFIT_DB.prepare("SELECT id,title,description,message,xp,created_at FROM student_manual_achievement_awards WHERE user_id=? ORDER BY created_at").bind(userId).all()
       ]);
-      const dailyRows=daily.results||[],weeklyRows=weekly.results||[],measureRows=measurements.results||[],goalRows=goals.results||[],photoRows=photos.results||[],paymentRows=payments.results||[];
+      const dailyRows=daily.results||[],weeklyRows=weekly.results||[],measureRows=measurements.results||[],goalRows=goals.results||[],photoRows=photos.results||[],paymentRows=payments.results||[],manualRows=manualAwards.results||[];
       for(const row of dailyRows)await award('daily-checkin:'+row.checkin_date,'checkin','Check-in diário concluído',25,row.created_at||row.checkin_date);
       for(const row of weeklyRows)await award('weekly-checkin:'+row.week_start,'checkin','Check-in semanal concluído',25,row.created_at||row.week_start);
       if(profile?.anamnesis_completed_at)await award('anamnesis:first','anamnesis','Anamnese inicial concluída',100,profile.anamnesis_completed_at);
@@ -304,6 +307,9 @@ export async function studentRoutes(request, env, url) {
         {code:'five-checkins',icon:'★',title:'Ritmo constante',description:'Completou 5 check-ins.',unlocked:dailyRows.length+weeklyRows.length>=5,date:(dailyRows.concat(weeklyRows).sort((a,b)=>String(a.created_at||a.checkin_date).localeCompare(String(b.created_at||b.week_start)))[4]?.created_at),xp:50},
         {code:'ten-checkins',icon:'🏅',title:'Compromisso em ação',description:'Completou 10 check-ins.',unlocked:dailyRows.length+weeklyRows.length>=10,date:(dailyRows.concat(weeklyRows).sort((a,b)=>String(a.created_at||a.checkin_date).localeCompare(String(b.created_at||b.week_start)))[9]?.created_at),xp:75},
         {code:'thirty-checkins',icon:'🏆',title:'30 passos de evolução',description:'Completou 30 check-ins.',unlocked:dailyRows.length+weeklyRows.length>=30,date:null,xp:100},
+        {code:'anamnesis-complete',icon:'📋',title:'Minha história registrada',description:'Preencheu sua anamnese e compartilhou seu ponto de partida.',unlocked:Boolean(profile?.anamnesis_completed_at),date:profile?.anamnesis_completed_at,xp:100},
+        {code:'first-workout',icon:'🏋️',title:'Primeiro treino recebido',description:'Seu primeiro treino foi disponibilizado pelo professor.',unlocked:Boolean(workouts),date:workouts?.created_at,xp:50},
+        {code:'first-diet',icon:'🥗',title:'Plano alimentar recebido',description:'Seu primeiro plano alimentar foi disponibilizado.',unlocked:Boolean(diets),date:diets?.created_at,xp:50},
         {code:'first-assessment',icon:'⚖️',title:'Ponto de partida',description:'Recebeu sua primeira avaliação corporal.',unlocked:measureRows.length>=1,date:measureRows[0]?.measured_at,xp:50},
         {code:'five-assessments',icon:'📈',title:'Evolução acompanhada',description:'Possui 5 avaliações corporais.',unlocked:measureRows.length>=5,date:measureRows[4]?.measured_at,xp:75},
         {code:'first-goal',icon:'🎯',title:'Olhar no objetivo',description:'Definiu sua primeira meta.',unlocked:goalRows.length>=1,date:goalRows[0]?.created_at,xp:50},
@@ -321,9 +327,11 @@ export async function studentRoutes(request, env, url) {
       const unlockedMap=new Map((unlocks.results||[]).map(row=>[row.achievement_code,row]));
       const events=await env.RFIT_DB.prepare('SELECT event_type,description,xp,source_at,created_at FROM student_xp_events WHERE user_id=? ORDER BY COALESCE(source_at,created_at) DESC,id DESC LIMIT 12').bind(userId).all();
       const total=await env.RFIT_DB.prepare('SELECT COALESCE(SUM(xp),0) AS total_xp FROM student_xp_events WHERE user_id=?').bind(userId).first();
+      const manualDefs=manualRows.map(row=>({code:'manual:'+row.id,icon:'🎁',title:row.title,description:row.description||row.message||'Conquista especial concedida pelo professor.',unlocked:true,date:row.created_at,xp:Number(row.xp||0),manual:true,message:row.message||''}));
+      const allDefs=[...defs,...manualDefs];
       const xp=Number(total?.total_xp||0),levels=[{min:0,name:'Iniciante'},{min:300,name:'Em Evolução'},{min:800,name:'Determinado'},{min:1500,name:'Consistente'},{min:2500,name:'Disciplinado'},{min:4000,name:'Elite'},{min:6000,name:'Referência'},{min:8500,name:'Lenda R-Fit'}];
       let current=levels[0],next=null;levels.forEach((level,index)=>{if(xp>=level.min){current=level;next=levels[index+1]||null;}});
-      return reply({ok:true,xp,level:levels.indexOf(current)+1,level_name:current.name,next_level:next?{name:next.name,xp:next.min,remaining:Math.max(0,next.min-xp)}:null,progress_percent:next?Math.max(0,Math.min(100,Math.round((xp-current.min)/(next.min-current.min)*100))):100,achievements:defs.map(item=>{const row=unlockedMap.get(item.code);return {...item,unlocked:Boolean(row),unlocked_at:row?.unlocked_at||null};}),unlocked_count:unlockedMap.size,total_achievements:defs.length,recent_events:events.results||[]});
+      return reply({ok:true,xp,level:levels.indexOf(current)+1,level_name:current.name,next_level:next?{name:next.name,xp:next.min,remaining:Math.max(0,next.min-xp)}:null,progress_percent:next?Math.max(0,Math.min(100,Math.round((xp-current.min)/(next.min-current.min)*100))):100,achievements:allDefs.map(item=>{const row=unlockedMap.get(item.code);return {...item,unlocked:item.manual?true:Boolean(row),unlocked_at:item.manual?item.date:(row?.unlocked_at||null)};}),unlocked_count:unlockedMap.size,total_achievements:allDefs.length,recent_events:events.results||[]});
     }catch(error){console.error('student_gamification_failed',error?.message||'unknown');return reply({ok:false,error:'gamification_unavailable'},503);}
   }
 
