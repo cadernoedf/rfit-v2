@@ -418,14 +418,32 @@ document.addEventListener('DOMContentLoaded',async()=>{
       set('journey-level-next',data.next_level?'Faltam '+Number(data.next_level.remaining).toLocaleString('pt-BR')+' XP para '+data.next_level.name:'Nível máximo alcançado. Continue evoluindo!');
       set('journey-level-percent',data.next_level?data.progress_percent+'% para o próximo nível':'100% · Nível máximo');
       const bar=document.getElementById('journey-level-progress');if(bar)bar.style.width=(data.progress_percent||0)+'%';
-      achievementList.replaceChildren();
-      data.achievements.forEach(item=>{
-        const card=document.createElement('article');card.className='journey-achievement'+(item.unlocked?'':' is-locked');
+      const categoryOf=code=>code.startsWith('manual:')?'special':({'first-checkin':'consistency','five-checkins':'consistency','ten-checkins':'consistency','thirty-checkins':'consistency','fifty-checkins':'consistency','hundred-checkins':'consistency','four-week-streak':'consistency','eight-week-streak':'consistency','twelve-week-streak':'consistency','first-assessment':'evolution','five-assessments':'evolution','ten-assessments':'evolution','first-photo':'evolution','three-photos':'evolution','ten-photos':'evolution','twenty-photos':'evolution','first-goal':'goals','goal-complete':'goals','three-goals':'goals','five-goals':'goals','first-renewal':'loyalty','three-renewals':'loyalty','first-upgrade':'loyalty','anamnesis-complete':'portal','first-workout':'portal','first-diet':'portal'})[code]||'special';
+      const filterButtons=[...document.querySelectorAll('[data-achievement-filter]')];
+      const search=document.getElementById('journey-achievement-search');
+      let activeFilter='all';
+      const cards=data.achievements.map(item=>{
+        const category=categoryOf(item.code);
+        const card=document.createElement('article');card.className='journey-achievement '+(item.unlocked?'is-unlocked':'is-locked');card.dataset.category=category;
+        const status=document.createElement('small');status.className='achievement-status';status.textContent=item.unlocked?'🏆 Desbloqueada':'🔒 Bloqueada';
         const medal=document.createElement('span');medal.className='medal';medal.textContent=item.icon;
         const title=document.createElement('strong');title.textContent=item.title;
-        const desc=document.createElement('small');desc.textContent=item.unlocked?'Desbloqueada em '+dateText(item.unlocked_at)+' · +'+item.xp+' XP':item.description;
-        card.append(medal,title,desc);achievementList.append(card);
+        const desc=document.createElement('small');desc.textContent=item.unlocked?(item.message||item.description||'Conquista registrada'):(item.description||'Continue sua jornada para desbloquear.');
+        const xp=document.createElement('span');xp.className='achievement-xp';xp.textContent='+'+Number(item.xp||0)+' XP';
+        card.append(status,medal,title,desc,xp);
+        if(item.unlocked){const date=document.createElement('small');date.className='achievement-date';date.textContent='Conquistada em '+dateText(item.unlocked_at||item.date);card.append(date);}
+        return card;
       });
+      achievementList.replaceChildren(...cards);
+      const applyFilter=()=>{
+        const term=(search?.value||'').trim().toLocaleLowerCase('pt-BR');let visible=0;
+        cards.forEach((card,index)=>{const item=data.achievements[index];const filterOk=activeFilter==='all'||activeFilter==='unlocked'&&item.unlocked||activeFilter==='locked'&&!item.unlocked||card.dataset.category===activeFilter;const searchOk=!term||(item.title+' '+item.description).toLocaleLowerCase('pt-BR').includes(term);const show=filterOk&&searchOk;card.classList.toggle('is-hidden',!show);if(show)visible++;});
+        set('journey-achievement-visible',visible+' conquistas exibidas');
+      };
+      filterButtons.forEach(button=>button.addEventListener('click',()=>{activeFilter=button.dataset.achievementFilter;filterButtons.forEach(item=>item.classList.toggle('is-active',item===button));applyFilter();}));
+      search?.addEventListener('input',applyFilter);
+      set('journey-achievement-xp-earned',data.achievements.filter(item=>item.unlocked).reduce((sum,item)=>sum+Number(item.xp||0),0).toLocaleString('pt-BR')+' XP em conquistas');
+      applyFilter();
     }catch(error){
       achievementList.innerHTML='<p class="journey-muted">Não foi possível carregar suas conquistas agora. Tente novamente mais tarde.</p>';
       console.warn('journey_gamification_load_failed',error);
