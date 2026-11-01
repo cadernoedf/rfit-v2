@@ -277,8 +277,8 @@ export async function studentRoutes(request, env, url) {
         env.RFIT_DB.prepare('SELECT id,taken_at,created_at FROM student_journey_photos WHERE user_id=? ORDER BY taken_at,created_at').bind(userId).all(),
         env.RFIT_DB.prepare('SELECT anamnesis_completed_at FROM student_profiles WHERE user_id=? LIMIT 1').bind(userId).first(),
         env.RFIT_DB.prepare("SELECT p.id,p.idempotency_key,p.paid_at,p.amount_cents,pc.plan_id,pl.code AS plan_code,pl.name AS plan_name,pl.price_cents FROM payments p LEFT JOIN payment_checkouts pc ON pc.provider_payment_id=p.provider_payment_id LEFT JOIN plans pl ON pl.id=pc.plan_id WHERE p.user_id=? AND p.status='approved' ORDER BY COALESCE(p.paid_at,p.created_at),p.id").bind(userId).all(),
-        env.RFIT_DB.prepare("SELECT id,title,created_at FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at LIMIT 1").bind(userId).first(),
-        env.RFIT_DB.prepare("SELECT id,title,created_at FROM diets WHERE user_id=? AND status='active' ORDER BY created_at LIMIT 1").bind(userId).first(),
+        env.RFIT_DB.prepare("SELECT id,title,created_at FROM workouts WHERE user_id=? ORDER BY created_at LIMIT 1").bind(userId).first(),
+        env.RFIT_DB.prepare("SELECT id,title,created_at FROM diets WHERE user_id=? ORDER BY created_at LIMIT 1").bind(userId).first(),
         env.RFIT_DB.prepare("SELECT id,title,description,message,xp,created_at FROM student_manual_achievement_awards WHERE user_id=? ORDER BY created_at").bind(userId).all()
       ]);
       const dailyRows=daily.results||[],weeklyRows=weekly.results||[],measureRows=measurements.results||[],goalRows=goals.results||[],photoRows=photos.results||[],paymentRows=payments.results||[],manualRows=manualAwards.results||[];
