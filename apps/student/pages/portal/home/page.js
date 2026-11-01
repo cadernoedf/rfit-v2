@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const form=event.currentTarget,status=document.getElementById('daily-checkin-message'),button=form.querySelector('[type="submit"]');
    const selected=name=>Number(checkinModal.querySelector('[data-name="'+name+'"]')?.dataset.value||0);
    const formData=new FormData(form);
-   const payload={weight_kg:formData.get('weight_kg')||null,sleep_quality:selected('sleep_quality'),energy:selected('energy'),appetite:selected('appetite'),training_adherence:Number(formData.get('training_adherence')),nutrition_adherence:Number(formData.get('nutrition_adherence')),discomfort:formData.has('discomfort'),notes:String(formData.get('notes')||'').trim()};
+   const payload={weight_kg:formData.get('weight_kg')||null,water_liters:formData.get('water_liters')||null,sleep_quality:selected('sleep_quality'),energy:selected('energy'),appetite:selected('appetite'),training_adherence:Number(formData.get('training_adherence')),nutrition_adherence:Number(formData.get('nutrition_adherence')),discomfort:formData.has('discomfort'),notes:String(formData.get('notes')||'').trim()};
    if(!payload.sleep_quality||!payload.energy||!payload.appetite){if(status)status.textContent='Selecione uma nota de 1 a 5 em cada avaliação.';return;}
    if(button){button.disabled=true;button.textContent='Enviando…';}
    if(status)status.textContent='Salvando seu check-in…';
