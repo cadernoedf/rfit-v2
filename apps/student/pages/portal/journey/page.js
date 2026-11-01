@@ -327,17 +327,38 @@ document.addEventListener('DOMContentLoaded',async()=>{
   };
   renderAchievements();
 
-  // Calendário de consistência: últimos 84 dias, baseado nos check-ins reais.
+  // Calendário semanal: navegação entre semanas e marcação dos check-ins reais.
   const calendarNode=document.getElementById('journey-checkin-calendar');
   if(calendarNode){
-    calendarNode.replaceChildren();
     const activeDays=new Set(checkins.map(item=>String(item.checkin_date||item.week_start||item.created_at||'').slice(0,10)).filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value)));
-    const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const calendarStart=new Date(today);calendarStart.setDate(today.getDate()-mondayOffset-77);
-    for(let offset=0;offset<84;offset++){
-      const day=new Date(calendarStart);day.setDate(calendarStart.getDate()+offset);
-      const key=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
-      const cell=document.createElement('span');cell.className='journey-calendar-day'+(activeDays.has(key)?' is-active':'');cell.title=day.toLocaleDateString('pt-BR')+(activeDays.has(key)?' · Check-in realizado':' · Sem check-in');cell.setAttribute('aria-label',cell.title);calendarNode.append(cell);
-    }
+    const today=new Date();today.setHours(0,0,0,0);
+    const mondayOf=date=>{const d=new Date(date);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;};
+    let displayedMonday=mondayOf(today);
+    const keyOf=date=>[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+    const addDays=(date,n)=>{const d=new Date(date);d.setDate(d.getDate()+n);return d;};
+    const renderWeek=()=>{
+      calendarNode.replaceChildren();let completed=0;
+      const sunday=addDays(displayedMonday,6);
+      const label=document.getElementById('journey-week-label');
+      if(label)label.textContent=displayedMonday.getMonth()===sunday.getMonth()?displayedMonday.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'})+' – '+sunday.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'}):displayedMonday.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+sunday.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+      for(let offset=0;offset<7;offset++){
+        const day=addDays(displayedMonday,offset),key=keyOf(day),checked=activeDays.has(key),isToday=key===keyOf(today);
+        if(checked)completed++;
+        const cell=document.createElement('div');cell.className='journey-week-day'+(checked?' is-checked':'')+(isToday?' is-today':'');
+        const name=document.createElement('span');name.className='journey-week-day-name';name.textContent=['SEG','TER','QUA','QUI','SEX','SÁB','DOM'][offset];
+        const number=document.createElement('strong');number.className='journey-week-day-number';number.textContent=String(day.getDate());
+        const status=document.createElement('span');status.className='journey-week-day-status';status.textContent=checked?'✓':'·';
+        cell.title=day.toLocaleDateString('pt-BR')+(checked?' · Check-in realizado':' · Sem check-in');
+        cell.append(name,number,status);calendarNode.append(cell);
+      }
+      const summary=document.getElementById('journey-week-summary');
+      if(summary)summary.textContent=completed+' de 7 dias com check-in nesta semana'+(displayedMonday>mondayOf(today)?'.':' · Cada registro conta!');
+      const next=document.getElementById('journey-week-next');if(next)next.disabled=displayedMonday>=mondayOf(today);
+    };
+    document.getElementById('journey-week-prev')?.addEventListener('click',()=>{displayedMonday=addDays(displayedMonday,-7);renderWeek();});
+    document.getElementById('journey-week-next')?.addEventListener('click',()=>{if(displayedMonday<mondayOf(today)){displayedMonday=addDays(displayedMonday,7);renderWeek();}});
+    document.getElementById('journey-week-today')?.addEventListener('click',()=>{displayedMonday=mondayOf(today);renderWeek();});
+    renderWeek();
   }
   // Comparação lado a lado com as imagens privadas já salvas no D1.
   const beforeSelect=document.getElementById('journey-photo-before'),afterSelect=document.getElementById('journey-photo-after'),compareButton=document.getElementById('journey-photo-compare-button'),compareResult=document.getElementById('journey-photo-compare-result');
