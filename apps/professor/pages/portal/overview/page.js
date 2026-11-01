@@ -76,7 +76,86 @@ function renderPriorities(data) {
   });
 }
 
-/* ===== CONSULTA DOS DADOS REAIS ===== */
+
+/* ===== PAINEL INTELIGENTE DE ACOMPANHAMENTO ===== */
+function renderFollowup(students) {
+  const summary = $('#overview-followup-summary');
+  const list = $('#overview-followup-list');
+  if (!summary || !list) return;
+  const now = Date.now();
+  const ageDays = (value) => {
+    if (!value) return null;
+    const parsed = new Date(String(value).length === 10 ? value + 'T12:00:00' : value);
+    return Number.isNaN(parsed.getTime()) ? null : Math.floor((now - parsed.getTime()) / 86400000);
+  };
+  const groups = [
+    { key: 'assessment', title: 'Avaliação atrasada', description: 'Mais de 30 dias sem avaliação', rows: [] },
+    { key: 'checkin', title: 'Check-in sem atualização', description: 'Mais de 7 dias sem check-in', rows: [] },
+    { key: 'anamnesis', title: 'Anamnese pendente', description: 'Cadastro de saúde ainda incompleto', rows: [] },
+    { key: 'payment', title: 'Pagamento pendente', description: 'Aguardando confirmação financeira', rows: [] }
+  ];
+  students.forEach((student) => {
+    if (student.status === 'suspended') return;
+    const name = student.full_name || 'Aluno sem nome';
+    const href = '../students/detail.html?id=' + encodeURIComponent(student.id);
+    const add = (key, detail) => groups.find((group) => group.key === key).rows.push({ name, detail, href });
+    const assessmentAge = ageDays(student.measurement_at);
+    const checkinDate = student.latest_daily_checkin || student.latest_weekly_checkin;
+    const checkinAge = ageDays(checkinDate);
+    if (assessmentAge === null || assessmentAge > 30) add('assessment', assessmentAge === null ? 'Nenhuma avaliação registrada' : 'Última avaliação há ' + assessmentAge + ' dias');
+    if (checkinAge === null || checkinAge > 7) add('checkin', checkinAge === null ? 'Nenhum check-in registrado' : 'Último check-in há ' + checkinAge + ' dias');
+    if (!student.anamnesis_completed_at) add('anamnesis', 'Concluir informações iniciais');
+    if (student.subscription_status === 'pending_payment' || student.payment_status === 'pending') add('payment', 'Verificar situação do pagamento');
+  });
+  summary.replaceChildren();
+  groups.forEach((group) => {
+    const card = document.createElement('article');
+    card.className = 'overview-metric-card overview-tone-' + (group.rows.length ? 'warning' : 'success');
+    const label = document.createElement('span'); label.textContent = group.title;
+    const value = document.createElement('strong'); value.className = 'overview-metric-value'; value.textContent = formatNumber(group.rows.length);
+    const detail = document.createElement('small'); detail.textContent = group.description;
+    card.append(label, value, detail); summary.append(card);
+  });
+  list.replaceChildren();
+  groups.forEach((group) => {
+    const card = document.createElement('article'); card.className = 'overview-followup-group';
+    const heading = document.createElement('h3'); heading.textContent = group.title;
+    const count = document.createElement('span'); count.textContent = formatNumber(group.rows.length);
+    heading.append(count); card.append(heading);
+    if (!group.rows.length) {
+      const empty = document.createElement('p'); empty.className = 'overview-muted'; empty.textContent = 'Nenhum aluno nesta situação.'; card.append(empty);
+    } else {
+      group.rows.slice(0, 6).forEach((item) => {
+        const row = document.createElement('div'); row.className = 'overview-followup-item';
+        const copy = document.createElement('div');
+        const name = document.createElement('strong'); name.textContent = item.name;
+        const detail = document.createElement('small'); detail.textContent = item.detail;
+        copy.append(name, detail);
+        const link = document.createElement('a'); link.href = item.href; link.textContent = 'Abrir ficha →';
+        row.append(copy, link); card.append(row);
+      });
+      if (group.rows.length > 6) {
+        const more = document.createElement('a'); more.href = '../students/index.html'; more.textContent = 'Ver mais ' + (group.rows.length - 6) + ' aluno(s)'; more.className = 'overview-followup-more'; card.append(more);
+      }
+    }
+    list.append(card);
+  });
+  if (!students.length) list.innerHTML = '<p class="overview-followup-empty">Nenhum aluno cadastrado para analisar.</p>';
+}
+
+async function loadFollowup() {
+  const list = $('#overview-followup-list');
+  try {
+    const response = await fetch('/api/professor/students', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || 'students_unavailable');
+    renderFollowup(Array.isArray(data.students) ? data.students : []);
+  } catch (error) {
+    if (list) list.textContent = 'Não foi possível analisar os registros dos alunos. Os indicadores gerais continuam disponíveis.';
+    console.error('rfit_professor_followup_failed', error);
+  }
+}
+\n/* ===== CONSULTA DOS DADOS REAIS ===== */
 async function loadOverview() {
   const summary = $('#overview-summary');
   const message = $('#page-message');
@@ -131,13 +210,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     $('#professor-welcome').textContent = 'Olá, ' + (auth.user.name || auth.user.email) + '.';
-    await loadOverview();
+    await Promise.all([loadOverview(), loadFollowup()]);
   } catch (error) {
     location.replace('/student/pages/login.html');
     return;
   }
 
-  $('#logout')?.addEventListener('click', async () => {
+  $('#overview-followup-refresh')?.addEventListener('click', loadFollowup);\n  $('#logout')?.addEventListener('click', async () => {
     try {
       await logout();
     } finally {
