@@ -10,11 +10,16 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const response=await fetch('/api/student/gamification',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
    const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'gamification_unavailable');
    const xp=Number(data.xp||0);
+    const nextAchievement=(data.achievements||[]).find(item=>!item.unlocked);
+    const trophyName=document.getElementById('home-next-achievement');if(trophyName)trophyName.textContent=nextAchievement?nextAchievement.icon+' '+nextAchievement.title:'Coleção completa!';
+    const trophyDesc=document.getElementById('home-next-achievement-description');if(trophyDesc)trophyDesc.textContent=nextAchievement?(nextAchievement.description||'Continue registrando sua evolução.'):'Você desbloqueou todas as conquistas disponíveis.';
+    const trophyXp=document.getElementById('home-next-achievement-xp');if(trophyXp)trophyXp.textContent=nextAchievement?'Recompensa: +'+Number(nextAchievement.xp||0)+' XP':'';
    const level=document.getElementById('home-achievement-level');if(level)level.textContent=String(data.level||1);
    const title=document.getElementById('home-achievement-title');if(title)title.textContent='Nível '+data.level+' · '+data.level_name;
    const total=document.getElementById('home-achievement-xp');if(total)total.textContent=xp.toLocaleString('pt-BR')+' XP acumulados';
    const bar=document.getElementById('home-achievement-progress');if(bar)bar.style.width=(data.progress_percent||0)+'%';
    const next=document.getElementById('home-achievement-next');if(next)next.textContent=data.next_level?'Faltam '+Number(data.next_level.remaining).toLocaleString('pt-BR')+' XP para '+data.next_level.name:'Nível máximo alcançado!';
+    const unlockedCount=document.getElementById('home-achievement-unlocked-count');if(unlockedCount)unlockedCount.textContent=Number(data.unlocked_count||0)+' de '+Number(data.total_achievements||0)+' troféus desbloqueados';
    const list=document.getElementById('home-achievement-recent');if(list){list.replaceChildren();const recent=(data.achievements||[]).filter(item=>item.unlocked).sort((a,b)=>new Date(b.unlocked_at)-new Date(a.unlocked_at)).slice(0,3);if(!recent.length){const empty=document.createElement('small');empty.textContent='Suas primeiras conquistas aparecerão aqui.';list.append(empty);}else recent.forEach(item=>{const row=document.createElement('article'),icon=document.createElement('span'),copy=document.createElement('div'),name=document.createElement('strong'),earned=document.createElement('small');icon.textContent=item.icon;name.textContent=item.title;earned.textContent='+'+item.xp+' XP';copy.append(name,earned);row.append(icon,copy);list.append(row);});}
   }catch(error){console.warn('home_gamification_unavailable',error);}
  };
@@ -75,6 +80,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('home-plan-name',sub?.plan_name||'Sem plano ativo');
   set('home-plan-days',!sub?'Escolha seu plano':Number(sub.lifetime)?'Acesso vitalício':sub.days_remaining===null||sub.days_remaining===undefined?'Validade não informada':'Restam '+sub.days_remaining+' '+(sub.days_remaining===1?'dia':'dias'));
   const body=data.body||{};
+   const nextTitle=document.getElementById('home-next-title'),nextDescription=document.getElementById('home-next-description'),nextLink=document.getElementById('home-next-link');
+   if(!data.anamnesis_completed){if(nextTitle)nextTitle.textContent='Complete sua anamnese';if(nextDescription)nextDescription.textContent='Esse é o primeiro passo para personalizar seu acompanhamento.';if(nextLink){nextLink.href='/student/pages/portal/anamnesis/index.html';nextLink.textContent='Responder anamnese →';}}
+   else if(!data.workout_available){if(nextTitle)nextTitle.textContent='Confira seu treino';if(nextDescription)nextDescription.textContent='Seu personal ainda pode disponibilizar ou atualizar sua prescrição.';if(nextLink){nextLink.href='../training/index.html';nextLink.textContent='Abrir meu treino →';}}
+   else{if(nextTitle)nextTitle.textContent='Registre seu check-in';if(nextDescription)nextDescription.textContent='Conte como está sua rotina hoje. Seu personal acompanha esses registros.';if(nextLink){nextLink.href='#open-daily-checkin';nextLink.textContent='Fazer check-in →';nextLink.addEventListener('click',event=>{event.preventDefault();document.getElementById('open-daily-checkin')?.click();},{once:true});}}
   set('home-weight',fmt(body.weight_kg,' kg'));
   set('home-weight-date',dateFmt(body.measured_at||data.anamnesis_completed_at));
   set('home-bmi',fmt(body.bmi));
