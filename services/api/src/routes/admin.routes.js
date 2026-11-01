@@ -23,6 +23,7 @@ export async function adminRoutes(request, env, url) {
   const planMatch = url.pathname.match(/^\/api\/professor\/plans\/([^/]+)$/);
   const isPlanItem = Boolean(planMatch);
   const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
+  const achievementAwardMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/achievements$/);
   const studentSubscriptionMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/subscription$/);
   const testAccessMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/test-access$/);
   const isTestAccess = Boolean(testAccessMatch);
@@ -34,7 +35,7 @@ export async function adminRoutes(request, env, url) {
   const isAdvancedAssessment = Boolean(advancedAssessmentMatch);
 
 
-  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'PATCH' && studentSubscriptionMatch) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(isAdvancedAssessment && ['GET','POST'].includes(request.method)) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && achievementAwardMatch) && !(request.method === 'PATCH' && studentSubscriptionMatch) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(isAdvancedAssessment && ['GET','POST'].includes(request.method)) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -55,6 +56,26 @@ export async function adminRoutes(request, env, url) {
           date(s.expires_at) ASC,u.full_name COLLATE NOCASE ASC
         LIMIT 500`).all();
       return Response.json({ok:true,students:rows.results||[]},{headers:noStore});
+    }
+
+    /* ===== CONQUISTA ESPECIAL CONCEDIDA PELO PROFESSOR ===== */
+    if(achievementAwardMatch&&request.method==='POST'){
+      const studentId=decodeURIComponent(achievementAwardMatch[1]);
+      const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      const body=await request.json();
+      const title=String(body.title||'').trim().slice(0,80);
+      const description=String(body.description||'').trim().slice(0,240);
+      const message=String(body.message||'').trim().slice(0,500);
+      const xp=Math.max(0,Math.min(1000,Math.floor(Number(body.xp)||0)));
+      if(!title)return Response.json({ok:false,error:'title_required'},{status:400,headers:noStore});
+      const id=crypto.randomUUID();
+      await env.RFIT_DB.prepare('INSERT INTO student_manual_achievement_awards(id,user_id,granted_by,title,description,message,xp) VALUES(?,?,?,?,?,?,?)').bind(id,studentId,session.sub,title,description,message,xp).run();
+      if(xp>0)await env.RFIT_DB.prepare("INSERT OR IGNORE INTO student_xp_events(id,user_id,event_key,event_type,description,xp,source_at) VALUES(?,?,?,'special_achievement',?,?,CURRENT_TIMESTAMP)").bind(crypto.randomUUID(),studentId,'manual-award:'+id,'Conquista especial: '+title,xp).run();
+      await env.RFIT_DB.prepare("INSERT OR IGNORE INTO student_achievement_unlocks(id,user_id,achievement_code,unlocked_at,xp_awarded) VALUES(?,?,?,CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,'manual:'+id,xp).run();
+      await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app','achievement_unlocked',?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,JSON.stringify({title:'Você recebeu uma conquista especial!',message:message||title+(xp?' — você ganhou '+xp+' XP.':''),url:'/student/pages/portal/journey/index.html'}),'manual-achievement:'+id).run();
+      await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'student.achievement_awarded','user',studentId,JSON.stringify({award_id:id,title,xp})).run();
+      return Response.json({ok:true,id},{status:201,headers:noStore});
     }
 
     /* ===== PERFIL COMPLETO DO ALUNO ===== */
