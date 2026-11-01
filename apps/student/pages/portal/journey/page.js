@@ -6,7 +6,14 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const groups={overview:['#journey-anamnesis','.journey-metrics','.journey-content-grid'],evolution:['#journey-monthly-summary','.journey-comparison','#journey-timeline'],assessment:['#student-advanced-assessment'],progress:['.journey-goals','#journey-goal-modal','.journey-photos','.journey-report-actions'],achievements:['.journey-achievements'],notes:['#journey-professional-notes','#journey-anamnesis-update']};
   Object.entries(groups).forEach(([key,selectors],index)=>{const panel=document.createElement('section');panel.className='journey-tab-panel'+(index===0?' is-active':'');panel.dataset.journeyPanel=key;panel.hidden=index!==0;selectors.forEach(selector=>{const node=document.querySelector(selector);if(node)panel.append(node)});root.append(panel)});
   const nav=document.querySelector('.journey-tabs');nav?.querySelectorAll('[data-journey-tab]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.journeyTab;nav.querySelectorAll('[data-journey-tab]').forEach(item=>{const active=item===button;item.classList.toggle('is-active',active);item.setAttribute('aria-selected',String(active))});root.querySelectorAll('[data-journey-panel]').forEach(panel=>{const active=panel.dataset.journeyPanel===key;panel.classList.toggle('is-active',active);panel.hidden=!active});}));
-  const activateHash=()=>{if(location.hash==='#student-advanced-assessment'){nav?.querySelector('[data-journey-tab="assessment"]')?.click()}};
+  const activateHash=()=>{
+    if(location.hash==='#student-advanced-assessment'){nav?.querySelector('[data-journey-tab="assessment"]')?.click();return;}
+    if(location.hash==='#journey-timeline'){
+      nav?.querySelector('[data-journey-tab="evolution"]')?.click();
+      window.setTimeout(()=>document.getElementById('journey-timeline')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+    }
+  };
+  document.querySelectorAll('a[href="#journey-timeline"]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();if(location.hash!=='#journey-timeline')history.pushState(null,'','#journey-timeline');activateHash();}));
   window.addEventListener('hashchange',activateHash);activateHash();root.dataset.ready='1';
  };
  organizeJourneyTabs();
