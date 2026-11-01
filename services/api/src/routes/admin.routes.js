@@ -148,6 +148,9 @@ export async function adminRoutes(request, env, url) {
       const notes=[String(body.notes||'').trim(),bmr?('Gasto calórico basal: '+bmr+' kcal'):null].filter(Boolean).join(' | ').slice(0,1200);
       assessmentStage='measurement_insert';
       await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at,notes) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),studentId,weight,student.height_cm||null,waist,bmr,measuredAt,notes||null).run();
+      const assessmentId=crypto.randomUUID();
+      await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at,notes) VALUES (?,?,?,?,?,?,?,?)').bind(assessmentId,studentId,weight,student.height_cm||null,waist,bmr,measuredAt,notes||null).run();
+      await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app',?,?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,'new_assessment',JSON.stringify({title:'Nova avaliação registrada',message:'Seu professor registrou uma nova avaliação física.',url:'/student/pages/portal/journey/index.html'}),'assessment:'+assessmentId).run();
       assessmentStage='profile_update';
       if(weight!==null)await env.RFIT_DB.prepare('UPDATE student_profiles SET weight_kg=? WHERE user_id=?').bind(weight,studentId).run();
       return Response.json({ok:true},{headers:noStore});
@@ -214,6 +217,7 @@ export async function adminRoutes(request, env, url) {
         }
       }
       await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'workout.created','student',studentId,JSON.stringify({workout_id:id,title})).run();
+      await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app',?,?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,'workout_published',JSON.stringify({title:'Novo treino disponível',message:'Seu professor publicou o treino: '+title,url:'/student/pages/portal/training/index.html'}),'workout:'+id).run();
       return Response.json({ok:true,id},{status:201,headers:noStore});
     }
 
@@ -234,6 +238,7 @@ export async function adminRoutes(request, env, url) {
         await env.RFIT_DB.prepare('INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,index+1,name,JSON.stringify(items.map(v=>String(v).slice(0,300))),String(meal.notes||'').slice(0,500)).run();
       }
       await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'diet.created','student',studentId,JSON.stringify({diet_id:id,title})).run();
+      await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app',?,?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,'diet_updated',JSON.stringify({title:'Sua dieta foi atualizada',message:'Seu professor publicou o plano alimentar: '+title,url:'/student/pages/portal/diet/index.html'}),'diet:'+id).run();
       return Response.json({ok:true,id},{status:201,headers:noStore});
     }
 
@@ -376,6 +381,7 @@ export async function adminRoutes(request, env, url) {
       const id=crypto.randomUUID();
       await env.RFIT_DB.prepare("INSERT INTO student_journey_notes(id,user_id,author_user_id,note) VALUES(?,?,?,?)").bind(id,studentId,session.sub,note).run();
       await env.RFIT_DB.prepare("INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,'journey.note_added','student',studentId,JSON.stringify({note_id:id})).run();
+      await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app',?,?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,'professor_guidance',JSON.stringify({title:'Nova orientação do professor',message:'Seu professor deixou uma orientação na sua jornada.',url:'/student/pages/portal/journey/index.html'}),'guidance:'+id).run();
       return Response.json({ok:true,id},{status:201,headers:noStore});
     }
 
