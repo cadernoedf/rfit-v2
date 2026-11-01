@@ -23,6 +23,7 @@ export async function adminRoutes(request, env, url) {
   const planMatch = url.pathname.match(/^\/api\/professor\/plans\/([^/]+)$/);
   const isPlanItem = Boolean(planMatch);
   const isStudentStatus = /^\/api\/professor\/students\/[^/]+\/status$/.test(url.pathname);
+  const studentSubscriptionMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/subscription$/);
   const testAccessMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/test-access$/);
   const isTestAccess = Boolean(testAccessMatch);
   const journeyNoteMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/journey-notes$/);
@@ -33,7 +34,7 @@ export async function adminRoutes(request, env, url) {
   const isAdvancedAssessment = Boolean(advancedAssessmentMatch);
 
 
-  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(isAdvancedAssessment && ['GET','POST'].includes(request.method)) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'PATCH' && studentSubscriptionMatch) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(isAdvancedAssessment && ['GET','POST'].includes(request.method)) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -435,6 +436,21 @@ export async function adminRoutes(request, env, url) {
       await env.RFIT_DB.prepare("INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)")
         .bind(crypto.randomUUID(),session.sub,'temporary_test_access_granted','user',id,JSON.stringify({days:30,expires_at:expires,provider:'manual_test'})).run();
       return Response.json({ok:true,expires_at:expires,days:30},{headers:noStore});
+    }
+    if (studentSubscriptionMatch && request.method === 'PATCH') {
+      const studentId=decodeURIComponent(studentSubscriptionMatch[1]),body=await request.json();
+      const student=await env.RFIT_DB.prepare("SELECT id FROM users WHERE id=? AND role='student'").bind(studentId).first();
+      if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
+      const plan=await env.RFIT_DB.prepare("SELECT id,duration_days,lifetime FROM plans WHERE id=? AND is_active=1").bind(String(body.plan_id||'')).first();
+      if(!plan)return Response.json({ok:false,error:'plan_not_found'},{status:404,headers:noStore});
+      const lifetime=body.lifetime===true||Number(plan.lifetime)===1;
+      const now=new Date(),expires=lifetime?null:(Number(plan.duration_days)>0?new Date(now.getTime()+Number(plan.duration_days)*86400000).toISOString():null);
+      const current=await env.RFIT_DB.prepare("SELECT id FROM subscriptions WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(studentId).first();
+      if(current)await env.RFIT_DB.prepare("UPDATE subscriptions SET plan_id=?,status='active',starts_at=?,expires_at=?,lifetime=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(plan.id,now.toISOString(),expires,lifetime?1:0,current.id).run();
+      else await env.RFIT_DB.prepare("INSERT INTO subscriptions(id,user_id,plan_id,status,starts_at,expires_at,lifetime) VALUES(?,?,?,'active',?,?,?)").bind(crypto.randomUUID(),studentId,plan.id,now.toISOString(),expires,lifetime?1:0).run();
+      await env.RFIT_DB.prepare("UPDATE users SET status='active',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(studentId).run();
+      await env.RFIT_DB.prepare("INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,'student.plan_changed','user',studentId,JSON.stringify({plan_id:plan.id,lifetime})).run();
+      return Response.json({ok:true},{headers:noStore});
     }
     if (isStudentStatus && request.method === 'PATCH') {
       const id=decodeURIComponent(url.pathname.split('/')[4]); const body=await request.json();
