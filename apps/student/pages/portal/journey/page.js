@@ -375,13 +375,15 @@ document.addEventListener('DOMContentLoaded',async()=>{
     compareResult.replaceChildren();pair.forEach(item=>{const photo=journeyPhotos.find(row=>row.id===item.id);if(!photo)return;const figure=document.createElement('figure'),image=document.createElement('img'),caption=document.createElement('figcaption');image.loading='lazy';image.alt='Foto '+item.label;image.src='/api/student/journey/photos/'+encodeURIComponent(photo.id)+'/image';caption.textContent=item.label+' · '+dateText(photo.taken_at);figure.append(image,caption);compareResult.append(figure);});compareResult.hidden=false;
   });
   // Resumo do mês atual, calculado sem criar ou alterar registros.
-  const monthNow=new Date(),monthKey=monthNow.getFullYear()+'-'+String(monthNow.getMonth()+1).padStart(2,'0');
-  const inMonth=value=>String(value||'').slice(0,7)===monthKey;
+  const monthNow=new Date();
+  const localMonthKey=date=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(date);return parts.find(part=>part.type==='year').value+'-'+parts.find(part=>part.type==='month').value;};
+  const monthKey=localMonthKey(monthNow);
+  const inMonth=value=>{if(!value)return false;const parsed=new Date(value);return Number.isNaN(parsed.getTime())?String(value).slice(0,7)===monthKey:localMonthKey(parsed)===monthKey;};
   const monthCheckins=checkins.filter(item=>inMonth(item.created_at||item.checkin_date)).length;
   const monthMeasurements=measurements.filter(item=>inMonth(item.measured_at||item.created_at)).length;
   const monthPhotos=journeyPhotos.filter(item=>inMonth(item.taken_at||item.created_at)).length;
   const monthCompleted=currentGoals.filter(item=>item.status==='completed'&&inMonth(item.completed_at)).length;
-  set('journey-month-label',monthNow.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
+  set('journey-month-label',new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric',timeZone:'America/Sao_Paulo'}).format(monthNow));
   set('journey-month-checkins',String(monthCheckins));set('journey-month-measurements',String(monthMeasurements));set('journey-month-photos',String(monthPhotos));set('journey-month-goals',String(monthCompleted));
   const highlight=document.getElementById('journey-month-highlight');
   if(highlight){const total=monthCheckins+monthMeasurements+monthPhotos;highlight.textContent=total>0?'Neste mês: '+monthCheckins+' check-ins · '+monthMeasurements+' avaliações · '+monthPhotos+' fotos ('+total+' registros no total).':'Seu mês está começando. O próximo registro será o primeiro deste período.';}
