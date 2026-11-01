@@ -2,6 +2,24 @@
 import {getCurrentUser,logout} from '../../../../shared/js/api-client.js';
 document.addEventListener('DOMContentLoaded',async()=>{
  const welcome=document.querySelector('#student-welcome'),message=document.querySelector('#page-message');
+ const achievementPopover=document.getElementById('home-achievement-popover');
+ const achievementBell=document.getElementById('home-achievement-bell');
+ const closeAchievements=()=>{if(achievementPopover)achievementPopover.hidden=true;achievementBell?.setAttribute('aria-expanded','false');};
+ const loadHomeGamification=async()=>{
+  try{
+   const response=await fetch('/api/student/gamification',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'gamification_unavailable');
+   const xp=Number(data.xp||0);
+   const level=document.getElementById('home-achievement-level');if(level)level.textContent=String(data.level||1);
+   const title=document.getElementById('home-achievement-title');if(title)title.textContent='Nível '+data.level+' · '+data.level_name;
+   const total=document.getElementById('home-achievement-xp');if(total)total.textContent=xp.toLocaleString('pt-BR')+' XP acumulados';
+   const bar=document.getElementById('home-achievement-progress');if(bar)bar.style.width=(data.progress_percent||0)+'%';
+   const next=document.getElementById('home-achievement-next');if(next)next.textContent=data.next_level?'Faltam '+Number(data.next_level.remaining).toLocaleString('pt-BR')+' XP para '+data.next_level.name:'Nível máximo alcançado!';
+   const list=document.getElementById('home-achievement-recent');if(list){list.replaceChildren();const recent=(data.achievements||[]).filter(item=>item.unlocked).sort((a,b)=>new Date(b.unlocked_at)-new Date(a.unlocked_at)).slice(0,3);if(!recent.length){const empty=document.createElement('small');empty.textContent='Suas primeiras conquistas aparecerão aqui.';list.append(empty);}else recent.forEach(item=>{const row=document.createElement('article'),icon=document.createElement('span'),copy=document.createElement('div'),name=document.createElement('strong'),earned=document.createElement('small');icon.textContent=item.icon;name.textContent=item.title;earned.textContent='+'+item.xp+' XP';copy.append(name,earned);row.append(icon,copy);list.append(row);});}
+  }catch(error){console.warn('home_gamification_unavailable',error);}
+ };
+ achievementBell?.addEventListener('click',async()=>{const opening=achievementPopover?.hidden===true;if(!achievementPopover)return;if(opening){closeNotifications();achievementPopover.hidden=false;achievementBell.setAttribute('aria-expanded','true');await loadHomeGamification();}else closeAchievements();});
+ document.getElementById('home-achievement-close')?.addEventListener('click',closeAchievements);
  const notificationList=document.getElementById('home-notification-list');
  const notificationPopover=document.getElementById('home-notification-popover');
  const notificationBell=document.getElementById('home-notification-bell');
@@ -37,8 +55,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
  readAllButton?.addEventListener('click',async()=>{readAllButton.disabled=true;try{const response=await fetch('/api/student/notifications/read-all',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}});if(response.ok)await renderHomeNotifications();}finally{readAllButton.disabled=false;}});
  notificationBell?.addEventListener('click',async()=>{const opening=notificationPopover?.hidden===true;if(!notificationPopover)return;if(opening){notificationPopover.hidden=false;notificationBell.setAttribute('aria-expanded','true');await renderHomeNotifications();}else closeNotifications();});
  document.getElementById('home-notification-close')?.addEventListener('click',closeNotifications);
- document.addEventListener('click',event=>{if(notificationPopover&&!notificationPopover.hidden&&!event.target.closest('.home-notification-wrap'))closeNotifications();});
- document.addEventListener('keydown',event=>{if(event.key==='Escape')closeNotifications();});
+ document.addEventListener('click',event=>{if(!event.target.closest('.home-notification-wrap')){closeNotifications();closeAchievements();}});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeNotifications();closeAchievements();}});
  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
  const fmt=(v,unit='')=>v===null||v===undefined||v===''||!Number.isFinite(Number(v))?'—':String(v).replace('.',',')+unit;
  const dateFmt=value=>{if(!value)return 'Sem avaliação registrada';const d=new Date(value);return Number.isNaN(d.getTime())?'':'Atualizado em '+d.toLocaleDateString('pt-BR')};
@@ -46,6 +64,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const auth=await getCurrentUser();if(auth.user.role!=='student'){location.replace('/professor/');return}
   welcome.textContent='Olá, '+(auth.user.name||auth.user.email)+'.';
   renderHomeNotifications();
+  loadHomeGamification();
   const response=await fetch('/api/student/dashboard',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'dashboard_unavailable');
   const student=data.student||{},name=student.name||auth.user.name||'Aluno';
