@@ -62,10 +62,30 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
   const orderedMeasurements=[...measurements].sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0));
-  const firstMeasurement=orderedMeasurements[0]||null,lastMeasurement=orderedMeasurements[orderedMeasurements.length-1]||null;
-  const comparisonRows=[['Peso','weight_kg',' kg'],['Abdômen','waist_cm',' cm'],['Gordura corporal','body_fat_pct','%'],['Massa magra','lean_mass_kg',' kg']];
+  const lastMeasurement=orderedMeasurements[orderedMeasurements.length-1]||null;
+  // O ponto de partida vem da anamnese; o valor atual vem da última avaliação do professor.
+  const readBaseline=(needles)=>{
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const wanted=needles.map(normalize),seen=new Set();
+    const visit=(node,depth=0)=>{
+      if(!node||typeof node!=='object'||depth>8||seen.has(node))return null;seen.add(node);
+      for(const [key,value] of Object.entries(node)){
+        const k=normalize(key);
+        if(wanted.some(term=>k===term||k.includes(term))){
+          const raw=typeof value==='object'&&value!==null?(value.value??value.answer??value.resposta??value.response??value.valor):value;
+          const number=typeof raw==='number'?raw:Number(String(raw??'').replace(',','.').replace(/[^0-9.-]/g,''));
+          if(Number.isFinite(number)&&number>0)return number;
+        }
+      }
+      for(const value of Object.values(node)){const found=visit(value,depth+1);if(found!==null)return found;}
+      return null;
+    };
+    return visit(data.anamnesis_answers);
+  };
+  const baseline={weight_kg:readBaseline(['weight_kg','weight','peso_inicial','peso_atual','peso']),waist_cm:readBaseline(['waist_cm','waist','cintura','circunferencia_abdominal','abdomen'])};
+  const comparisonRows=[['Peso','weight_kg',' kg'],['Abdômen','waist_cm',' cm']];
   const comparisonRoot=document.querySelector('.journey-comparison-rows');
-  if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=firstMeasurement?.[key],last=lastMeasurement?.[key];if(first===null||first===undefined||last===null||last===undefined)return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será preenchido quando houver duas avaliações do professor com medidas disponíveis.';comparisonRoot.append(empty)}}
+  if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=baseline[key],last=lastMeasurement?.[key];if(first===null||first===undefined||last===null||last===undefined||!Number.isFinite(Number(first))||!Number.isFinite(Number(last)))return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será exibido quando houver dados iniciais na anamnese e uma avaliação do professor.';comparisonRoot.append(empty)}}
   set('journey-record-count',String(measurements.length)+' avaliações · '+checkins.length+' check-ins');
   // Evolução corporal: exclusivamente avaliações registradas pelo professor.
   const evaluationPoints=orderedMeasurements.map(row=>({...row,source:'evaluation'}));
