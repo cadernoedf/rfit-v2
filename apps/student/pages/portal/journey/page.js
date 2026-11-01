@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(captionNode)captionNode.textContent=metric.label+(metric.unit?' · '+metric.unit:'')+' · '+points.length+' '+(points.length===1?'registro':'registros')+(activeMetric==='weight'?' (check-ins e avaliações)':activeMetric==='bmi'?' (calculado por registro)':' do professor');
     if(!chartNode)return;
     if(!points.length){chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">↗</span><strong>Seu histórico está começando</strong><p>Assim que seu personal registrar avaliações com este indicador, a evolução aparecerá aqui.</p></div>';return;}
-    if(points.length===1){const p=points[0];chartNode.innerHTML='<div class="journey-chart-empty"><span aria-hidden="true">✓</span><strong>Primeira avaliação registrada</strong><p>'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+' · '+chartDate(p.date)+'. Registros seguintes formarão a linha de evolução.</p></div>';return;}
+    if(points.length===1){const p=points[0],y=92;chartNode.innerHTML='<svg viewBox="0 0 760 205" role="img" aria-label="Primeiro registro de '+metric.label+'"><line x1="38" y1="170" x2="722" y2="170" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="92" x2="722" y2="92" stroke="#e9edf3" stroke-dasharray="3 5"/><line x1="38" y1="20" x2="722" y2="20" stroke="#e9edf3" stroke-dasharray="3 5"/><circle cx="380" cy="'+y+'" r="8" fill="#fff" stroke="'+metric.color+'" stroke-width="4"/><text x="380" y="68" text-anchor="middle" fill="#273043" font-size="15" font-weight="800">'+p.value.toLocaleString('pt-BR')+(metric.unit?' '+metric.unit:'')+'</text><text x="380" y="194" text-anchor="middle" fill="#7b8494" font-size="11">'+chartDate(p.date)+'</text></svg><div class="journey-chart-empty"><strong>Primeiro registro realizado</strong><p>O ponto já mostra sua medida inicial. Com a próxima avaliação, aparecerá a linha de evolução.</p></div>';return;}
     const vals=points.map(p=>p.value),min=Math.min(...vals),max=Math.max(...vals),spread=max-min||Math.max(Math.abs(max)*.08,1),lo=min-spread*.18,hi=max+spread*.18;
     const x=i=>38+i*(684/(points.length-1)),y=v=>20+(1-(v-lo)/(hi-lo))*145;
     const coords=points.map((p,i)=>x(i)+','+y(p.value)).join(' ');
@@ -250,10 +250,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const calendarNode=document.getElementById('journey-checkin-calendar');
   if(calendarNode){
     calendarNode.replaceChildren();
-    const activeDays=new Set(checkins.map(item=>String(item.created_at||item.checkin_date||'').slice(0,10)).filter(value=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)));
-    const today=new Date();today.setHours(0,0,0,0);
-    for(let offset=83;offset>=0;offset--){
-      const day=new Date(today);day.setDate(today.getDate()-offset);
+    const activeDays=new Set(checkins.map(item=>String(item.created_at||item.checkin_date||'').slice(0,10)).filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value)));
+    const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const calendarStart=new Date(today);calendarStart.setDate(today.getDate()-mondayOffset-77);
+    for(let offset=0;offset<84;offset++){
+      const day=new Date(calendarStart);day.setDate(calendarStart.getDate()+offset);
       const key=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
       const cell=document.createElement('span');cell.className='journey-calendar-day'+(activeDays.has(key)?' is-active':'');cell.title=day.toLocaleDateString('pt-BR')+(activeDays.has(key)?' · Check-in realizado':' · Sem check-in');cell.setAttribute('aria-label',cell.title);calendarNode.append(cell);
     }
