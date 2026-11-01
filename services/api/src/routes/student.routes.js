@@ -236,7 +236,7 @@ export async function studentRoutes(request, env, url) {
       try{
         const [result,measurement,profile,dailyWeight]=await Promise.all([
           env.RFIT_DB.prepare("SELECT id,metric,title,start_value,target_value,unit,notes,status,created_at,updated_at,completed_at FROM student_journey_goals WHERE user_id=? ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END,created_at DESC").bind(session.sub).all(),
-          env.RFIT_DB.prepare("SELECT weight_kg,waist_cm,body_fat_pct,measured_at AS recorded_at FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 1").bind(session.sub).first(),
+          env.RFIT_DB.prepare("SELECT weight_kg,waist_cm,body_fat_pct,measured_at AS recorded_at FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 1").bind(session.sub).first(),
           env.RFIT_DB.prepare("SELECT weight_kg FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first(),
           env.RFIT_DB.prepare("SELECT weight_kg,created_at AS recorded_at FROM daily_checkins WHERE user_id=? AND weight_kg IS NOT NULL ORDER BY checkin_date DESC,created_at DESC LIMIT 1").bind(session.sub).first()
         ]);
@@ -268,7 +268,7 @@ export async function studentRoutes(request, env, url) {
         const target=body.target_value===null||body.target_value===''||body.target_value===undefined?null:Number(body.target_value);
         if(start===null&&['weight','waist','body_fat'].includes(metric)){
           const field=metric==='weight'?'weight_kg':metric==='waist'?'waist_cm':'body_fat_pct';
-          const latest=await env.RFIT_DB.prepare("SELECT "+field+" AS current_value FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 1").bind(session.sub).first();
+          const latest=await env.RFIT_DB.prepare("SELECT "+field+" AS current_value FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 1").bind(session.sub).first();
           if(latest?.current_value!==null&&latest?.current_value!==undefined)start=Number(latest.current_value);
           else if(metric==='weight'){
             const profile=await env.RFIT_DB.prepare("SELECT weight_kg AS current_value FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first();
