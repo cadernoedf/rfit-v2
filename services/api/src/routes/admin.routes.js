@@ -89,7 +89,7 @@ export async function adminRoutes(request, env, url) {
       }
       const body=await request.json();
       const measuredAt=String(body.measured_at||'');
-      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(measuredAt))return Response.json({ok:false,error:'invalid_date'},{status:400,headers:noStore});
+      if(!/^\d{4}-\\d{2}-\\d{2}$/.test(measuredAt))return Response.json({ok:false,error:'invalid_date'},{status:400,headers:noStore});
       const num=(v,min,max)=>v===''||v===null||v===undefined?null:(Number.isFinite(Number(v))&&Number(v)>=min&&Number(v)<=max?Number(v):NaN);
       const fields={weight_kg:[body.weight_kg,1,500],height_cm:[body.height_cm,80,250],neck_cm:[body.neck_cm,10,100],shoulder_cm:[body.shoulder_cm,20,200],chest_cm:[body.chest_cm,20,250],waist_cm:[body.waist_cm,20,250],abdomen_cm:[body.abdomen_cm,20,300],hip_cm:[body.hip_cm,20,250],right_arm_cm:[body.right_arm_cm,5,100],left_arm_cm:[body.left_arm_cm,5,100],right_forearm_cm:[body.right_forearm_cm,5,80],left_forearm_cm:[body.left_forearm_cm,5,80],right_thigh_cm:[body.right_thigh_cm,10,150],left_thigh_cm:[body.left_thigh_cm,10,150],right_calf_cm:[body.right_calf_cm,10,100],left_calf_cm:[body.left_calf_cm,10,100]};
       const values={};for(const [key,[v,min,max]] of Object.entries(fields)){values[key]=num(v,min,max);if(Number.isNaN(values[key]))return Response.json({ok:false,error:'invalid_'+key},{status:400,headers:noStore});}
