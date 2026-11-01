@@ -44,9 +44,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const firstValue=keys=>{for(const row of rows){for(const key of keys){const value=Number(row?.[key]);if(Number.isFinite(value)&&value>0)return value;}}return null;};
    const latestValue=keys=>{for(let i=rows.length-1;i>=0;i--){for(const key of keys){const value=Number(rows[i]?.[key]);if(Number.isFinite(value)&&value>0)return value;}}return null;};
    const baselineWeight=findAnswer(['weight_kg','weight','peso_inicial','peso_atual','peso']);
-   const currentWeight=latestValue(['weight_kg'])??(Number.isFinite(Number(body.weight_kg))?Number(body.weight_kg):null);
+   const currentWeight=latestValue(['weight_kg']);
    const baselineWaist=firstValue(['waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm']);
-   const currentWaist=latestValue(['waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm'])??(Number.isFinite(Number(body.waist_cm))?Number(body.waist_cm):null);
+   const currentWaist=latestValue(['waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm']);
    const fmtDelta=(value,unit)=>Math.abs(value).toLocaleString('pt-BR',{maximumFractionDigits:1})+' '+unit;
    const start=[];
    if(baselineWeight!==null&&currentWeight!==null){const d=currentWeight-baselineWeight;start.push('Peso: '+(d===0?'sem alteração':fmtDelta(d,'kg')+(d<0?' a menos':' a mais')));}
