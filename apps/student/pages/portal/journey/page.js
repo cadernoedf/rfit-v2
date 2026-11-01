@@ -60,11 +60,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
    set('journey-kcal',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?Math.round(Number(kcalValue)).toLocaleString('pt-BR')+' kcal':'—');
    set('journey-kcal-note',kcalValue!==null&&kcalValue!==''&&Number.isFinite(Number(kcalValue))?'Estimativa diária registrada':'Kcal por dia · não informado');
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
-  const weekStart=new Date();weekStart.setHours(0,0,0,0);weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));
-  const weekCheckins=checkins.filter(item=>{const raw=item.checkin_date||item.week_start||item.created_at;if(!raw)return false;const d=new Date(raw);return !Number.isNaN(d.getTime())&&d>=weekStart;}).length;
-  set('journey-week-checkins',String(weekCheckins));
-  set('journey-today-title',weekCheckins===0?'Sua semana está começando!':weekCheckins===1?'Você já deu o primeiro passo!':weekCheckins+' check-ins registrados nesta semana!');
-  set('journey-today-message',weekCheckins===0?'Registre seu check-in para acompanhar sua rotina. Suas medidas corporais são atualizadas nas avaliações do professor.':'Continue mantendo sua rotina. Seus check-ins mostram sua consistência; sua evolução corporal vem das avaliações do professor.');
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
   const orderedMeasurements=[...measurements].sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0));
   const lastMeasurement=orderedMeasurements[orderedMeasurements.length-1]||null;
@@ -94,7 +89,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const latestValue=(...keys)=>{for(let i=orderedMeasurements.length-1;i>=0;i--){for(const key of keys){const value=orderedMeasurements[i]?.[key];if(value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0)return Number(value);}}return null;};
   const currentValues={weight_kg:latestValue('weight_kg'),waist_cm:latestValue('waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm'),bmi:latestValue('bmi'),basal_kcal:latestValue('basal_kcal','bmr_kcal','kcal')};
   if(!currentValues.bmi&&currentValues.weight_kg){const h=latestValue('height_cm')||baselineHeight;if(h){const hm=h>3?h/100:h;currentValues.bmi=Math.round(currentValues.weight_kg/(hm*hm)*10)/10;}}
-  const comparisonRows=[['IMC','bmi','']];
+  const comparisonRows=[['Peso','weight_kg',' kg'],['Abdômen','waist_cm',' cm'],['IMC','bmi','']];
   const comparisonRoot=document.querySelector('.journey-comparison-rows');
   if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=baseline[key],last=currentValues[key];if(first===null||first===undefined||last===null||last===undefined||!Number.isFinite(Number(first))||!Number.isFinite(Number(last)))return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será exibido quando houver dados iniciais na anamnese e avaliações do professor.';comparisonRoot.append(empty)}}
   set('journey-record-count',String(measurements.length)+' avaliações · '+checkins.length+' check-ins');
