@@ -59,10 +59,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const evaluationPoints=measurements.map(row=>({...row,source:'evaluation'}));
   const combinedWeightHistory=[...evaluationPoints,...checkinWeightPoints].sort((x,y)=>new Date(x.measured_at)-new Date(y.measured_at));
   const chartMetrics={
-    weight:{label:'Peso corporal',unit:'kg',color:'#7650ee',value:r=>Number(r.weight_kg),source:'all'},
+    weight:{label:'Peso corporal',unit:'kg',color:'#ef3348',value:r=>Number(r.weight_kg),source:'all'},
     waist:{label:'Circunferência abdominal',unit:'cm',color:'#f08a35',value:r=>Number(r.waist_cm),source:'evaluation'},
     bmi:{label:'Índice de massa corporal',unit:'',color:'#2997dc',value:r=>Number(r.bmi),source:'all'},
-    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#16a36a',value:r=>Number(r.basal_kcal),source:'evaluation'}
+    kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#2997dc',value:r=>Number(r.bmr_kcal??r.basal_kcal),source:'evaluation'}
   };
   let activeMetric='weight';
   const chartNode=document.getElementById('journey-chart'),captionNode=document.getElementById('journey-chart-caption');
