@@ -404,29 +404,32 @@ document.addEventListener('DOMContentLoaded',async()=>{
   };
   const nthDate=(records,n,field)=>{const sorted=[...records].sort((a,b)=>new Date(a[field]||a.created_at||a.checkin_date||0)-new Date(b[field]||b.created_at||b.checkin_date||0));return sorted[n-1]?(sorted[n-1][field]||sorted[n-1].created_at||sorted[n-1].checkin_date):null;};
   const achievementList=document.getElementById('journey-achievements-list');
-  const renderAchievements=()=>{
-    const streak=weekStreak(),completed=currentGoals.filter(goal=>goal.status==='completed'),firstPhoto=journeyPhotos.length?[...journeyPhotos].sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at))[0].taken_at:null;
-    const defs=[
-      {id:'first-checkin',icon:'✓',title:'Primeiro passo',desc:'Realizou seu primeiro check-in.',date:nthDate(checkins,1,'created_at')},
-      {id:'five-checkins',icon:'★',title:'Ritmo constante',desc:'Completou 5 check-ins.',date:nthDate(checkins,5,'created_at')},
-      {id:'ten-checkins',icon:'🏅',title:'Compromisso em ação',desc:'Completou 10 check-ins.',date:nthDate(checkins,10,'created_at')},
-      {id:'thirty-checkins',icon:'🏆',title:'30 passos de evolução',desc:'Completou 30 check-ins.',date:nthDate(checkins,30,'created_at')},
-      {id:'first-measurement',icon:'⚖',title:'Ponto de partida',desc:'Recebeu sua primeira avaliação corporal.',date:nthDate(measurements,1,'measured_at')},
-      {id:'five-measurements',icon:'📈',title:'Evolução acompanhada',desc:'Possui 5 avaliações corporais.',date:nthDate(measurements,5,'measured_at')},
-      {id:'first-goal',icon:'🎯',title:'Olhar no objetivo',desc:'Definiu sua primeira meta.',date:currentGoals.length?[...currentGoals].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0].created_at:null},
-      {id:'four-week-streak',icon:'🔥',title:'Quatro semanas firmes',desc:'Registrou check-ins em 4 semanas consecutivas.',date:streak.count>=4?streak.end:null},
-      {id:'eight-week-streak',icon:'🌟',title:'Constância de verdade',desc:'Registrou check-ins em 8 semanas consecutivas.',date:streak.count>=8?streak.end:null},
-      {id:'first-photo',icon:'📸',title:'Minha transformação',desc:'Adicionou sua primeira foto de evolução.',date:firstPhoto},
-      {id:'goal-complete',icon:'🏁',title:'Meta alcançada',desc:'Concluiu um objetivo acompanhado por avaliações.',date:completed.length?[...completed].sort((a,b)=>new Date(a.completed_at)-new Date(b.completed_at))[0].completed_at:null},
-      {id:'ten-photos',icon:'🖼',title:'Álbum de evolução',desc:'Registrou 10 fotos de acompanhamento.',date:journeyPhotos.length>=10?[...journeyPhotos].sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at))[9].taken_at:null}
-    ];
-    const unlocked=defs.filter(item=>item.date).length;set('journey-achievement-count',unlocked+' de '+defs.length+' desbloqueadas');
-    if(achievementList){achievementList.replaceChildren();defs.forEach(item=>{const card=document.createElement('article');card.className='journey-achievement'+(item.date?'':' is-locked');const medal=document.createElement('span');medal.className='medal';medal.textContent=item.icon;const title=document.createElement('strong');title.textContent=item.title;const desc=document.createElement('small');desc.textContent=item.date?'Desbloqueada em '+dateText(item.date):item.desc;card.append(medal,title,desc);achievementList.append(card);});}
-    const points=checkins.length+measurements.length*2+journeyPhotos.length+completed.length*3;
-    const levels=[{min:0,name:'Iniciante'},{min:5,name:'Comprometido'},{min:15,name:'Constante'},{min:30,name:'Focado'},{min:50,name:'Conquistador'}];
-    let current=levels[0],next=null;levels.forEach((level,index)=>{if(points>=level.min){current=level;next=levels[index+1]||null;}});
-    set('journey-level',current.name);set('journey-level-next',next?'Faltam '+Math.max(0,next.min-points)+' pontos para '+next.name: 'Nível máximo alcançado. Continue evoluindo!');
-    const bar=document.getElementById('journey-level-progress');if(bar)bar.style.width=next?Math.min(100,((points-current.min)/(next.min-current.min))*100)+'%':'100%';
+  let gamificationState=null;
+  const renderAchievements=async()=>{
+    if(!achievementList)return;
+    try{
+      const response=await fetch('/api/student/gamification',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+      const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'gamification_unavailable');
+      gamificationState=data;
+      set('journey-achievement-count',data.unlocked_count+' de '+data.total_achievements+' desbloqueadas');
+      set('journey-level',data.level_name);
+      set('journey-level-number',String(data.level));
+      set('journey-xp-total',Number(data.xp||0).toLocaleString('pt-BR')+' XP acumulados');
+      set('journey-level-next',data.next_level?'Faltam '+Number(data.next_level.remaining).toLocaleString('pt-BR')+' XP para '+data.next_level.name:'Nível máximo alcançado. Continue evoluindo!');
+      set('journey-level-percent',data.next_level?data.progress_percent+'% para o próximo nível':'100% · Nível máximo');
+      const bar=document.getElementById('journey-level-progress');if(bar)bar.style.width=(data.progress_percent||0)+'%';
+      achievementList.replaceChildren();
+      data.achievements.forEach(item=>{
+        const card=document.createElement('article');card.className='journey-achievement'+(item.unlocked?'':' is-locked');
+        const medal=document.createElement('span');medal.className='medal';medal.textContent=item.icon;
+        const title=document.createElement('strong');title.textContent=item.title;
+        const desc=document.createElement('small');desc.textContent=item.unlocked?'Desbloqueada em '+dateText(item.unlocked_at)+' · +'+item.xp+' XP':item.description;
+        card.append(medal,title,desc);achievementList.append(card);
+      });
+    }catch(error){
+      achievementList.innerHTML='<p class="journey-muted">Não foi possível carregar suas conquistas agora. Tente novamente mais tarde.</p>';
+      console.warn('journey_gamification_load_failed',error);
+    }
   };
   renderAchievements();
 
