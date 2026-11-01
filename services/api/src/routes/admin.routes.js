@@ -97,7 +97,7 @@ export async function adminRoutes(request, env, url) {
       const skin={};for(const key of skinKeys){const v=num(body.skinfolds?.[key],1,100);if(Number.isNaN(v))return Response.json({ok:false,error:'invalid_skinfold'},{status:400,headers:noStore});if(v!==null)skin[key]=v;}
       let density=null,bodyFat=null,fatMass=null,leanMass=null;
       if(body.skinfold_protocol){
-        if(body.skinfold_protocol!=='pollock7'||Object.keys(skin).length!==7||!['m','f'].includes(String(body.sex||'').toLowerCase()))return Response.json({ok:false,error:'pollock7_requires_sex_and_seven_sites'},{status:400,headers:noStore});
+        if(body.skinfold_protocol!=='pollock7'||Object.keys(skin).length!==7)return Response.json({ok:false,error:'pollock7_requires_seven_sites'},{status:400,headers:noStore});
         const profile=await env.RFIT_DB.prepare('SELECT birth_date,sex,height_cm FROM student_profiles WHERE user_id=?').bind(studentId).first();
         let assessmentSex=String(body.sex||profile?.sex||'').toLowerCase();
         if(!['m','f'].includes(assessmentSex)){
