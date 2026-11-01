@@ -869,3 +869,30 @@ a.overview-metric-card:hover{transform:translateY(-2px);border-color:#f1a2ad;box
 .professor-plans .admin-form input:not([type=checkbox]),.professor-plans .admin-form textarea,.professor-settings .admin-form input:not([type=checkbox]),.professor-settings .admin-form textarea,.professor-settings .admin-form select{width:100%;min-height:42px;padding:10px 12px;border:1px solid #dce2eb;border-radius:9px;background:#fff;color:#18202d}
 .professor-plans .admin-form .primary-button,.professor-settings .admin-form .primary-button{width:auto;min-width:160px}.professor-settings .settings-announcements{margin-top:24px;padding:20px;border:1px solid #e2e7ef;border-radius:14px;background:#fff}.professor-settings .settings-announcements h2{margin:6px 0;color:#18202d}
 @media(max-width:700px){.professor-plans .plan-row{align-items:flex-start;flex-direction:column}.professor-plans .plan-actions{width:100%}.professor-plans .plan-actions .secondary-button{flex:1}}
+
+
+/* Student portal: consistent light scrollbars for popovers, dialogs and inner panels. */
+body.student-body,
+body.student-body * {
+  scrollbar-color: #c5cbd5 #f1f3f6;
+  scrollbar-width: thin;
+}
+body.student-body *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+body.student-body *::-webkit-scrollbar-track {
+  background: #f1f3f6;
+  border-radius: 10px;
+}
+body.student-body *::-webkit-scrollbar-thumb {
+  background: #c5cbd5;
+  border: 2px solid #f1f3f6;
+  border-radius: 10px;
+}
+body.student-body *::-webkit-scrollbar-thumb:hover {
+  background: #9da6b4;
+}
+body.student-body *::-webkit-scrollbar-corner {
+  background: #f1f3f6;
+}
