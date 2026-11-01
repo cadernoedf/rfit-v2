@@ -212,7 +212,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const averageField=field=>{const values=dailyCheckins.map(item=>Number(item[field])).filter(value=>Number.isFinite(value)&&value>=0&&value<=100);return values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):null;};
   const trainingAverage=averageField('training_adherence'),foodAverage=averageField('nutrition_adherence');
   let streak=0;
-  if(dailyDates.length){let cursor=new Date((dailyDates.includes(currentDayKey)?currentDayKey:dailyDates.includes(localDayKey(new Date(Date.now()-86400000)))?localDayKey(new Date(Date.now()-86400000)):dailyDates[0])+'T12:00:00Z');for(;;){const key=cursor.toISOString().slice(0,10);if(!dailyDates.includes(key))break;streak++;cursor.setUTCDate(cursor.getUTCDate()-1);}}
+  const yesterdayDate=new Date();yesterdayDate.setDate(yesterdayDate.getDate()-1);
+  const streakStart=dailyDates.includes(currentDayKey)?currentDayKey:localDayKey(yesterdayDate);
+  if(dailyDates.includes(streakStart)){let cursor=new Date(streakStart+'T12:00:00Z');for(;;){const key=cursor.toISOString().slice(0,10);if(!dailyDates.includes(key))break;streak++;cursor.setUTCDate(cursor.getUTCDate()-1);}}
   const setStat=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value;};
   setStat('journey-consistency-days',String(monthDailyDays));
   setStat('journey-consistency-training',trainingAverage===null?'—':trainingAverage+'%');
