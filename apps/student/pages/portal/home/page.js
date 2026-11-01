@@ -27,6 +27,38 @@ document.addEventListener('DOMContentLoaded',async()=>{
   set('home-workout-text',data.workout_available?'Novo treino disponível — confira sua prescrição.':'Seu treino aparecerá aqui quando for publicado.');
   set('home-diet-title',data.diet_title||'Minha dieta');
   set('home-diet-text',data.diet_available?'Sua dieta está disponível para consulta.':'Sua dieta aparecerá aqui quando for publicada.');
+  // Resumo da evolução na home: usa apenas anamnese e avaliações reais do professor.
+  try{
+   const measurementsResponse=await fetch('/api/student/measurements',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+   const measurementsData=measurementsResponse.ok?await measurementsResponse.json():{measurements:[]};
+   const rows=Array.isArray(measurementsData.measurements)?measurementsData.measurements.slice().sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0)):[];
+   const answers=data.anamnesis_answers||{};
+   const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+   const findAnswer=(needles)=>{
+    const wanted=needles.map(normalize),seen=new Set();
+    const visit=(node,depth=0)=>{if(!node||typeof node!=='object'||depth>8||seen.has(node))return null;seen.add(node);
+     for(const [key,value] of Object.entries(node)){if(wanted.some(term=>normalize(key)===term||normalize(key).includes(term))){const raw=value&&typeof value==='object'?(value.value??value.answer??value.resposta??value.response??value.valor):value;const number=typeof raw==='number'?raw:Number(String(raw??'').replace(',','.').replace(/[^0-9.-]/g,''));if(Number.isFinite(number)&&number>0)return number;}}
+     for(const value of Object.values(node)){const found=visit(value,depth+1);if(found!==null)return found;}return null;};
+    return visit(answers);
+   };
+   const firstValue=keys=>{for(const row of rows){for(const key of keys){const value=Number(row?.[key]);if(Number.isFinite(value)&&value>0)return value;}}return null;};
+   const latestValue=keys=>{for(let i=rows.length-1;i>=0;i--){for(const key of keys){const value=Number(rows[i]?.[key]);if(Number.isFinite(value)&&value>0)return value;}}return null;};
+   const baselineWeight=findAnswer(['weight_kg','weight','peso_inicial','peso_atual','peso']);
+   const currentWeight=latestValue(['weight_kg'])??(Number.isFinite(Number(body.weight_kg))?Number(body.weight_kg):null);
+   const baselineWaist=firstValue(['waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm']);
+   const currentWaist=latestValue(['waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm'])??(Number.isFinite(Number(body.waist_cm))?Number(body.waist_cm):null);
+   const fmtDelta=(value,unit)=>Math.abs(value).toLocaleString('pt-BR',{maximumFractionDigits:1})+' '+unit;
+   const start=[];
+   if(baselineWeight!==null&&currentWeight!==null){const d=currentWeight-baselineWeight;start.push('Peso: '+(d===0?'sem alteração':fmtDelta(d,'kg')+(d<0?' a menos':' a mais')));}
+   if(baselineWaist!==null&&currentWaist!==null){const d=currentWaist-baselineWaist;start.push('Abdômen: '+(d===0?'sem alteração':fmtDelta(d,'cm')+(d<0?' a menos':' a mais')));}
+   set('home-smart-summary-start',start.length?start.join(' · '):'Ainda faltam dados para comparar');
+   const cutoff=Date.now()-30*86400000,recent=rows.filter(row=>{const date=new Date(row.measured_at||row.created_at||0);return !Number.isNaN(date.getTime())&&date.getTime()>=cutoff;});
+   if(recent.length>=2){const first=recent[0],last=recent[recent.length-1],delta=(keys)=>{const get=row=>{for(const key of keys){const n=Number(row?.[key]);if(Number.isFinite(n)&&row?.[key]!==null&&row?.[key]!=='' )return n;}return null;};const a=get(first),b=get(last);return a===null||b===null?null:b-a;};const parts=[];const wd=delta(['weight_kg']),ad=delta(['waist_cm','abdomen_cm','abdominal_cm']);if(wd!==null)parts.push('peso '+(wd>0?'+':'')+fmtDelta(wd,'kg'));if(ad!==null)parts.push('abdômen '+(ad>0?'+':'')+fmtDelta(ad,'cm'));set('home-smart-summary-recent',parts.length?parts.join(' · '):'Avaliações registradas');}
+   else set('home-smart-summary-recent',recent.length===1?'1 avaliação registrada':'Nenhuma avaliação nos últimos 30 dias');
+   const latest=rows[rows.length-1];
+   if(latest){const date=new Date(latest.measured_at||latest.created_at||0),days=Math.max(0,Math.floor((Date.now()-date.getTime())/86400000));set('home-smart-summary-next',days>=45?'Considere agendar uma nova avaliação':'Continue registrando sua rotina');set('home-smart-summary-next-note',days>=45?'Sua última avaliação foi há '+days+' dias. Converse com seu personal sobre a próxima.':'Última avaliação: '+date.toLocaleDateString('pt-BR')+'.');}
+   else{set('home-smart-summary-next','Faça sua primeira avaliação');set('home-smart-summary-next-note','Seu personal poderá registrar as medidas para iniciar o histórico.');}
+  }catch(error){console.warn('home_evolution_summary_unavailable',error);}
   const reminder=document.querySelector('#anamnesis-reminder');
   const anamnesis=await fetch('/api/student/anamnesis/status',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);
   if(reminder&&anamnesis?.has_active_plan&&!anamnesis.completed)reminder.hidden=false;
