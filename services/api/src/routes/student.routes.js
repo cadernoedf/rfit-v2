@@ -78,6 +78,20 @@ export async function studentRoutes(request, env, url) {
       return reply({ok:false,error:'method_not_allowed'},405);
     } catch(error){console.error('student_support_messages_failed',error?.message||'unknown');return reply({ok:false,error:'support_unavailable'},503);}
   }
+  /* ===== AVALIAÇÕES FÍSICAS AVANÇADAS VISÍVEIS AO ALUNO ===== */
+  if (url.pathname === '/api/student/advanced-assessments') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method!=='GET')return reply({ok:false,error:'method_not_allowed'},405);
+    try{
+      const [subscription,rows]=await Promise.all([
+        env.RFIT_DB.prepare("SELECT p.code,p.name FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first(),
+        env.RFIT_DB.prepare("SELECT id,measured_at,weight_kg,height_cm,neck_cm,shoulder_cm,chest_cm,waist_cm,abdomen_cm,hip_cm,right_arm_cm,left_arm_cm,right_forearm_cm,left_forearm_cm,right_thigh_cm,left_thigh_cm,right_calf_cm,left_calf_cm,skinfold_protocol,skinfolds_json,body_density,body_fat_pct,fat_mass_kg,lean_mass_kg,bmi,waist_height_ratio,notes,created_at FROM advanced_assessments WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 100").bind(session.sub).all()
+      ]);
+      const premium=Boolean(subscription&&(String(subscription.code||'').toLowerCase().includes('premium')||String(subscription.name||'').toLowerCase().includes('premium')));
+      return reply({ok:true,is_premium:premium,has_active_plan:Boolean(subscription),assessments:rows.results||[]});
+    }catch(error){console.error('student_advanced_assessments_failed',error?.message||'unknown');return reply({ok:false,error:'advanced_assessments_unavailable'},503);}
+  }
   if (url.pathname === '/api/student/dashboard') {
     if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
     const session=await getSession(request,env);
