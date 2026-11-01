@@ -29,7 +29,11 @@ export async function adminRoutes(request, env, url) {
   const assessmentMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/measurements$/);
   const isJourneyNote = Boolean(journeyNoteMatch);
 
-  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
+  const advancedAssessmentMatch = url.pathname.match(/^\\/api\\/professor\\/students\\/([^/]+)\\/advanced-assessments$/);
+  const isAdvancedAssessment = Boolean(advancedAssessmentMatch);
+
+
+  if (request.method !== 'GET' && !(request.method === 'POST' && isSupportThread) && !(request.method === 'GET' && isFinance) && !(request.method === 'POST' && isStudentCollection) && !(request.method === 'GET' && studentDetailMatch) && !(request.method === 'DELETE' && studentDeleteMatch) && !(request.method === 'POST' && workoutCreateMatch) && !(request.method === 'POST' && dietCreateMatch) && !(request.method === 'POST' && isAnnouncementCollection) && !(request.method === 'PATCH' && isAnnouncementItem) && !(request.method === 'GET' && isSupportInbox) && !(request.method === 'GET' && isSupportThread) && !(request.method === 'PUT' && isSettings) && !(request.method === 'PATCH' && isStudentStatus) && !(request.method === 'POST' && isTestAccess) && !(request.method === 'POST' && isJourneyNote) && !(isAdvancedAssessment && ['GET','POST'].includes(request.method)) && !(request.method === 'POST' && assessmentMatch) && !(request.method === 'POST' && isPlanCollection) && !(request.method === 'PATCH' && isPlanItem)) return Response.json({ ok: false, error: 'method_not_allowed' }, { status: 405, headers: noStore });
 
   const session = await getSession(request, env);
   if (!session || !['professor', 'admin'].includes(session.role)) {
@@ -70,6 +74,46 @@ export async function adminRoutes(request, env, url) {
       ]);
       if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
       return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null,checkins:checkins.results||[],anamnesis:anamnesis||null,journey_notes:journeyNotes.results||[]},{headers:noStore});
+    }
+
+
+    /* AVALIAÇÃO FÍSICA AVANÇADA — EXCLUSIVA PREMIUM */
+    if (isAdvancedAssessment && ['GET','POST'].includes(request.method)) {
+      const studentId=decodeURIComponent(advancedAssessmentMatch[1]);
+      const premium=await env.RFIT_DB.prepare(`SELECT p.code,p.name FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1`).bind(studentId).first();
+      if(!premium || (!String(premium.code||'').toLowerCase().includes('premium') && !String(premium.name||'').toLowerCase().includes('premium'))) return Response.json({ok:false,error:'premium_required'},{status:403,headers:noStore});
+      if(request.method==='GET'){
+        const rows=await env.RFIT_DB.prepare('SELECT id,measured_at,weight_kg,height_cm,neck_cm,shoulder_cm,chest_cm,waist_cm,abdomen_cm,hip_cm,right_arm_cm,left_arm_cm,right_forearm_cm,left_forearm_cm,right_thigh_cm,left_thigh_cm,right_calf_cm,left_calf_cm,skinfold_protocol,skinfolds_json,body_density,body_fat_pct,fat_mass_kg,lean_mass_kg,bmi,waist_height_ratio,notes,created_at FROM advanced_assessments WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 100').bind(studentId).all();
+        return Response.json({ok:true,assessments:rows.results||[]},{headers:noStore});
+      }
+      const body=await request.json();
+      const measuredAt=String(body.measured_at||'');
+      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(measuredAt))return Response.json({ok:false,error:'invalid_date'},{status:400,headers:noStore});
+      const num=(v,min,max)=>v===''||v===null||v===undefined?null:(Number.isFinite(Number(v))&&Number(v)>=min&&Number(v)<=max?Number(v):NaN);
+      const fields={weight_kg:[body.weight_kg,1,500],height_cm:[body.height_cm,80,250],neck_cm:[body.neck_cm,10,100],shoulder_cm:[body.shoulder_cm,20,200],chest_cm:[body.chest_cm,20,250],waist_cm:[body.waist_cm,20,250],abdomen_cm:[body.abdomen_cm,20,300],hip_cm:[body.hip_cm,20,250],right_arm_cm:[body.right_arm_cm,5,100],left_arm_cm:[body.left_arm_cm,5,100],right_forearm_cm:[body.right_forearm_cm,5,80],left_forearm_cm:[body.left_forearm_cm,5,80],right_thigh_cm:[body.right_thigh_cm,10,150],left_thigh_cm:[body.left_thigh_cm,10,150],right_calf_cm:[body.right_calf_cm,10,100],left_calf_cm:[body.left_calf_cm,10,100]};
+      const values={};for(const [key,[v,min,max]] of Object.entries(fields)){values[key]=num(v,min,max);if(Number.isNaN(values[key]))return Response.json({ok:false,error:'invalid_'+key},{status:400,headers:noStore});}
+      const skinKeys=['triceps','biceps','pectoral','subscapular','midaxillary','suprailiac','abdominal','thigh','calf'];
+      const skin={};for(const key of skinKeys){const v=num(body.skinfolds?.[key],1,100);if(Number.isNaN(v))return Response.json({ok:false,error:'invalid_skinfold'},{status:400,headers:noStore});if(v!==null)skin[key]=v;}
+      let density=null,bodyFat=null,fatMass=null,leanMass=null;
+      if(body.skinfold_protocol){
+        if(body.skinfold_protocol!=='pollock7'||Object.keys(skin).length!==7||!['m','f'].includes(String(body.sex||'').toLowerCase()))return Response.json({ok:false,error:'pollock7_requires_sex_and_seven_sites'},{status:400,headers:noStore});
+        const profile=await env.RFIT_DB.prepare('SELECT birth_date,sex,height_cm FROM student_profiles WHERE user_id=?').bind(studentId).first();
+        const birth=profile?.birth_date?new Date(profile.birth_date+'T12:00:00'):null;
+        const age=birth&&!Number.isNaN(birth.getTime())?Math.floor((Date.now()-birth.getTime())/31557600000):null;
+        if(!age||age<18||age>80)return Response.json({ok:false,error:'pollock7_age_out_of_range'},{status:400,headers:noStore});
+        const sum=Object.values(skin).reduce((a,b)=>a+b,0),female=String(body.sex).toLowerCase()==='f';
+        density=female?1.097-(0.00046971*sum)+(0.00000056*sum*sum)-(0.00012828*age):1.112-(0.00043499*sum)+(0.00000055*sum*sum)-(0.00028826*age);
+        bodyFat=495/density-450;
+        if(!Number.isFinite(bodyFat)||bodyFat<2||bodyFat>60)return Response.json({ok:false,error:'skinfold_result_out_of_range'},{status:400,headers:noStore});
+        if(values.weight_kg!==null){fatMass=values.weight_kg*bodyFat/100;leanMass=values.weight_kg-fatMass;}
+      }
+      const height=values.height_cm||null,weight=values.weight_kg;
+      const bmi=height&&weight?weight/((height/100)**2):null;
+      const waist=values.waist_cm||values.abdomen_cm;
+      const whtr=waist&&height?waist/height:null;
+      const id=crypto.randomUUID();
+      await env.RFIT_DB.prepare(`INSERT INTO advanced_assessments(id,user_id,measured_at,weight_kg,height_cm,neck_cm,shoulder_cm,chest_cm,waist_cm,abdomen_cm,hip_cm,right_arm_cm,left_arm_cm,right_forearm_cm,left_forearm_cm,right_thigh_cm,left_thigh_cm,right_calf_cm,left_calf_cm,skinfold_protocol,skinfolds_json,body_density,body_fat_pct,fat_mass_kg,lean_mass_kg,bmi,waist_height_ratio,notes,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,studentId,measuredAt,values.weight_kg,height,values.neck_cm,values.shoulder_cm,values.chest_cm,values.waist_cm,values.abdomen_cm,values.hip_cm,values.right_arm_cm,values.left_arm_cm,values.right_forearm_cm,values.left_forearm_cm,values.right_thigh_cm,values.left_thigh_cm,values.right_calf_cm,values.left_calf_cm,body.skinfold_protocol||null,Object.keys(skin).length?JSON.stringify(skin):null,density,bodyFat,fatMass,leanMass,bmi,whtr,String(body.notes||'').slice(0,1200)||null,session.sub).run();
+      return Response.json({ok:true,id,calculated:{body_density:density,body_fat_pct:bodyFat,fat_mass_kg:fatMass,lean_mass_kg:leanMass,bmi,waist_height_ratio:whtr}},{headers:noStore});
     }
 
     /* REGISTRAR AVALIAÇÃO DO ALUNO */
