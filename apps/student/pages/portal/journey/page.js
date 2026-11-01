@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const dailyDates=[...new Set(dailyCheckins.map(item=>String(item.checkin_date||'').slice(0,10)).filter(value=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)))].sort().reverse();
   const monthDailyDays=new Set(dailyDates.filter(value=>value.slice(0,7)===currentMonthKey)).size;
   const averageField=field=>{const values=dailyCheckins.map(item=>Number(item[field])).filter(value=>Number.isFinite(value)&&value>=0&&value<=100);return values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):null;};
-  const trainingAverage=averageField('training_adherence'),foodAverage=averageField('nutrition_adherence');
+  const monthDailyCheckins=dailyCheckins.filter(item=>localDayKey(item.checkin_date||item.created_at).slice(0,7)===currentMonthKey);\n  const trainingAverage=averageFieldFrom(monthDailyCheckins,'training_adherence'),foodAverage=averageFieldFrom(monthDailyCheckins,'nutrition_adherence');
   let streak=0;
   const yesterdayDate=new Date();yesterdayDate.setDate(yesterdayDate.getDate()-1);
   const streakStart=dailyDates.includes(currentDayKey)?currentDayKey:localDayKey(yesterdayDate);
@@ -422,7 +422,15 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(!beforeSelect||!afterSelect)return;
     const ordered=[...journeyPhotos].sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at));
     [beforeSelect,afterSelect].forEach(select=>{const old=select.value;select.replaceChildren();const prompt=document.createElement('option');prompt.value='';prompt.textContent='Selecione uma foto';select.append(prompt);ordered.forEach(photo=>{const option=document.createElement('option');option.value=photo.id;option.textContent=dateText(photo.taken_at)+' · '+(({frente:'Frente',lado:'Lado',costas:'Costas',progresso:'Progresso geral'})[photo.photo_type]||'Foto');select.append(option);});if(ordered.some(photo=>photo.id===old))select.value=old;});
-    if(ordered.length>=2){if(!beforeSelect.value)beforeSelect.value=ordered[0].id;if(!afterSelect.value)afterSelect.value=ordered[ordered.length-1].id;}
+    if(ordered.length>=2){
+      if(!beforeSelect.value||!afterSelect.value){
+        const byType=new Map();ordered.forEach(photo=>{const key=photo.photo_type||'progresso';if(!byType.has(key))byType.set(key,[]);byType.get(key).push(photo);});
+        const sameAngle=[...byType.values()].filter(group=>group.length>=2).sort((a,b)=>b.length-a.length)[0];
+        const pair=sameAngle||ordered;
+        if(!beforeSelect.value)beforeSelect.value=pair[0].id;
+        if(!afterSelect.value)afterSelect.value=pair[pair.length-1].id;
+      }
+    }
   };
   refreshPhotoComparison();
   compareButton?.addEventListener('click',()=>{
