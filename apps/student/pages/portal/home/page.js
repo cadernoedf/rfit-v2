@@ -3,6 +3,9 @@ import {getCurrentUser,logout} from '../../../../shared/js/api-client.js';
 document.addEventListener('DOMContentLoaded',async()=>{
  const welcome=document.querySelector('#student-welcome'),message=document.querySelector('#page-message');
  const notificationList=document.getElementById('home-notification-list');
+ const notificationPopover=document.getElementById('home-notification-popover');
+ const notificationBell=document.getElementById('home-notification-bell');
+ const closeNotifications=()=>{if(notificationPopover)notificationPopover.hidden=true;notificationBell?.setAttribute('aria-expanded','false');};
  const notificationCount=document.getElementById('home-notification-count');
  const readAllButton=document.getElementById('home-notification-read-all');
  const escapeNotification=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -32,7 +35,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   catch(error){console.warn('home_notification_read_failed',error);}
  });
  readAllButton?.addEventListener('click',async()=>{readAllButton.disabled=true;try{const response=await fetch('/api/student/notifications/read-all',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}});if(response.ok)await renderHomeNotifications();}finally{readAllButton.disabled=false;}});
- document.getElementById('home-notification-bell')?.addEventListener('click',renderHomeNotifications);
+ notificationBell?.addEventListener('click',async()=>{const opening=notificationPopover?.hidden===true;if(!notificationPopover)return;if(opening){notificationPopover.hidden=false;notificationBell.setAttribute('aria-expanded','true');await renderHomeNotifications();}else closeNotifications();});
+ document.getElementById('home-notification-close')?.addEventListener('click',closeNotifications);
+ document.addEventListener('click',event=>{if(notificationPopover&&!notificationPopover.hidden&&!event.target.closest('.home-notification-wrap'))closeNotifications();});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape')closeNotifications();});
  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
  const fmt=(v,unit='')=>v===null||v===undefined||v===''||!Number.isFinite(Number(v))?'—':String(v).replace('.',',')+unit;
  const dateFmt=value=>{if(!value)return 'Sem avaliação registrada';const d=new Date(value);return Number.isNaN(d.getTime())?'':'Atualizado em '+d.toLocaleDateString('pt-BR')};
