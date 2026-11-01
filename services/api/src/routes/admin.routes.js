@@ -29,7 +29,7 @@ export async function adminRoutes(request, env, url) {
   const assessmentMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/measurements$/);
   const isJourneyNote = Boolean(journeyNoteMatch);
 
-  const advancedAssessmentMatch = url.pathname.match(/^\\/api\\/professor\\/students\\/([^/]+)\\/advanced-assessments$/);
+  const advancedAssessmentMatch = url.pathname.match(/^\/api\/professor\/students\/([^/]+)\/advanced-assessments$/);
   const isAdvancedAssessment = Boolean(advancedAssessmentMatch);
 
 
