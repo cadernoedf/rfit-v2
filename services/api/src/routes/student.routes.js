@@ -234,13 +234,16 @@ export async function studentRoutes(request, env, url) {
     if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
     if(request.method==='GET'){
       try{
-        const [result,measurement,profile]=await Promise.all([
+        const [result,measurement,profile,dailyWeight]=await Promise.all([
           env.RFIT_DB.prepare("SELECT id,metric,title,start_value,target_value,unit,notes,status,created_at,updated_at,completed_at FROM student_journey_goals WHERE user_id=? ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END,created_at DESC").bind(session.sub).all(),
-          env.RFIT_DB.prepare("SELECT weight_kg,waist_cm,body_fat_pct FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 1").bind(session.sub).first(),
-          env.RFIT_DB.prepare("SELECT weight_kg FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first()
+          env.RFIT_DB.prepare("SELECT weight_kg,waist_cm,body_fat_pct,measured_at AS recorded_at FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 1").bind(session.sub).first(),
+          env.RFIT_DB.prepare("SELECT weight_kg FROM student_profiles WHERE user_id=? LIMIT 1").bind(session.sub).first(),
+          env.RFIT_DB.prepare("SELECT weight_kg,created_at AS recorded_at FROM daily_checkins WHERE user_id=? AND weight_kg IS NOT NULL ORDER BY checkin_date DESC,created_at DESC LIMIT 1").bind(session.sub).first()
         ]);
+        const useDailyWeight=Boolean(dailyWeight?.weight_kg!==null&&dailyWeight?.weight_kg!==undefined&&(!measurement?.recorded_at||String(dailyWeight.recorded_at||'')>String(measurement.recorded_at)));
+        const currentWeight=useDailyWeight?dailyWeight?.weight_kg:(measurement?.weight_kg??profile?.weight_kg??null);
         const goals=(result.results||[]).map(goal=>{
-          const current=goal.metric==='weight'?(measurement?.weight_kg??profile?.weight_kg??null):goal.metric==='waist'?(measurement?.waist_cm??null):goal.metric==='body_fat'?(measurement?.body_fat_pct??null):null;
+          const current=goal.metric==='weight'?(currentWeight??null):goal.metric==='waist'?(measurement?.waist_cm??null):goal.metric==='body_fat'?(measurement?.body_fat_pct??null):null;
           const value=current===null?null:Number(current),start=goal.start_value===null?(value!==null&&Number.isFinite(value)?value:null):Number(goal.start_value),target=goal.target_value===null?null:Number(goal.target_value);
           let progress=null,reached=false;
           if(start!==null&&target!==null&&value!==null&&Number.isFinite(value)&&target!==start){
