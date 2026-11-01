@@ -99,10 +99,20 @@ export async function adminRoutes(request, env, url) {
       if(body.skinfold_protocol){
         if(body.skinfold_protocol!=='pollock7'||Object.keys(skin).length!==7||!['m','f'].includes(String(body.sex||'').toLowerCase()))return Response.json({ok:false,error:'pollock7_requires_sex_and_seven_sites'},{status:400,headers:noStore});
         const profile=await env.RFIT_DB.prepare('SELECT birth_date,sex,height_cm FROM student_profiles WHERE user_id=?').bind(studentId).first();
+        let assessmentSex=String(body.sex||profile?.sex||'').toLowerCase();
+        if(!['m','f'].includes(assessmentSex)){
+          const anamnesis=await env.RFIT_DB.prepare('SELECT answers_json FROM anamneses WHERE user_id=? ORDER BY version DESC,completed_at DESC LIMIT 1').bind(studentId).first();
+          try{
+            const answers=JSON.parse(anamnesis?.answers_json||'{}');
+            const raw=String(answers.sex||answers.gender||answers.genero||answers.sexo||'').toLowerCase();
+            assessmentSex=['m','male','masculino','homem'].includes(raw)?'m':['f','female','feminino','mulher'].includes(raw)?'f':'';
+          }catch{}
+        }
+        if(!['m','f'].includes(assessmentSex))return Response.json({ok:false,error:'student_sex_required',message:'Informe o sexo do aluno no cadastro/anamnese para calcular Pollock 7.'},{status:400,headers:noStore});
         const birth=profile?.birth_date?new Date(profile.birth_date+'T12:00:00'):null;
         const age=birth&&!Number.isNaN(birth.getTime())?Math.floor((Date.now()-birth.getTime())/31557600000):null;
         if(!age||age<18||age>80)return Response.json({ok:false,error:'pollock7_age_out_of_range'},{status:400,headers:noStore});
-        const sum=Object.values(skin).reduce((a,b)=>a+b,0),female=String(body.sex).toLowerCase()==='f';
+        const sum=Object.values(skin).reduce((a,b)=>a+b,0),female=assessmentSex==='f';
         density=female?1.097-(0.00046971*sum)+(0.00000056*sum*sum)-(0.00012828*age):1.112-(0.00043499*sum)+(0.00000055*sum*sum)-(0.00028826*age);
         bodyFat=495/density-450;
         if(!Number.isFinite(bodyFat)||bodyFat<2||bodyFat>60)return Response.json({ok:false,error:'skinfold_result_out_of_range'},{status:400,headers:noStore});
