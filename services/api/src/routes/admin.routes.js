@@ -90,7 +90,7 @@ export async function adminRoutes(request, env, url) {
         env.RFIT_DB.prepare('SELECT id,title,goal,calories_target,status,created_at,updated_at FROM diets WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
         env.RFIT_DB.prepare(`SELECT s.id,s.status,s.starts_at,s.expires_at,s.billing_starts_at,s.lifetime,p.name AS plan_name,p.price_cents
           FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? ORDER BY s.created_at DESC LIMIT 1`).bind(studentId).first(),
-        env.RFIT_DB.prepare('SELECT id,checkin_date,weight_kg,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes FROM daily_checkins WHERE user_id=? ORDER BY checkin_date DESC LIMIT 12').bind(studentId).all(),
+        env.RFIT_DB.prepare('SELECT id,checkin_date,weight_kg,water_liters,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes FROM daily_checkins WHERE user_id=? ORDER BY checkin_date DESC LIMIT 12').bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT id,version,answers_json,completed_at,reviewed_at FROM anamneses WHERE user_id=? ORDER BY version DESC,completed_at DESC LIMIT 1').bind(studentId).first(),
         env.RFIT_DB.prepare('SELECT id,note,created_at FROM student_journey_notes WHERE user_id=? ORDER BY created_at DESC LIMIT 20').bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT COALESCE((SELECT SUM(xp) FROM student_xp_events WHERE user_id=?),0) AS total_xp,(SELECT COUNT(*) FROM student_achievement_unlocks WHERE user_id=?) AS unlocked_count').bind(studentId,studentId).first()
