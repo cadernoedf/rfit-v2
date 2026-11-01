@@ -128,7 +128,7 @@ export async function studentRoutes(request, env, url) {
       // Evolução corporal: avaliações profissionais básicas e avançadas.
       // Check-ins diários permanecem separados e nunca entram nos gráficos.
       const result=await env.RFIT_DB.prepare(`SELECT id,weight_kg,height_cm,waist_cm,basal_kcal,body_fat_pct,measured_at,created_at,bmi,fat_mass_kg,lean_mass_kg,source FROM (
-        SELECT id,weight_kg,height_cm,waist_cm,basal_kcal,body_fat_pct,measured_at,created_at,NULL AS bmi,NULL AS fat_mass_kg,NULL AS lean_mass_kg,'professor_assessment' AS source
+        SELECT id,weight_kg,height_cm,waist_cm,basal_kcal,body_fat_pct,measured_at,measured_at AS created_at,NULL AS bmi,NULL AS fat_mass_kg,NULL AS lean_mass_kg,'professor_assessment' AS source
         FROM student_measurements WHERE user_id=?
         UNION ALL
         SELECT id,weight_kg,height_cm,COALESCE(waist_cm,abdomen_cm) AS waist_cm,NULL AS basal_kcal,body_fat_pct,measured_at,created_at,bmi,fat_mass_kg,lean_mass_kg,'professor_advanced' AS source
