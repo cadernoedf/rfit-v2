@@ -155,7 +155,8 @@ async function loadFollowup() {
     console.error('rfit_professor_followup_failed', error);
   }
 }
-\n/* ===== CONSULTA DOS DADOS REAIS ===== */
+
+/* ===== CONSULTA DOS DADOS REAIS ===== */
 async function loadOverview() {
   const summary = $('#overview-summary');
   const message = $('#page-message');
@@ -216,7 +217,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  $('#overview-followup-refresh')?.addEventListener('click', loadFollowup);\n  $('#logout')?.addEventListener('click', async () => {
+  $('#overview-followup-refresh')?.addEventListener('click', loadFollowup);
+  $('#logout')?.addEventListener('click', async () => {
     try {
       await logout();
     } finally {
