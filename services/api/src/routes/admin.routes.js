@@ -60,7 +60,7 @@ export async function adminRoutes(request, env, url) {
     /* ===== PERFIL COMPLETO DO ALUNO ===== */
     if (studentDetailMatch && request.method === 'GET') {
       const studentId=decodeURIComponent(studentDetailMatch[1]);
-      const [student,measurements,workouts,diets,subscription,checkins,anamnesis,journeyNotes]=await Promise.all([
+      const [student,measurements,workouts,diets,subscription,checkins,anamnesis,journeyNotes,gamification]=await Promise.all([
         env.RFIT_DB.prepare(`SELECT u.id,u.full_name,u.email,u.phone,u.avatar_url,u.status,u.created_at,
           sp.birth_date,sp.sex,sp.height_cm,sp.weight_kg,sp.goal,sp.training_frequency,sp.experience_level,sp.anamnesis_completed_at
           FROM users u LEFT JOIN student_profiles sp ON sp.user_id=u.id WHERE u.id=? AND u.role='student'`).bind(studentId).first(),
@@ -71,10 +71,11 @@ export async function adminRoutes(request, env, url) {
           FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? ORDER BY s.created_at DESC LIMIT 1`).bind(studentId).first(),
         env.RFIT_DB.prepare('SELECT id,checkin_date,weight_kg,sleep_quality,energy,appetite,training_adherence,nutrition_adherence,discomfort,notes FROM daily_checkins WHERE user_id=? ORDER BY checkin_date DESC LIMIT 12').bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT id,version,answers_json,completed_at,reviewed_at FROM anamneses WHERE user_id=? ORDER BY version DESC,completed_at DESC LIMIT 1').bind(studentId).first(),
-        env.RFIT_DB.prepare('SELECT id,note,created_at FROM student_journey_notes WHERE user_id=? ORDER BY created_at DESC LIMIT 20').bind(studentId).all()
+        env.RFIT_DB.prepare('SELECT id,note,created_at FROM student_journey_notes WHERE user_id=? ORDER BY created_at DESC LIMIT 20').bind(studentId).all(),
+        env.RFIT_DB.prepare('SELECT COALESCE((SELECT SUM(xp) FROM student_xp_events WHERE user_id=?),0) AS total_xp,(SELECT COUNT(*) FROM student_achievement_unlocks WHERE user_id=?) AS unlocked_count').bind(studentId,studentId).first()
       ]);
       if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
-      return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null,checkins:checkins.results||[],anamnesis:anamnesis||null,journey_notes:journeyNotes.results||[]},{headers:noStore});
+      return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null,checkins:checkins.results||[],anamnesis:anamnesis||null,journey_notes:journeyNotes.results||[],gamification:gamification||{total_xp:0,unlocked_count:0}},{headers:noStore});
     }
 
 
