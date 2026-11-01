@@ -82,7 +82,7 @@ export async function adminRoutes(request, env, url) {
     if (isAdvancedAssessment && ['GET','POST'].includes(request.method)) {
       const studentId=decodeURIComponent(advancedAssessmentMatch[1]);
       const premium=await env.RFIT_DB.prepare(`SELECT p.code,p.name FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1`).bind(studentId).first();
-      if(!premium || (!String(premium.code||'').toLowerCase().includes('premium') && !String(premium.name||'').toLowerCase().includes('premium'))) return Response.json({ok:false,error:'premium_required'},{status:403,headers:noStore});
+      // O professor pode registrar avaliações avançadas para qualquer aluno. O plano limita novas avaliações pelo aluno, não o trabalho do profissional.
       if(request.method==='GET'){
         const rows=await env.RFIT_DB.prepare('SELECT id,measured_at,weight_kg,height_cm,neck_cm,shoulder_cm,chest_cm,waist_cm,abdomen_cm,hip_cm,right_arm_cm,left_arm_cm,right_forearm_cm,left_forearm_cm,right_thigh_cm,left_thigh_cm,right_calf_cm,left_calf_cm,skinfold_protocol,skinfolds_json,body_density,body_fat_pct,fat_mass_kg,lean_mass_kg,bmi,waist_height_ratio,notes,created_at FROM advanced_assessments WHERE user_id=? ORDER BY measured_at DESC,created_at DESC LIMIT 100').bind(studentId).all();
         return Response.json({ok:true,assessments:rows.results||[]},{headers:noStore});
