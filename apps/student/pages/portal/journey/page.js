@@ -82,10 +82,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
     };
     return visit(data.anamnesis_answers);
   };
-  const baseline={weight_kg:readBaseline(['weight_kg','weight','peso_inicial','peso_atual','peso']),waist_cm:readBaseline(['waist_cm','waist','cintura','circunferencia_abdominal','abdomen'])};
-  const comparisonRows=[['Peso','weight_kg',' kg'],['Abdômen','waist_cm',' cm']];
+  const baseline={weight_kg:readBaseline(['weight_kg','weight','peso_inicial','peso_atual','peso']),waist_cm:readBaseline(['waist_cm','waist','cintura','circunferencia_abdominal','abdomen']),basal_kcal:readBaseline(['basal_kcal','bmr_kcal','gasto_calorico_basal','calorias_basal','kcal'])};
+  const baselineHeight=readBaseline(['height_cm','altura_cm','height','altura']);
+  const heightMeters=baselineHeight?(baselineHeight>3?baselineHeight/100:baselineHeight):null;
+  if(baseline.weight_kg&&heightMeters)baseline.bmi=Math.round((baseline.weight_kg/(heightMeters*heightMeters))*10)/10;
+  const comparisonRows=[['Peso','weight_kg',' kg'],['Abdômen','waist_cm',' cm'],['IMC','bmi',''],['Kcal','basal_kcal',' kcal']];
   const comparisonRoot=document.querySelector('.journey-comparison-rows');
-  if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=baseline[key],last=lastMeasurement?.[key];if(first===null||first===undefined||last===null||last===undefined||!Number.isFinite(Number(first))||!Number.isFinite(Number(last)))return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será exibido quando houver dados iniciais na anamnese e uma avaliação do professor.';comparisonRoot.append(empty)}}
+  if(comparisonRoot){comparisonRoot.replaceChildren();comparisonRows.forEach(([label,key,unit])=>{const first=baseline[key],last=lastMeasurement?.[key]??(key==='basal_kcal'?lastMeasurement?.bmr_kcal:null);if(first===null||first===undefined||last===null||last===undefined||!Number.isFinite(Number(first))||!Number.isFinite(Number(last)))return;const row=document.createElement('div'),name=document.createElement('span'),values=document.createElement('strong');name.textContent=label;const delta=Number(last)-Number(first),deltaText=Math.abs(delta)<0.005?'Sem alteração':(delta>0?'+':'')+delta.toLocaleString('pt-BR',{maximumFractionDigits:1})+unit;values.textContent=Number(first).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' → '+Number(last).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' ('+deltaText+')';row.append(name,values);comparisonRoot.append(row)});if(!comparisonRoot.childElementCount){const empty=document.createElement('p');empty.className='journey-muted';empty.textContent='O comparativo será exibido quando houver dados iniciais na anamnese e avaliações do professor.';comparisonRoot.append(empty)}}
   set('journey-record-count',String(measurements.length)+' avaliações · '+checkins.length+' check-ins');
   // Evolução corporal: exclusivamente avaliações registradas pelo professor.
   const evaluationPoints=orderedMeasurements.map(row=>({...row,source:'evaluation'}));
@@ -96,11 +99,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
     kcal:{label:'Gasto calórico basal',unit:'kcal',color:'#2997dc',value:r=>Number(r.basal_kcal??r.bmr_kcal)}
   };
   const trendText=(key,unit='')=>{
-    const first=orderedMeasurements.find(row=>row[key]!==null&&row[key]!==undefined&&row[key]!=='');
-    const last=[...orderedMeasurements].reverse().find(row=>row[key]!==null&&row[key]!==undefined&&row[key]!=='');
-    if(!first||!last)return 'Aguardando avaliações do professor';
-    const delta=Number(last[key])-Number(first[key]);
-    if(!Number.isFinite(delta))return 'Aguardando avaliações do professor';
+    const first=baseline[key];
+    const last=lastMeasurement?.[key]??(key==='basal_kcal'?lastMeasurement?.bmr_kcal:null);
+    if(first===null||first===undefined||last===null||last===undefined)return 'Aguardando dados da anamnese e avaliação do professor';
+    const delta=Number(last)-Number(first);
+    if(!Number.isFinite(delta))return 'Aguardando dados da anamnese e avaliação do professor';
     if(Math.abs(delta)<0.005)return 'Sem alteração desde o início';
     const down=delta<0,el=document.createElement('span');
     el.textContent=(down?'↓ ':'↑ ')+Math.abs(delta).toLocaleString('pt-BR',{maximumFractionDigits:1})+unit+' desde o início';
