@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const refreshGoals=async()=>{
     const response=await fetch('/api/student/journey/goals',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
     if(!response.ok)throw new Error('goals_unavailable');
-    const data=await response.json();currentGoals=Array.isArray(data.goals)?data.goals:[];renderGoals(currentGoals);renderAchievements();return currentGoals;
+    const data=await response.json();currentGoals=Array.isArray(data.goals)?data.goals:[];renderGoals(currentGoals);return currentGoals;
   };
   const renderGoals=(goals)=>{
     if(!goalsList)return;goalsList.replaceChildren();
