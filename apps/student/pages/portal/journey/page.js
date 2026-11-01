@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const checkins=Array.isArray(checkinData.checkins)?checkinData.checkins:[];
   const measurements=Array.isArray(measurementData.measurements)?measurementData.measurements:[];
   const orderedMeasurements=[...measurements].sort((a,b)=>new Date(a.measured_at||a.created_at||0)-new Date(b.measured_at||b.created_at||0));
+  const firstMeasurement=orderedMeasurements[0]||null;
   const lastMeasurement=orderedMeasurements[orderedMeasurements.length-1]||null;
   // O ponto de partida vem da anamnese; o valor atual vem da última avaliação do professor.
   const readBaseline=(needles)=>{
@@ -82,7 +83,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
     };
     return visit(data.anamnesis_answers);
   };
-  const baseline={weight_kg:readBaseline(['weight_kg','weight','peso_inicial','peso_atual','peso']),waist_cm:readBaseline(['waist_cm','waist','cintura','circunferencia_abdominal','abdomen']),basal_kcal:readBaseline(['basal_kcal','bmr_kcal','gasto_calorico_basal','calorias_basal','kcal'])};
+  const baseline={weight_kg:readBaseline(['weight_kg','weight','peso_inicial','peso_atual','peso']),waist_cm:null,basal_kcal:null};
+  const firstEvaluationValue=(...keys)=>{for(const row of orderedMeasurements){for(const key of keys){const value=row?.[key];if(value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0)return Number(value);}}return null;};
+  // Abdômen e gasto calórico começam na primeira avaliação do professor que contém cada medida.
+  baseline.waist_cm=firstEvaluationValue('waist_cm','abdomen_cm','abdominal_cm','circumference_abdominal_cm');
+  baseline.basal_kcal=firstEvaluationValue('basal_kcal','bmr_kcal','kcal');
   const baselineHeight=readBaseline(['height_cm','altura_cm','height','altura']);
   const heightMeters=baselineHeight?(baselineHeight>3?baselineHeight/100:baselineHeight):null;
   if(baseline.weight_kg&&heightMeters)baseline.bmi=Math.round((baseline.weight_kg/(heightMeters*heightMeters))*10)/10;
@@ -91,9 +96,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(!currentValues.bmi&&currentValues.weight_kg){const h=latestValue('height_cm')||baselineHeight;if(h){const hm=h>3?h/100:h;currentValues.bmi=Math.round(currentValues.weight_kg/(hm*hm)*10)/10;}}
   const comparisonRoot=document.getElementById('journey-body-comparison');
   const comparisonMetrics=[
-    {key:'weight_kg',label:'Peso',unit:'kg',digits:1},
-    {key:'waist_cm',label:'Abdômen',unit:'cm',digits:1},
-    {key:'bmi',label:'IMC',unit:'',digits:1}
+    {key:'weight_kg',label:'Peso',emoji:'⚖️',unit:'kg',digits:1,startLabel:'Anamnese'},
+    {key:'waist_cm',label:'Abdômen',emoji:'📏',unit:'cm',digits:1,startLabel:'1ª avaliação'},
+    {key:'bmi',label:'IMC',emoji:'📊',unit:'',digits:1,startLabel:'Anamnese'},
+    {key:'basal_kcal',label:'Calorias basais',emoji:'🔥',unit:'kcal',digits:0,startLabel:'1ª avaliação'}
   ];
   if(comparisonRoot){
     comparisonRoot.replaceChildren();
@@ -101,9 +107,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
       const initial=baseline[metric.key],latest=currentValues[metric.key];
       const card=document.createElement('article');card.className='journey-body-metric';
       const head=document.createElement('div');head.className='journey-body-metric-head';
+      const labelWrap=document.createElement('div');labelWrap.className='journey-body-metric-label';
+      const emoji=document.createElement('span');emoji.className='journey-body-emoji';emoji.setAttribute('aria-hidden','true');emoji.textContent=metric.emoji;
       const label=document.createElement('strong');label.textContent=metric.label;
+      labelWrap.append(emoji,label);
       const unit=document.createElement('span');unit.textContent=metric.unit||'índice';
-      head.append(label,unit);
+      head.append(labelWrap,unit);
       const values=document.createElement('div');values.className='journey-body-values';
       const makeValue=(caption,value,current=false)=>{
         const wrap=document.createElement('div');wrap.className='journey-body-value'+(current?' journey-body-value-current':'');
@@ -112,7 +121,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         strong.textContent=value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toLocaleString('pt-BR',{minimumFractionDigits:metric.digits,maximumFractionDigits:metric.digits})+(metric.unit?' '+metric.unit:'');
         wrap.append(small,strong);return wrap;
       };
-      values.append(makeValue('Inicial',initial),Object.assign(document.createElement('span'),{className:'journey-body-arrow',textContent:'→'}),makeValue('Última avaliação',latest,true));
+      values.append(makeValue(metric.startLabel,initial),Object.assign(document.createElement('span'),{className:'journey-body-arrow',textContent:'→'}),makeValue('Última avaliação',latest,true));
       const delta=document.createElement('div');delta.className='journey-body-delta';
       if(initial!==null&&initial!==undefined&&latest!==null&&latest!==undefined&&Number.isFinite(Number(initial))&&Number.isFinite(Number(latest))){
         const diff=Number(latest)-Number(initial);
