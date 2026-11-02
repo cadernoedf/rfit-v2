@@ -14,8 +14,9 @@ export async function getCurrentUser() {
   const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
     headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store'
   });
-  if (!response.ok) throw new Error('unauthenticated');
-  return response.json();
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result?.user) throw new Error(result.error || 'unauthenticated');
+  return result;
 }
 export async function logout() {
   await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
@@ -29,7 +30,3 @@ export async function registerStudent(name, phone, email, password) {
   if (!response.ok) { const error = new Error(result.error || 'registration_failed'); error.detail = result.detail; throw error; }
   return result;
 }
-
-// Compatibilidade de sessão para módulos do portal do aluno.
-export async function getCurrentUser(){const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});const d=await r.json().catch(()=>({}));if(!r.ok||!d?.user)throw new Error(d.error||'unauthenticated');return d;}
-export async function logout(){await fetch('/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});}
