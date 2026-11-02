@@ -1,4 +1,4 @@
-import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
+async function getCurrentUser(){const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Sessão não autenticada');return d;} async function logout(){await fetch('/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});}
 const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let data=null,active=0;
 const styles=`<style>
