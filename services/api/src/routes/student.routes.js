@@ -149,6 +149,7 @@ export async function studentRoutes(request, env, url) {
             const ex=[[['Agachamento ou cadeira',3,'10-12'],['Supino máquina',3,'10-12'],['Remada baixa',3,'10-12'],['Elevação pélvica',3,'12-15'],['Prancha',3,'20-30 s']],[['Leg press',3,'10-12'],['Puxada frente',3,'10-12'],['Desenvolvimento máquina',3,'10-12'],['Mesa flexora',3,'12-15'],['Abdominal',3,'12-15']]];
             for(let d=0;d<days;d++){const sid=crypto.randomUUID();await env.RFIT_DB.prepare("INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)").bind(sid,wid,d+1,'Treino '+String.fromCharCode(65+d),'Ficha inicial geral; ajustar carga e interromper em caso de dor.').run();for(let j=0;j<ex[d%2].length;j++){const e=ex[d%2][j];await env.RFIT_DB.prepare("INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),sid,e[0],e[1],e[2],60,j,'Execução controlada.').run();}}
         }
+        }
         if(!isWorkout&&Number(sub.includes_nutrition)){
           const old=await env.RFIT_DB.prepare("SELECT id FROM diets WHERE user_id=? LIMIT 1").bind(session.sub).first();
           if(!old&&anam){const did=crypto.randomUUID(),kg=Number(a.weight_kg)||70,protein=Math.round(kg*1.6),water=Math.round(kg*35/250)*250;
