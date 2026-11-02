@@ -226,6 +226,7 @@ export async function adminRoutes(request, env, url) {
       if(!title||!Number.isInteger(frequency)||frequency<1||frequency>7||!sessions.length)return Response.json({ok:false,error:'invalid_workout'},{status:400,headers:noStore});
       const id=crypto.randomUUID();
       await env.RFIT_DB.prepare("INSERT INTO workouts(id,user_id,title,goal,weekly_frequency,source,status,created_by) VALUES(?,?,?,?,?,'professor','active',?)").bind(id,studentId,title,goal,frequency,session.sub).run();
+      await env.RFIT_DB.prepare("UPDATE workouts SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND id<>? AND status='active'").bind(studentId,id).run();
       for(let index=0;index<sessions.length;index++){
         const day=sessions[index],sessionId=crypto.randomUUID(),dayTitle=String(day.title||('Treino '+String.fromCharCode(65+index))).slice(0,100);
         await env.RFIT_DB.prepare('INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)').bind(sessionId,id,index+1,dayTitle,String(day.notes||'').slice(0,500)).run();
@@ -253,6 +254,7 @@ export async function adminRoutes(request, env, url) {
       if(!title||!meals.length||(calories!==null&&(!Number.isInteger(calories)||calories<500||calories>10000)))return Response.json({ok:false,error:'invalid_diet'},{status:400,headers:noStore});
       const id=crypto.randomUUID();
       await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,?,?,'professor','active',?)").bind(id,studentId,title,goal,calories,session.sub).run();
+      await env.RFIT_DB.prepare("UPDATE diets SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND id<>? AND status='active'").bind(studentId,id).run();
       for(let index=0;index<meals.length;index++){
         const meal=meals[index],name=String(meal.name||'').trim().slice(0,100);
         if(!name)continue;
