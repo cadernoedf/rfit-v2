@@ -156,7 +156,7 @@ export async function studentRoutes(request, env, url) {
             const kcal=Math.round(kg*30),fats=Math.round(kcal*.25/9),carbs=Math.round((kcal-protein*4-fats*9)/4);await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,subscription_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,'Plano alimentar inicial R-Fit',?,?, 'template','active',NULL)").bind(did,session.sub,sub.id,a.goal||'equilíbrio',kcal).run();
             const meals=[['Café da manhã',['Ovos ou iogurte','Pão/aveia e fruta']],['Almoço',['Frango/peixe/ovo/leguminosas','Arroz ou tubérculo','Feijão e vegetais']],['Lanche',['Fruta e fonte proteica']],['Jantar',['Proteína','Carboidrato e vegetais']]];
             for(let i=0;i<meals.length;i++)await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,i+1,meals[i][0],JSON.stringify(meals[i][1]),'Sugestão geral; estimativas não substituem avaliação nutricional.').run();
-            await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(a.goal+' | Proteína ~'+protein+' g/dia; Carboidratos ~'+carbs+' g/dia; Gorduras ~'+fats+' g/dia; água ~'+(water/1000).toFixed(2)+' L/dia. Estimativas iniciais.,did).run();
+            await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(a.goal+' | Proteína ~'+protein+' g/dia; Carboidratos ~'+carbs+' g/dia; Gorduras ~'+fats+' g/dia; água ~'+(water/1000).toFixed(2)+' L/dia. Estimativas iniciais.',did).run();
           }
         }
       }
