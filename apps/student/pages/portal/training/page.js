@@ -1,13 +1,4 @@
-/* R-Fit — módulo independente: training. */
 import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
-document.addEventListener('DOMContentLoaded', async function () {
-  const welcome=document.querySelector('#student-welcome');
-  const message=document.querySelector('#page-message');
-  try {
-    const result=await getCurrentUser();
-    if(result.user.role!=='student'){window.location.replace('/professor/');return;}
-    welcome.textContent='Olá, '+(result.user.name||result.user.email)+'.';
-    if(message) message.textContent='Sessão validada.';
-  } catch(error) { window.location.replace('/student/pages/login.html'); return; }
-  document.querySelector('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout();}finally{window.location.replace('/student/pages/login.html');}});
-});
+const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function load(){const box=$('#training-content'),r=await fetch('/api/student/workouts',{credentials:'same-origin',cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw Error('Não foi possível carregar suas fichas.');if(d.locked){box.innerHTML='<h3>🔒 '+(d.reason==='expired'?'Plano vencido':'Recurso não incluído no plano')+'</h3><p>'+(d.reason==='expired'?'Renove seu plano para voltar a acessar suas fichas.':'Faça upgrade para liberar os treinos.')+'</p><a class="primary-button" href="/student/pages/portal/plan/index.html">'+(d.reason==='expired'?'Renovar plano':'Fazer upgrade do plano')+'</a>';return;}let h=d.current?'<h3>'+esc(d.current.title)+'</h3><p>'+esc(d.current.goal||'')+'</p><p>Frequência: '+esc(d.current.detail||'—')+' vezes por semana</p>':'<p>Seu professor ainda não publicou um treino.</p>';for(const day of d.current?.sessions||[]){h+='<h3>'+esc(day.title)+'</h3>';for(const e of day.exercises||[])h+='<p><strong>'+esc(e.exercise_name)+'</strong> — '+esc(e.sets)+' × '+esc(e.reps)+' · descanso '+esc(e.rest_seconds)+'s</p>';}h+='<h2>Arquivo de treinos</h2>';if(!(d.history||[]).length)h+='<p>Suas fichas anteriores aparecerão aqui.</p>';for(const x of d.history||[]){h+='<details><summary>'+esc(x.title)+' · '+esc(new Date(x.created_at).toLocaleDateString('pt-BR'))+'</summary><p>'+esc(x.goal||'')+'</p>';for(const day of x.sessions||[]){h+='<h4>'+esc(day.title)+'</h4>';for(const e of day.exercises||[])h+='<p>'+esc(e.exercise_name)+' — '+esc(e.sets)+' × '+esc(e.reps)+'</p>';}h+='</details>';}box.innerHTML=h;}
+document.addEventListener('DOMContentLoaded',async()=>{try{const u=await getCurrentUser();if(u.user.role!=='student'){location.replace('/professor/');return;}$('#student-welcome').textContent='Olá, '+(u.user.name||u.user.email)+'.';await load();}catch(e){$('#page-message').textContent=e.message;}$('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout()}finally{location.replace('/student/pages/login.html')}});});
