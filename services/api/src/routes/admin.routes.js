@@ -319,7 +319,7 @@ export async function adminRoutes(request, env, url) {
       const passwordHash = ['pbkdf2-sha256','100000',encode(salt),encode(bits)].join('$');
       const now=new Date();
       const billingDate=courtesy?null:new Date(now.getTime()+delay*86400000).toISOString();
-      const expiry=courtesy||plan.lifetime?null:(billingDate||new Date(now.getTime()+Math.max(1,Number(plan.duration_days)||30)*86400000).toISOString());
+      const expiry=courtesy||plan.lifetime?null:new Date(now.getTime()+30*86400000).toISOString();
       const subscriptionId=crypto.randomUUID();
       try {
         await env.RFIT_DB.batch([
@@ -482,7 +482,7 @@ export async function adminRoutes(request, env, url) {
       const plan=await env.RFIT_DB.prepare("SELECT id,duration_days,lifetime FROM plans WHERE id=? AND is_active=1").bind(String(body.plan_id||'')).first();
       if(!plan)return Response.json({ok:false,error:'plan_not_found'},{status:404,headers:noStore});
       const lifetime=body.lifetime===true||Number(plan.lifetime)===1;
-      const now=new Date(),expires=lifetime?null:(Number(plan.duration_days)>0?new Date(now.getTime()+Number(plan.duration_days)*86400000).toISOString():null);
+      const now=new Date(),expires=lifetime?null:new Date(now.getTime()+30*86400000).toISOString();
       const current=await env.RFIT_DB.prepare("SELECT id FROM subscriptions WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(studentId).first();
       if(current)await env.RFIT_DB.prepare("UPDATE subscriptions SET plan_id=?,status='active',starts_at=?,expires_at=?,lifetime=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(plan.id,now.toISOString(),expires,lifetime?1:0,current.id).run();
       else await env.RFIT_DB.prepare("INSERT INTO subscriptions(id,user_id,plan_id,status,starts_at,expires_at,lifetime) VALUES(?,?,?,'active',?,?,?)").bind(crypto.randomUUID(),studentId,plan.id,now.toISOString(),expires,lifetime?1:0).run();
