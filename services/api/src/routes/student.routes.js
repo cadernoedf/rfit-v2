@@ -158,6 +158,7 @@ export async function studentRoutes(request, env, url) {
             await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(a.goal+' | Proteína ~'+protein+' g/dia; água ~'+(water/1000).toFixed(2)+' L/dia; carboidratos e gorduras devem ser individualizados.',did).run();
           }
         }
+      }
       const table=isWorkout?'workouts':'diets',detail=isWorkout?'weekly_frequency':'calories_target';
       const rows=await env.RFIT_DB.prepare(`SELECT id,title,goal,${detail} AS detail,status,created_at,updated_at FROM ${table} WHERE user_id=? ORDER BY created_at DESC LIMIT 50`).bind(session.sub).all();
       const records=rows.results||[],ids=records.map(x=>x.id),children={};
