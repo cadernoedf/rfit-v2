@@ -124,6 +124,37 @@ export async function studentRoutes(request, env, url) {
       return reply({ok:true,is_premium:premium,has_active_plan:Boolean(subscription),assessments:rows.results||[]});
     }catch(error){console.error('student_advanced_assessments_failed',error?.message||'unknown');return reply({ok:false,error:'advanced_assessments_unavailable'},503);}
   }
+
+  if (url.pathname === '/api/student/workouts' || url.pathname === '/api/student/diets') {
+    const session=await getSession(request,env);
+    if(!session||session.role!=='student')return reply({ok:false,error:'unauthenticated'},401);
+    if(request.method!=='GET')return reply({ok:false,error:'method_not_allowed'},405);
+    try{
+      const isWorkout=url.pathname.endsWith('/workouts');
+      const sub=await env.RFIT_DB.prepare("SELECT s.status,s.expires_at,s.lifetime,p.name AS plan_name,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+      const exp=sub?.expires_at?new Date(sub.expires_at).getTime():null;
+      const expired=Boolean(!sub||sub.status!=='active'||(!Number(sub.lifetime)&&(!Number.isFinite(exp)||exp<=Date.now())));
+      const included=Boolean(sub&&!expired&&(isWorkout?Number(sub.includes_training):Number(sub.includes_nutrition)));
+      if(expired)return reply({ok:true,locked:true,reason:'expired',history:[],current:null});
+      if(!included)return reply({ok:true,locked:true,reason:'upgrade',history:[],current:null});
+      const table=isWorkout?'workouts':'diets',detail=isWorkout?'weekly_frequency':'calories_target';
+      const rows=await env.RFIT_DB.prepare(`SELECT id,title,goal,${detail} AS detail,status,created_at,updated_at FROM ${table} WHERE user_id=? ORDER BY created_at DESC LIMIT 50`).bind(session.sub).all();
+      const records=rows.results||[],ids=records.map(x=>x.id),children={};
+      if(ids.length){const marks=ids.map(()=>'?').join(',');
+        if(isWorkout){
+          const ss=await env.RFIT_DB.prepare(`SELECT id,workout_id,day_number,title,notes FROM workout_sessions WHERE workout_id IN (${marks}) ORDER BY day_number`).bind(...ids).all();
+          const ee=await env.RFIT_DB.prepare(`SELECT e.session_id,e.exercise_name,e.sets,e.reps,e.rest_seconds,e.notes,e.order_index FROM workout_exercises e JOIN workout_sessions s ON s.id=e.session_id WHERE s.workout_id IN (${marks}) ORDER BY e.order_index`).bind(...ids).all();
+          for(const day of ss.results||[])(children[day.workout_id]??=[]).push({...day,exercises:(ee.results||[]).filter(e=>e.session_id===day.id)});
+        }else{
+          const mm=await env.RFIT_DB.prepare(`SELECT id,diet_id,meal_order,meal_name,items_json,notes FROM diet_meals WHERE diet_id IN (${marks}) ORDER BY meal_order`).bind(...ids).all();
+          for(const meal of mm.results||[]){let foods=[];try{foods=JSON.parse(meal.items_json||'[]')}catch{};(children[meal.diet_id]??=[]).push({...meal,items:foods});}
+        }
+      }
+      const all=records.map(x=>({...x,[isWorkout?'sessions':'meals']:children[x.id]||[]}));
+      return reply({ok:true,locked:false,current:all.find(x=>x.status==='active')||null,history:all.filter(x=>x.status==='archived')});
+    }catch(error){console.error('student_sheet_read_failed',error?.message||'unknown');return reply({ok:false,error:'sheet_unavailable'},503);}
+  }
+
   if (url.pathname === '/api/student/dashboard') {
     if (request.method !== 'GET') return reply({ok:false,error:'method_not_allowed'},405);
     const session=await getSession(request,env);
@@ -147,9 +178,9 @@ export async function studentRoutes(request, env, url) {
       const weight=Number(currentWeight||0);
       const bmi=height>0&&weight>0?Math.round(weight/(height*height)*10)/10:null;
       const validExpiry=sub?.expires_at?new Date(sub.expires_at).getTime():null;
-      const isExpired=Boolean(sub&&!Number(sub.lifetime)&&validExpiry!==null&&Number.isFinite(validExpiry)&&validExpiry<=Date.now());
+      const isExpired=Boolean(!sub||sub.status!=='active'||(!Number(sub.lifetime)&&(!Number.isFinite(validExpiry)||validExpiry<=Date.now())));
       const days=sub&&!Number(sub.lifetime)&&validExpiry!==null&&Number.isFinite(validExpiry)?Math.max(0,Math.ceil((validExpiry-Date.now())/86400000)):null;
-      let healthInfo={};try{healthInfo=JSON.parse(profile?.restrictions_json||'{}')}catch{}; return reply({ok:true,student:{name:user?.full_name||session.name||'',email:user?.email||session.email||'',phone:user?.phone||'',avatar_url:user?.avatar_url||''},subscription:sub?{plan_name:sub.plan_name||'Plano R-Fit',plan_code:sub.plan_code,status:sub.status,lifetime:Number(sub.lifetime),expires_at:sub.expires_at,days_remaining:days,is_expired:isExpired,access_type:sub.lifetime?'lifetime':(/courtesy|cortesia|manual/i.test(String(sub.payment_provider||''))?'courtesy':'standard'),includes_training:Number(sub.includes_training),includes_nutrition:Number(sub.includes_nutrition)}:null,anamnesis_completed:Boolean(profile?.anamnesis_completed_at),anamnesis_answers:anamnesisAnswers,health_info:healthInfo,body:{weight_kg:currentWeight,height_cm:measurement?.height_cm??profile?.height_cm??null,bmi,waist_cm:measurement?.waist_cm??null,measured_at:checkinIsLatest?checkinDate:(measurement?.measured_at||profile?.anamnesis_completed_at||null),basal_kcal:measurement?.basal_kcal??anamnesisAnswers?.basal_kcal??anamnesisAnswers?.basal_kcal??anamnesisAnswers?.form_answers?.basal_kcal??anamnesisAnswers?.form_answers?.basal_kcal??null,weight_source:checkinIsLatest?'checkin':measurement?.weight_kg!==null&&measurement?.weight_kg!==undefined?'evaluation':'anamnesis'},workout_available:Boolean(workout),workout_title:workout?.title||'',diet_available:Boolean(diet),diet_title:diet?.title||''});
+      let healthInfo={};try{healthInfo=JSON.parse(profile?.restrictions_json||'{}')}catch{}; return reply({ok:true,student:{name:user?.full_name||session.name||'',email:user?.email||session.email||'',phone:user?.phone||'',avatar_url:user?.avatar_url||''},subscription:sub?{plan_name:sub.plan_name||'Plano R-Fit',plan_code:sub.plan_code,status:sub.status,lifetime:Number(sub.lifetime),expires_at:sub.expires_at,days_remaining:days,is_expired:isExpired,access_type:sub.lifetime?'lifetime':(/courtesy|cortesia|manual/i.test(String(sub.payment_provider||''))?'courtesy':'standard'),includes_training:Number(sub.includes_training),includes_nutrition:Number(sub.includes_nutrition)}:null,anamnesis_completed:Boolean(profile?.anamnesis_completed_at),anamnesis_answers:anamnesisAnswers,health_info:healthInfo,body:{weight_kg:currentWeight,height_cm:measurement?.height_cm??profile?.height_cm??null,bmi,waist_cm:measurement?.waist_cm??null,measured_at:checkinIsLatest?checkinDate:(measurement?.measured_at||profile?.anamnesis_completed_at||null),basal_kcal:measurement?.basal_kcal??anamnesisAnswers?.basal_kcal??anamnesisAnswers?.basal_kcal??anamnesisAnswers?.form_answers?.basal_kcal??anamnesisAnswers?.form_answers?.basal_kcal??null,weight_source:checkinIsLatest?'checkin':measurement?.weight_kg!==null&&measurement?.weight_kg!==undefined?'evaluation':'anamnesis'},workout_available:Boolean(workout)&&!isExpired&&Number(sub?.includes_training)===1,workout_title:workout?.title||'',diet_available:Boolean(diet)&&!isExpired&&Number(sub?.includes_nutrition)===1,diet_title:diet?.title||''});
     } catch(error) { console.error('student_dashboard_failed',error?.message||'unknown'); return reply({ok:false,error:'dashboard_unavailable'},503); }
   }
   if (url.pathname === '/api/student/measurements') {
