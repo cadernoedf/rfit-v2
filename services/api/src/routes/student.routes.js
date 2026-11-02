@@ -497,6 +497,38 @@ export async function studentRoutes(request, env, url) {
         const nextVersion=Number(previous?.version||0)+1;
         await env.RFIT_DB.prepare("INSERT INTO anamneses(id,user_id,version,answers_json,completed_at) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,nextVersion,JSON.stringify(answers),completedAt).run();
         await env.RFIT_DB.prepare("UPDATE student_profiles SET birth_date=?,sex=?,height_cm=?,weight_kg=?,goal=?,training_frequency=?,experience_level=?,restrictions_json=?,anamnesis_completed_at=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?").bind(answers.birth_date,answers.sex,Number(answers.height_cm),Number(answers.weight_kg),answers.goal,Number(answers.training_frequency),answers.experience_level,JSON.stringify({health_conditions:answers.health_conditions,medications:answers.medications,allergies:answers.allergies,restrictions:answers.restrictions,additional_notes:answers.additional_notes}),completedAt,session.sub).run();
+        // Na primeira anamnese, criar uma ficha inicial persistida (nunca recalcular em acessos posteriores).
+        if(!previous){
+          const plan=await env.RFIT_DB.prepare("SELECT p.includes_training,p.includes_nutrition FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+          const freq=Math.max(2,Math.min(6,Number(answers.training_frequency)||3));
+          if(Number(plan?.includes_training)){
+            const existing=await env.RFIT_DB.prepare("SELECT id FROM workouts WHERE user_id=? LIMIT 1").bind(session.sub).first();
+            if(!existing){
+              const wid=crypto.randomUUID(),days=Math.min(freq,4);
+              await env.RFIT_DB.prepare("INSERT INTO workouts(id,user_id,subscription_id,title,goal,weekly_frequency,source,status,created_by) VALUES(?,?,?,'Treino inicial R-Fit',?,?, 'template','active',NULL)").bind(wid,session.sub,active.id,answers.goal,days).run();
+              const routines=[
+                [{n:'Agachamento livre ou cadeira',s:3,r:'10-12'},{n:'Supino máquina',s:3,r:'10-12'},{n:'Remada baixa',s:3,r:'10-12'},{n:'Elevação pélvica',s:3,r:'12-15'},{n:'Prancha',s:3,r:'20-30 s'}],
+                [{n:'Leg press',s:3,r:'10-12'},{n:'Puxada frente',s:3,r:'10-12'},{n:'Desenvolvimento máquina',s:3,r:'10-12'},{n:'Mesa flexora',s:3,r:'12-15'},{n:'Abdominal',s:3,r:'12-15'}]
+              ];
+              for(let d=0;d<days;d++){const sid=crypto.randomUUID();await env.RFIT_DB.prepare("INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)").bind(sid,wid,d+1,'Treino '+String.fromCharCode(65+d),'Ficha inicial geral. Ajustar cargas e amplitude sem dor; interromper se houver desconforto.').run();for(let j=0;j<routines[d%2].length;j++){const e=routines[d%2][j];await env.RFIT_DB.prepare("INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),sid,e.n,e.s,e.r,60,j,'Carga leve/moderada e técnica controlada.').run();}}
+            }
+          }
+          if(Number(plan?.includes_nutrition)){
+            const existing=await env.RFIT_DB.prepare("SELECT id FROM diets WHERE user_id=? LIMIT 1").bind(session.sub).first();
+            if(!existing){
+              const did=crypto.randomUUID(),kg=Number(answers.weight_kg),protein=Math.round(kg*1.6),water=Math.round(kg*35/250)*250;
+              await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,subscription_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,'Plano alimentar inicial R-Fit',?,NULL,'template','active',NULL)").bind(did,session.sub,active.id,answers.goal).run();
+              const meals=[['Café da manhã',['Proteína (ovos, iogurte ou queijo)','Carboidrato (aveia, pão ou fruta)','Água'] ],['Almoço',['Proteína (frango, peixe, ovos ou leguminosas)','Arroz/batata/mandioca','Feijão e verduras/legumes','Água']],['Lanche',['Fruta + iogurte ou outra fonte proteica'] ],['Jantar',['Proteína','Carboidrato conforme fome/atividade','Verduras/legumes','Água']]];
+              for(let i=0;i<meals.length;i++)await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,i+1,meals[i][0],JSON.stringify(meals[i][1]),'Estrutura geral; ajustar por preferências, restrições e orientação profissional.').run();
+              await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(answers.goal+' | Referências iniciais: proteína aproximada '+protein+' g/dia; água '+(water/1000).toFixed(2)+' L/dia. Valores estimativos, não prescrição clínica.',did).run();
+            }
+          }
+        }
+        // Mudança posterior da anamnese alerta o professor, mas não mexe nas fichas.
+        if(previous){
+          const prof=await env.RFIT_DB.prepare("SELECT id FROM users WHERE role IN ('professor','admin') AND status='active'").all();
+          for(const p of (prof.results||[]))await env.RFIT_DB.prepare("INSERT INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at) VALUES(?,?,'in_app','anamnesis_updated',?,'sent',CURRENT_TIMESTAMP)").bind(crypto.randomUUID(),p.id,JSON.stringify({title:'Anamnese atualizada',message:'O aluno atualizou a anamnese. Revise os dados antes de novos ajustes.',student_id:session.sub,url:'/professor/pages/portal/students/index.html'})).run();
+        }
         return reply({ok:true,completed:true,redirect:'/student/pages/portal/home/index.html'});
       }
       return reply({ok:false,error:'method_not_allowed'},405);
