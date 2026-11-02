@@ -527,7 +527,7 @@ export async function studentRoutes(request, env, url) {
         // Mudança posterior da anamnese alerta o professor, mas não mexe nas fichas.
         if(previous){
           const prof=await env.RFIT_DB.prepare("SELECT id FROM users WHERE role IN ('professor','admin') AND status='active'").all();
-          for(const p of (prof.results||[]))await env.RFIT_DB.prepare("INSERT INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at) VALUES(?,?,'in_app','anamnesis_updated',?,'sent',CURRENT_TIMESTAMP)").bind(crypto.randomUUID(),p.id,JSON.stringify({title:'Anamnese atualizada',message:'O aluno atualizou a anamnese. Revise os dados antes de novos ajustes.',student_id:session.sub,url:'/professor/pages/portal/students/index.html'})).run();
+          for(const p of (prof.results||[])){ const payload=JSON.stringify({title:'Anamnese atualizada',message:'O aluno atualizou a anamnese. Revise os dados antes de novos ajustes.',student_id:session.sub,url:'/professor/pages/portal/students/index.html'}); await env.RFIT_DB.prepare("INSERT INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at) VALUES(?,?,'in_app','anamnesis_updated',?,'sent',CURRENT_TIMESTAMP)").bind(crypto.randomUUID(),p.id,payload).run(); }
         }
         return reply({ok:true,completed:true,redirect:'/student/pages/portal/home/index.html'});
       }
