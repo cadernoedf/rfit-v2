@@ -490,7 +490,7 @@ export async function studentRoutes(request, env, url) {
           try{
             const previousAnswers=JSON.parse(previous.answers_json);
             const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
-            if(JSON.stringify(stable(answers))===JSON.stringify(stable(previousAnswers)))return reply({ok:true,completed:true,unchanged:true,completed_at:previous.completed_at||null});
+            if(JSON.stringify(stable(answers))===JSON.stringify(stable(previousAnswers))){ /* mantém respostas; permite completar fichas pendentes */ }
           }catch{}
         }
         const completedAt=new Date().toISOString();
