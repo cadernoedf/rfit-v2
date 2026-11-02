@@ -498,7 +498,7 @@ export async function studentRoutes(request, env, url) {
         await env.RFIT_DB.prepare("INSERT INTO anamneses(id,user_id,version,answers_json,completed_at) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),session.sub,nextVersion,JSON.stringify(answers),completedAt).run();
         await env.RFIT_DB.prepare("UPDATE student_profiles SET birth_date=?,sex=?,height_cm=?,weight_kg=?,goal=?,training_frequency=?,experience_level=?,restrictions_json=?,anamnesis_completed_at=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?").bind(answers.birth_date,answers.sex,Number(answers.height_cm),Number(answers.weight_kg),answers.goal,Number(answers.training_frequency),answers.experience_level,JSON.stringify({health_conditions:answers.health_conditions,medications:answers.medications,allergies:answers.allergies,restrictions:answers.restrictions,additional_notes:answers.additional_notes}),completedAt,session.sub).run();
         // Na primeira anamnese, criar uma ficha inicial persistida (nunca recalcular em acessos posteriores).
-        if(!previous){
+        {
           const plan=await env.RFIT_DB.prepare("SELECT p.includes_training,p.includes_nutrition FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
           const freq=Math.max(2,Math.min(6,Number(answers.training_frequency)||3));
           if(Number(plan?.includes_training)){
