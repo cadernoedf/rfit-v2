@@ -193,7 +193,9 @@ export async function studentRoutes(request, env, url) {
         }
       }
       const all=records.map(x=>{const raw=String(x.goal||''),get=(label)=>{const m=raw.match(new RegExp(label+'\\s*[:~]?\\s*(\\d+)\\s*g','i'));return m?Number(m[1]):null};return {...x,protein:get('Proteínas?'),carbs:get('Carboidratos'),fats:get('Gorduras'),[isWorkout?'sessions':'meals']:children[x.id]||[]};});
-      return reply({ok:true,locked:false,current:all.find(x=>x.status==='active')||null,history:all.filter(x=>x.status==='archived')});
+      // Compatibilidade com a ficha: alguns registros antigos usam active=1 sem status.
+      const current=all.find(x=>x.status==='active'||x.active===1||x.active===true)||null;
+      return reply({ok:true,locked:false,current,history:all.filter(x=>x.status==='archived'||x.status==='inactive')});
     }catch(error){console.error('student_sheet_read_failed',error?.message||'unknown');return reply({ok:false,error:'sheet_unavailable'},503);}
   }
 
