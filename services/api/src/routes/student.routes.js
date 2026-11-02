@@ -137,27 +137,46 @@ export async function studentRoutes(request, env, url) {
       const included=Boolean(sub&&!expired&&(isWorkout?Number(sub.includes_training):Number(sub.includes_nutrition)));
       if(expired)return reply({ok:true,locked:true,reason:'expired',history:[],current:null});
       if(!included)return reply({ok:true,locked:true,reason:'upgrade',history:[],current:null});
-      // Recuperação retroativa idempotente: aluno com anamnese antiga recebe fichas se ainda não possui nenhuma.
-      const profile=await env.RFIT_DB.prepare("SELECT anamnesis_completed_at FROM student_profiles WHERE user_id=?").bind(session.sub).first();
-      if(profile?.anamnesis_completed_at){
-        const anam=await env.RFIT_DB.prepare("SELECT answers_json FROM anamneses WHERE user_id=? ORDER BY completed_at DESC LIMIT 1").bind(session.sub).first();
-        let a={};try{a=JSON.parse(anam?.answers_json||'{}')}catch{}
-        if(isWorkout&&Number(sub.includes_training)){
-          const old=await env.RFIT_DB.prepare("SELECT id FROM workouts WHERE user_id=? LIMIT 1").bind(session.sub).first();
-          if(!old&&anam){const freq=Math.max(2,Math.min(6,Number(a.training_frequency)||3)),days=Math.min(freq,4),wid=crypto.randomUUID();
-            await env.RFIT_DB.prepare("INSERT INTO workouts(id,user_id,subscription_id,title,goal,weekly_frequency,source,status,created_by) VALUES(?,?,?,'Treino inicial R-Fit',?,?, 'template','active',NULL)").bind(wid,session.sub,sub.id,a.goal||'condicionamento',days).run();
-            const ex=[[['Agachamento ou cadeira',3,'8-12'],['Supino máquina',3,'8-12'],['Remada baixa',3,'8-12'],['Elevação pélvica',3,'10-15'],['Mesa flexora',3,'10-15'],['Desenvolvimento máquina',2,'10-12'],['Panturrilha em pé',3,'12-15'],['Prancha',3,'20-40 s']],[['Leg press',3,'10-12'],['Puxada frente',3,'10-12'],['Desenvolvimento máquina',3,'10-12'],['Mesa flexora',3,'12-15'],['Abdominal',3,'12-15']]];
-            for(let d=0;d<days;d++){const sid=crypto.randomUUID();await env.RFIT_DB.prepare("INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)").bind(sid,wid,d+1,'Treino '+String.fromCharCode(65+d),'Ficha inicial geral; ajustar carga e interromper em caso de dor.').run();for(let j=0;j<ex[d%2].length;j++){const e=ex[d%2][j];await env.RFIT_DB.prepare("INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),sid,e[0],e[1],e[2],60,j,'Execução controlada.').run();}}
-        }
-        }
-        if(!isWorkout&&Number(sub.includes_nutrition)){
-          const old=await env.RFIT_DB.prepare("SELECT id FROM diets WHERE user_id=? LIMIT 1").bind(session.sub).first();
-          if(!old&&anam){const did=crypto.randomUUID(),kg=Number(a.weight_kg)||70,protein=Math.round(kg*1.6),water=Math.round(kg*35/250)*250;
-            const kcal=Math.round(kg*30),fats=Math.round(kcal*.25/9),carbs=Math.round((kcal-protein*4-fats*9)/4);await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,subscription_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,'Plano alimentar inicial R-Fit',?,?, 'template','active',NULL)").bind(did,session.sub,sub.id,a.goal||'equilíbrio',kcal).run();
-            const meals=[['Café da manhã',['Ovos ou iogurte','Pão/aveia e fruta']],['Almoço',['Frango/peixe/ovo/leguminosas','Arroz ou tubérculo','Feijão e vegetais']],['Lanche',['Fruta e fonte proteica']],['Jantar',['Proteína','Carboidrato e vegetais']]];
-            for(let i=0;i<meals.length;i++)await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,i+1,meals[i][0],JSON.stringify(meals[i][1]),'Sugestão geral; estimativas não substituem avaliação nutricional.').run();
-            await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(a.goal+' | Proteína ~'+protein+' g/dia; Carboidratos ~'+carbs+' g/dia; Gorduras ~'+fats+' g/dia; água ~'+(water/1000).toFixed(2)+' L/dia. Estimativas iniciais.',did).run();
+      // Reconstrói fichas automáticas antigas incompletas; fichas do professor nunca são tocadas.
+      const profile=await env.RFIT_DB.prepare("SELECT anamnesis_completed_at,height_cm,weight_kg FROM student_profiles WHERE user_id=?").bind(session.sub).first();
+      if(!profile?.anamnesis_completed_at)return reply({ok:true,locked:true,reason:'anamnesis_required',history:[],current:null});
+      const anam=await env.RFIT_DB.prepare("SELECT answers_json FROM anamneses WHERE user_id=? ORDER BY completed_at DESC LIMIT 1").bind(session.sub).first();
+      let a={};try{a=JSON.parse(anam?.answers_json||'{}')}catch{}
+      const freq=Math.max(1,Math.min(7,Number(a.training_frequency)||3)),goal=String(a.goal||'condicionamento').toLowerCase();
+      const goalLabel=a.goal||'Condicionamento físico';
+      if(isWorkout&&Number(sub.includes_training)){
+        const current=await env.RFIT_DB.prepare("SELECT id,source FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
+        if(!current||current.source==='template'){
+          if(current){await env.RFIT_DB.prepare("UPDATE workouts SET status='archived' WHERE id=?").bind(current.id).run();}
+          const wid=crypto.randomUUID(),sessions=freq===1?['Full body']:freq===2?['Full body A','Full body B']:freq===3?['Push','Pull','Legs']:freq===4?['Upper A','Lower A','Upper B','Lower B']:freq===5?['Push','Pull','Legs','Upper','Lower']:freq===6?['Push A','Pull A','Legs A','Push B','Pull B','Legs B']:['Push','Pull','Legs','Upper','Lower','Core + cardio','Mobilidade + recuperação'];
+          const catalog={
+            push:[['Supino máquina',3,'8-12',90],['Supino inclinado halteres',3,'8-12',90],['Desenvolvimento máquina',3,'10-12',60],['Elevação lateral',3,'12-15',45],['Tríceps corda',3,'10-15',60]],
+            pull:[['Puxada frente',3,'8-12',90],['Remada baixa',3,'8-12',90],['Remada unilateral',3,'10-12',60],['Face pull',3,'12-15',45],['Rosca direta',3,'10-12',60]],
+            legs:[['Leg press',4,'10-12',90],['Agachamento guiado',3,'8-12',90],['Mesa flexora',3,'10-15',60],['Cadeira extensora',3,'10-15',60],['Panturrilha',4,'12-15',45]],
+            full:[['Leg press ou cadeira',3,'10-12',75],['Supino máquina',3,'8-12',75],['Puxada frente',3,'8-12',75],['Elevação pélvica',3,'10-15',60],['Desenvolvimento máquina',2,'10-12',60],['Prancha',3,'20-40 s',45]],
+            core:[['Prancha',3,'30-45 s',45],['Dead bug',3,'10/lado',45],['Caminhada/bike leve',1,'20-30 min',0],['Mobilidade geral',1,'8-10 min',0]],
+            recovery:[['Caminhada leve',1,'20-30 min',0],['Mobilidade de quadril',2,'8-10',30],['Mobilidade torácica',2,'8-10',30],['Alongamento confortável',1,'5-8 min',0]]
+          };
+          await env.RFIT_DB.prepare("INSERT INTO workouts(id,user_id,subscription_id,title,goal,weekly_frequency,source,status,created_by) VALUES(?,?,?,'Treino automático R-Fit',?,?, 'template','active',NULL)").bind(wid,session.sub,sub.id,goalLabel,freq).run();
+          for(let d=0;d<sessions.length;d++){const title=sessions[d],kind=/push/i.test(title)?'push':/pull/i.test(title)?'pull':/leg/i.test(title)?'legs':/core|upper|lower/i.test(title)?(d%3===0?'push':d%3===1?'pull':'legs'):/mobilidade/i.test(title)?'recovery':'full',items=catalog[kind]||catalog.full,sid=crypto.randomUUID();
+            await env.RFIT_DB.prepare("INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)").bind(sid,wid,d+1,title,'Aquecimento 5–10 min; escolha carga que permita técnica correta; pare se houver dor. Progressão gradual e recuperação conforme orientação profissional.').run();
+            for(let j=0;j<items.length;j++){const e=items[j];await env.RFIT_DB.prepare("INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),sid,e[0],e[1],e[2],e[3],j,'Movimento controlado, amplitude confortável.').run();}
           }
+        }
+      }
+      if(!isWorkout&&Number(sub.includes_nutrition)){
+        const current=await env.RFIT_DB.prepare("SELECT id,source FROM diets WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
+        if(!current||current.source==='template'){
+          if(current)await env.RFIT_DB.prepare("UPDATE diets SET status='archived' WHERE id=?").bind(current.id).run();
+          const did=crypto.randomUUID(),kg=Number(a.weight_kg||profile.weight_kg)||70,cm=Number(a.height_cm||profile.height_cm)||170,age=Math.max(18,Math.min(90,Number(a.age)||30)),sex=String(a.sex||a.gender||'').toLowerCase();
+          const bmr=10*kg+6.25*cm-5*age+(sex.includes('masc')||sex==='m'?5:sex.includes('fem')||sex==='f'?-161:-78),activity=freq<=1?1.25:freq<=3?1.45:freq<=5?1.6:1.7;
+          let kcal=Math.round(bmr*activity);if(/emag|perda|redu/.test(goal))kcal=Math.round(kcal*.90);else if(/hipert|massa|ganh/.test(goal))kcal=Math.round(kcal*1.05);
+          kcal=Math.max(sex.includes('fem')?1200:1500,kcal);const protein=Math.round(kg*1.6),fat=Math.round(kcal*.25/9),carb=Math.max(0,Math.round((kcal-protein*4-fat*9)/4)),water=Math.round(kg*35/250)*250,mealsN=Math.max(3,Math.min(6,Number(a.meals_per_day||a.meal_count||a.meals)||4));
+          const mealNames=['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar','Ceia'].slice(0,mealsN),foods=[['Ovos/iogurte; aveia ou pão; fruta'],['Fruta + iogurte/queijo'],['Frango/peixe/ovo; arroz/batata; feijão; salada'],['Iogurte ou sanduíche com proteína'],['Proteína; arroz/batata; legumes'],['Leite/iogurte ou fruta']];
+          const days=[['Ovos mexidos, pão integral e banana'],['Iogurte, aveia e mamão'],['Omelete, tapioca e fruta']];
+          await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,subscription_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,'Plano alimentar automático R-Fit',?,?, 'template','active',NULL)").bind(did,session.sub,sub.id,goalLabel,kcal).run();
+          for(let day=1;day<=3;day++)for(let i=0;i<mealNames.length;i++){const alternatives=day===1?foods[i]||foods[4]:day===2?[['Pão + queijo/ovo'],['Fruta + castanhas'],['Carne magra; mandioca; legumes'],['Vitamina/iogurte'],['Peixe; arroz; vegetais'],['Iogurte']][i]:[['Crepioca com ovo'],['Fruta + cottage'],['Frango; macarrão; salada'],['Sanduíche de atum'],['Carne magra; batata; legumes'],['Leite']][i];await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,(day-1)*mealNames.length+i+1,'Dia '+day+' · '+mealNames[i],JSON.stringify(alternatives||foods[i]||foods[4]),'Opção ilustrativa; ajustar por preferências, porções e restrições da anamnese.').run();}
+          await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(goalLabel+' | Proteínas: '+protein+' g/dia; Carboidratos: '+carb+' g/dia; Gorduras: '+fat+' g/dia; Fibras: '+Math.round(kcal/1000*14)+' g/dia; Água estimada: '+(water/1000).toFixed(2)+' L/dia. Cálculos estimativos.',did).run();
         }
       }
       const table=isWorkout?'workouts':'diets',detail=isWorkout?'weekly_frequency':'calories_target';
