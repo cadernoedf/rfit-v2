@@ -173,7 +173,7 @@ export async function studentRoutes(request, env, url) {
           for(const meal of mm.results||[]){let foods=[];try{foods=JSON.parse(meal.items_json||'[]')}catch{};(children[meal.diet_id]??=[]).push({...meal,items:foods});}
         }
       }
-      const all=records.map(x=>({...x,[isWorkout?'sessions':'meals']:children[x.id]||[]}));
+      const all=records.map(x=>{const raw=String(x.goal||''),get=(label)=>{const m=raw.match(new RegExp(label+'\\s*[:~]?\\s*(\\d+)\\s*g','i'));return m?Number(m[1]):null};return {...x,protein:get('Proteína'),carbs:get('Carboidratos'),fats:get('Gorduras'),[isWorkout?'sessions':'meals']:children[x.id]||[]};});
       return reply({ok:true,locked:false,current:all.find(x=>x.status==='active')||null,history:all.filter(x=>x.status==='archived')});
     }catch(error){console.error('student_sheet_read_failed',error?.message||'unknown');return reply({ok:false,error:'sheet_unavailable'},503);}
   }
