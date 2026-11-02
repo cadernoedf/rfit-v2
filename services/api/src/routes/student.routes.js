@@ -146,8 +146,8 @@ export async function studentRoutes(request, env, url) {
       const goalLabel=a.goal||'Condicionamento físico';
       if(isWorkout&&Number(sub.includes_training)){
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
-        if(!current||current.source==='template'){
-          if(current){await env.RFIT_DB.prepare("UPDATE workouts SET status='archived' WHERE id=?").bind(current.id).run();}
+        if(!current){ // GET nunca substitui nem recria uma ficha já ativa; template inicial permanece até o professor prescrever outra.
+          
           const wid=crypto.randomUUID(),sessions=freq===1?['Full body']:freq===2?['Full body A','Full body B']:freq===3?['Push','Pull','Legs']:freq===4?['Upper A','Lower A','Upper B','Lower B']:freq===5?['Push','Pull','Legs','Upper','Lower']:freq===6?['Push A','Pull A','Legs A','Push B','Pull B','Legs B']:['Push','Pull','Legs','Upper','Lower','Core + cardio','Mobilidade + recuperação'];
           const catalog={
             push:[['Supino máquina',3,'8-12',90],['Supino inclinado halteres',3,'8-12',90],['Desenvolvimento máquina',3,'10-12',60],['Elevação lateral',3,'12-15',45],['Tríceps corda',3,'10-15',60]],
@@ -166,8 +166,8 @@ export async function studentRoutes(request, env, url) {
       }
       if(!isWorkout&&Number(sub.includes_nutrition)){
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM diets WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
-        if(!current||current.source==='template'){
-          if(current)await env.RFIT_DB.prepare("UPDATE diets SET status='archived' WHERE id=?").bind(current.id).run();
+        if(!current){ // GET nunca substitui nem recria uma dieta já ativa; template inicial permanece até o professor prescrever outra.
+          
           const did=crypto.randomUUID(),kg=Number(a.weight_kg||profile.weight_kg)||70,cm=Number(a.height_cm||profile.height_cm)||170,age=Math.max(18,Math.min(90,Number(a.age)||30)),sex=String(a.sex||a.gender||'').toLowerCase();
           const bmr=10*kg+6.25*cm-5*age+(sex.includes('masc')||sex==='m'?5:sex.includes('fem')||sex==='f'?-161:-78),activity=freq<=1?1.25:freq<=3?1.45:freq<=5?1.6:1.7;
           let kcal=Math.round(bmr*activity);if(/emag|perda|redu/.test(goal))kcal=Math.round(kcal*.90);else if(/hipert|massa|ganh/.test(goal))kcal=Math.round(kcal*1.05);
