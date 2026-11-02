@@ -1,13 +1,4 @@
-/* R-Fit — módulo independente: diet. */
 import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
-document.addEventListener('DOMContentLoaded', async function () {
-  const welcome=document.querySelector('#student-welcome');
-  const message=document.querySelector('#page-message');
-  try {
-    const result=await getCurrentUser();
-    if(result.user.role!=='student'){window.location.replace('/professor/');return;}
-    welcome.textContent='Olá, '+(result.user.name||result.user.email)+'.';
-    if(message) message.textContent='Sessão validada.';
-  } catch(error) { window.location.replace('/student/pages/login.html'); return; }
-  document.querySelector('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout();}finally{window.location.replace('/student/pages/login.html');}});
-});
+const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function load(){const box=$('#diet-content'),r=await fetch('/api/student/diets',{credentials:'same-origin',cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw Error('Não foi possível carregar suas fichas.');if(d.locked){box.innerHTML='<h3>🔒 '+(d.reason==='expired'?'Plano vencido':'Recurso não incluído no plano')+'</h3><p>'+(d.reason==='expired'?'Renove seu plano para voltar a acessar suas fichas.':'Faça upgrade para liberar a nutrição.')+'</p><a class="primary-button" href="/student/pages/portal/plan/index.html">'+(d.reason==='expired'?'Renovar plano':'Fazer upgrade do plano')+'</a>';return;}let h=d.current?'<h3>'+esc(d.current.title)+'</h3><p>'+esc(d.current.goal||'')+'</p><p>Meta calórica: '+esc(d.current.detail||'Não informada')+' kcal</p>':'<p>Seu professor ainda não publicou uma dieta.</p>';for(const meal of d.current?.meals||[])h+='<h3>'+esc(meal.meal_name)+'</h3><ul>'+(meal.items||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';h+='<h2>Arquivo de dietas</h2>';if(!(d.history||[]).length)h+='<p>Suas fichas anteriores aparecerão aqui.</p>';for(const x of d.history||[]){h+='<details><summary>'+esc(x.title)+' · '+esc(new Date(x.created_at).toLocaleDateString('pt-BR'))+'</summary><p>'+esc(x.goal||'')+'</p>';for(const meal of x.meals||[])h+='<h4>'+esc(meal.meal_name)+'</h4><p>'+esc((meal.items||[]).join(' · '))+'</p>';h+='</details>';}box.innerHTML=h;}
+document.addEventListener('DOMContentLoaded',async()=>{try{const u=await getCurrentUser();if(u.user.role!=='student'){location.replace('/professor/');return;}$('#student-welcome').textContent='Olá, '+(u.user.name||u.user.email)+'.';await load();}catch(e){$('#page-message').textContent=e.message;}$('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout()}finally{location.replace('/student/pages/login.html')}});});
