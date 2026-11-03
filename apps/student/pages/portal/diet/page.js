@@ -8,7 +8,20 @@ const css=`<style>
 </style>`;
 function mealsHTML(){const meals=(data.current?.meals||[]).filter(m=>String(m.meal_name||'').startsWith('Dia '+(day+1)+' ·'));return '<div class="meal-grid">'+meals.map((m,i)=>'<article class="meal-card"><span class="meal-tag">REFEIÇÃO '+(i+1)+' · SUGESTÃO</span><h3 class="meal-title"><i>🍽</i>'+esc(m.meal_name||'Refeição '+(i+1))+'</h3><ul>'+(m.items||[]).map(x=>'<li>'+esc(typeof x==='string'?x:(x.name||x.food||JSON.stringify(x)))+'</li>').join('')+'</ul>'+(m.notes?'<p class="meal-note">'+esc(m.notes)+'</p>':'')+'<div class="food-substitutions"><b>Trocas possíveis:</b> arroz por batata/mandioca; frango por peixe/ovo/carne magra; fruta por outra da estação. Ajuste porções com orientação profissional.</div></article>').join('')+'</div>'}
 function openDiet(){const m=document.createElement('div');m.className='food-modal';const g=data.current;const title=String(g.goal||'').split('|')[0];m.innerHTML='<section class="food-dialog" role="dialog" aria-modal="true"><header class="food-head"><div><small>R-FIT · PLANO ALIMENTAR</small><h2>'+esc(g.title)+'</h2><span>'+esc(title)+'</span></div><button class="food-close" aria-label="Fechar">✕</button></header><div class="food-body"><div class="menu-tabs"><button class="menu-tab active" data-day="0">Dia 1</button><button class="menu-tab" data-day="1">Dia 2</button><button class="menu-tab" data-day="2">Dia 3</button><button class="menu-tab" data-menu="orient">Orientações</button></div><div id="menu-content">'+mealsHTML()+'</div></div><footer class="food-foot"><button class="food-print">🖨 Imprimir plano</button></footer></section>';document.body.append(m);const close=()=>m.remove();m.querySelector('.food-close').onclick=close;m.onclick=e=>{if(e.target===m)close()};m.querySelector('.food-print').onclick=()=>window.print();m.querySelectorAll('[data-day]').forEach(btn=>btn.onclick=()=>{day=Number(btn.dataset.day);m.querySelectorAll('[data-day],[data-menu]').forEach(x=>x.classList.toggle('active',x===btn));m.querySelector('#menu-content').innerHTML=mealsHTML()});m.querySelector('[data-menu="orient"]').onclick=()=>{const btn=m.querySelector('[data-menu="orient"]');m.querySelectorAll('[data-day],[data-menu]').forEach(x=>x.classList.toggle('active',x===btn));m.querySelector('#menu-content').innerHTML='<div class="food-tip">'+esc(g.goal||'Priorize variedade, hidratação e acompanhamento profissional. Não substitua orientação individual por estimativas automáticas.')+'</div>'};}
-async function load(){const box=$('#diet-content'),r=await fetch('/api/student/diets',{credentials:'same-origin',cache:'no-store'});data=await r.json();if(!r.ok||!data.ok)throw Error('Não foi possível carregar suas fichas.');if(data.locked){box.innerHTML='<h3>🔒 '+(data.reason==='expired'?'Plano vencido':'Recurso não incluído no plano')+'</h3><p>'+(data.reason==='expired'?'Renove seu plano para voltar a acessar suas fichas.':'Faça upgrade para liberar a nutrição.')+'</p><a class="primary-button" href="/student/pages/portal/plan/index.html">Ver meu plano</a>';return;}const g=data.current;if(!g){box.innerHTML='<div class="food-empty">Seu professor ainda não publicou uma dieta.</div>';return;}\n
+async function load(){
+  const box=$('#diet-content');
+  const response=await fetch('/api/student/diets',{credentials:'same-origin',cache:'no-store'});
+  data=await response.json();
+  if(!response.ok||!data.ok) throw Error('Não foi possível carregar suas fichas.');
+  if(data.locked){
+    const reason=data.reason==='expired'?'Plano vencido':'Recurso não incluído no plano';
+    const message=data.reason==='expired'?'Renove seu plano para voltar a acessar suas fichas.':'Faça upgrade para liberar a nutrição.';
+    box.innerHTML='<h3>🔒 '+esc(reason)+'</h3><p>'+esc(message)+'</p><a class="primary-button" href="/student/pages/portal/plan/index.html">Ver meu plano</a>';
+    return;
+  }
+  const g=data.current;
+  if(!g){box.innerHTML='<div class="food-empty">Seu professor ainda não publicou uma dieta.</div>';return;}
+
 let latestWeight = 0;
 try {
   const response = await fetch('/api/student/measurements', { credentials: 'same-origin', cache: 'no-store' });
