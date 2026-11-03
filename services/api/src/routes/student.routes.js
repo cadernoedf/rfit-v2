@@ -172,10 +172,35 @@ export async function studentRoutes(request, env, url) {
           const bmr=10*kg+6.25*cm-5*age+(sex.includes('masc')||sex==='m'?5:sex.includes('fem')||sex==='f'?-161:-78),activity=freq<=1?1.25:freq<=3?1.45:freq<=5?1.6:1.7;
           let kcal=Math.round(bmr*activity);if(/emag|perda|redu/.test(goal))kcal=Math.round(kcal*.90);else if(/hipert|massa|ganh/.test(goal))kcal=Math.round(kcal*1.05);
           kcal=Math.max(sex.includes('fem')?1200:1500,kcal);const protein=Math.round(kg*1.6),fat=Math.round(kcal*.25/9),carb=Math.max(0,Math.round((kcal-protein*4-fat*9)/4)),water=Math.round(kg*35/250)*250,mealsN=Math.max(3,Math.min(6,Number(a.meals_per_day||a.meal_count||a.meals)||4));
-          const mealNames=mealsN<=3?['Café da manhã','Almoço','Jantar']:mealsN===4?['Café da manhã','Almoço','Lanche','Jantar']:mealsN===5?['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar']:['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar','Ceia'],foods=[['2 ovos (100 g)','Pão integral (2 fatias/50 g)','Banana (1 un./80 g)'],['Iogurte natural (170 g)','Aveia (20 g)','Morango (100 g)'],['Frango grelhado (150 g)','Arroz cozido (120 g)','Feijão (100 g)','Salada variada + azeite (5 g)'],['Iogurte (170 g)','Maçã (1 un.)','Castanhas (10 g)'],['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)'],['Leite (200 ml)','Cacau sem açúcar (5 g)']];
-          const days=[['Ovos mexidos (2 un./100 g)','Pão integral (2 fatias/50 g)','Banana (1 un./80 g)'],['Iogurte natural (170 g)','Aveia (30 g)','Mamão (150 g)'],['Omelete (2 ovos/100 g)','Tapioca (50 g)','Fruta (100 g)']];
+          const mealNames=mealsN<=3?['Café da manhã','Almoço','Jantar']:mealsN===4?['Café da manhã','Almoço','Lanche','Jantar']:mealsN===5?['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar']:['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar','Ceia'];
+          const mealSlots=mealsN<=3?[0,2,4]:mealsN===4?[0,2,3,4]:mealsN===5?[0,1,2,3,4]:[0,1,2,3,4,5];
+          const foods=[
+            ['2 ovos (100 g)','Pão integral (2 fatias/50 g)','Banana (1 un./80 g)'],
+            ['Iogurte natural (170 g)','Aveia (20 g)','Morango (100 g)'],
+            ['Frango grelhado (150 g)','Arroz cozido (120 g)','Feijão (100 g)','Salada variada + azeite (5 g)'],
+            ['Iogurte (170 g)','Maçã (1 un.)','Castanhas (10 g)'],
+            ['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)'],
+            ['Leite (200 ml)','Cacau sem açúcar (5 g)']];
+          const dayFoods=[
+            [
+              ['Ovos mexidos (2 un./100 g)','Pão integral (2 fatias/50 g)','Banana (1 un./80 g)'],
+              ['Iogurte natural (170 g)','Aveia (30 g)','Mamão (150 g)'],
+              ['Frango grelhado (150 g)','Arroz cozido (120 g)','Feijão (100 g)','Salada'],
+              ['Iogurte (170 g)','Banana (80 g)','Aveia (20 g)'],
+              ['Patinho (150 g)','Mandioca cozida (150 g)','Legumes (150 g)'],
+              ['Leite (200 ml)','Morango (100 g)']
+            ],
+            [
+              ['Omelete (2 ovos/100 g)','Tapioca (50 g)','Fruta (100 g)'],
+              ['Fruta (100 g)','Cottage (80 g)'],
+              ['Carne magra (150 g)','Mandioca cozida (150 g)','Legumes (150 g)'],
+              ['Pão integral (2 fatias)','Atum drenado (100 g)','Tomate/alface'],
+              ['Carne magra (150 g)','Batata (180 g)','Legumes (150 g)'],
+              ['Leite (200 ml)','Aveia (15 g)']
+            ]
+          ];
           await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,subscription_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,'Plano alimentar automático R-Fit',?,?, 'template','active',NULL)").bind(did,session.sub,sub.id,goalLabel,kcal).run();
-          for(let day=1;day<=3;day++)for(let i=0;i<mealNames.length;i++){const alternatives=day===1?foods[i]||foods[4]:day===2?[['Pão integral (50 g)','Queijo minas (30 g)','Ovo (1 un.)'],['Pera (1 un.)','Castanhas (10 g)'],['Carne magra (150 g)','Mandioca cozida (150 g)','Legumes (150 g)'],['Iogurte (170 g)','Banana (80 g)','Aveia (20 g)'],['Peixe (150 g)','Arroz (120 g)','Vegetais (150 g)'],['Iogurte (170 g)','Morango (100 g)']][i]:[['Crepioca: ovo (1 un.) + tapioca (40 g)','Queijo (30 g)'],['Fruta (100 g)','Cottage (80 g)'],['Frango (150 g)','Macarrão cozido (130 g)','Salada (150 g)'],['Pão integral (2 fatias)','Atum drenado (100 g)','Tomate/alface'],['Carne magra (150 g)','Batata (180 g)','Legumes (150 g)'],['Leite (200 ml)','Aveia (15 g)']][i];await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,(day-1)*mealNames.length+i+1,'Dia '+day+' · '+mealNames[i],JSON.stringify(alternatives||foods[i]||foods[4]),'Opção ilustrativa; ajustar por preferências, porções e restrições da anamnese.').run();}
+          for(let day=1;day<=3;day++)for(let i=0;i<mealNames.length;i++){const slot=mealSlots[i],alternatives=day===1?foods[slot]:(dayFoods[day-2][slot]||foods[slot]);await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,(day-1)*mealNames.length+i+1,'Dia '+day+' · '+mealNames[i],JSON.stringify(alternatives||foods[i]||foods[4]),'Opção ilustrativa; ajustar por preferências, porções e restrições da anamnese.').run();}
           await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(goalLabel+' | Proteínas: '+protein+' g/dia; Carboidratos: '+carb+' g/dia; Gorduras: '+fat+' g/dia; Fibras: '+Math.round(kcal/1000*14)+' g/dia; Água estimada: '+(water/1000).toFixed(2)+' L/dia. Cálculos estimativos.',did).run();
         }
       }
