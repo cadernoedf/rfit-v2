@@ -8,6 +8,7 @@ import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
 const $=(selector)=>document.querySelector(selector);
 const studentId=new URLSearchParams(location.search).get('id');
 let currentStudentSex='';
+let workoutStudentContext={student:null,anamnesis:null};
 const message=(text,state='')=>{const el=$('#page-message');el.textContent=text;el.dataset.state=state;};
 async function api(url,options={}){const response=await fetch(url,{credentials:'same-origin',cache:'no-store',...options,headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok){const error=new Error(data.error||'request_failed');error.stage=data.stage||null;throw error;}return data;}
 const money=(cents)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(cents||0)/100);
@@ -15,7 +16,7 @@ function makeListItem(title,detail,status){const item=document.createElement('di
 
 /* ===== RENDERIZAÇÃO DO PERFIL ===== */
 function render(data){
- const s=data.student,sub=data.subscription;
+ const s=data.student,sub=data.subscription;workoutStudentContext={student:s,anamnesis:data.anamnesis||null};
  currentStudentSex=String(s.sex||'').toLowerCase();
  if(!['m','f','male','female','masculino','feminino'].includes(currentStudentSex)&&data.anamnesis?.answers_json){
   try{
