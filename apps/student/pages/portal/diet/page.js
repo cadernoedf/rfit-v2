@@ -42,8 +42,8 @@ async function load(){
   data=await response.json();
   if(!response.ok||!data.ok) throw Error('Não foi possível carregar suas fichas.');
   if(data.locked){
-    const reason=data.reason==='expired'?'Plano vencido':'Recurso não incluído no plano';
-    const message=data.reason==='expired'?'Renove seu plano para voltar a acessar suas fichas.':'Faça upgrade para liberar a nutrição.';
+    const reason=data.reason==='anamnesis_required'?'Complete sua anamnese':data.reason==='expired'?'Plano vencido':'Recurso não incluído no plano';
+    const message=data.reason==='anamnesis_required'?'Preencha sua anamnese no Meu painel para liberar sua dieta.':data.reason==='expired'?'Renove seu plano para voltar a acessar sua dieta.':'Faça upgrade para liberar a nutrição.';
     box.innerHTML='<h3>🔒 '+esc(reason)+'</h3><p>'+esc(message)+'</p><a class="primary-button" href="/student/pages/portal/plan/index.html">Ver meu plano</a>';
     return;
   }
