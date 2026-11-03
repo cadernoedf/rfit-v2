@@ -448,6 +448,16 @@ dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  if(!valid.length){message('Não consegui identificar alimentos. Confira colunas Alimento, Quantidade e Medida prática.','error');return;}
  const container=$('#diet-meals');container.replaceChildren();
  valid.forEach(g=>{const card=addDietMeal(g.name);g.foods.forEach((food,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name;row.querySelector('[data-food=measure]').value=food.measure||'';const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\s*(g|kg|ml|l|un\.?|unidade|unidades)?/i);if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}});});
+ // Organiza a ficha importada em abas por DIA (e não uma aba por refeição).
+ const mealsBox=$('#diet-meals'),cards=[...mealsBox.querySelectorAll('.diet-meal-editor')],byDay=new Map();
+ cards.forEach(card=>{const title=card.querySelector('[data-field=name]'),match=title.value.match(/(?:—|-)\s*Dia\s*(\d+)/i),day=match?Number(match[1]):1;if(!byDay.has(day))byDay.set(day,[]);byDay.get(day).push(card);});
+ if(byDay.size>1){const nav=document.createElement('div');nav.className='rfit-diet-day-tabs';nav.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px';
+ const panels=document.createElement('div');panels.className='rfit-diet-day-panels';
+ [...byDay.keys()].sort((a,b)=>a-b).forEach((day,index)=>{const btn=document.createElement('button');btn.type='button';btn.textContent='📅 Dia '+day;btn.style.cssText='border:1px solid #d7dfec;border-radius:10px;padding:11px 20px;background:'+(index===0?'#d7193f':'#fff')+';color:'+(index===0?'#fff':'#243149')+';font-weight:750;cursor:pointer';
+ const panel=document.createElement('section');panel.dataset.day=day;panel.style.cssText='display:grid;gap:14px';if(index)panel.hidden=true;byDay.get(day).forEach(card=>panel.append(card));panels.append(panel);btn.onclick=()=>{nav.querySelectorAll('button').forEach(x=>{x.style.background='#fff';x.style.color='#243149';});btn.style.background='#d7193f';btn.style.color='#fff';panels.querySelectorAll('section').forEach(x=>x.hidden=x.dataset.day!==String(day));};nav.append(btn);});
+ mealsBox.replaceChildren(nav,panels);
+ const dayCss=document.createElement('style');dayCss.textContent='.rfit-diet-day-panels .diet-meal-editor{width:100%;box-sizing:border-box}.rfit-diet-day-panels section[hidden]{display:none!important}';document.head.append(dayCss);
+ }
  updateDietNutrition();message('Ficha montada: '+valid.length+' cards com alimentos e medidas práticas. Revise e salve.','success');
 };
 dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{
