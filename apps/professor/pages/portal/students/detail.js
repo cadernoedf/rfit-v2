@@ -317,7 +317,6 @@ function openDietStudio(){
    .diet-studio-actions [data-diet-save]{background:linear-gradient(90deg,#e51f42,#c51435)!important;color:#fff!important;border:0!important}
    @media(max-width:760px){.diet-studio-overlay{padding:0!important}.diet-studio{width:100vw!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}.diet-studio-head{padding:18px!important}.diet-studio-body{padding:16px!important}.diet-studio-context{grid-template-columns:repeat(2,minmax(0,1fr))!important}.diet-studio .detail-form{padding:16px!important}.diet-studio .diet-food-row{grid-template-columns:minmax(0,1fr) 100px 44px!important;gap:8px!important}.diet-studio .diet-food-row input[data-food=name]{grid-column:1/-1!important}.diet-studio .diet-food-row input[data-food=qty]{grid-column:1!important}.diet-studio .diet-food-row select{grid-column:2!important}.diet-studio .diet-food-row button{grid-column:3!important;grid-row:2!important}.diet-studio-actions{padding:12px 16px!important}}
 
-` 
  /* Refinamento visual Nutrition Studio: refeições em cards largos e linhas legíveis */
  .diet-studio .diet-meal-editor{position:relative!important;background:#fff!important;border:1px solid #dfe6f1!important;border-left:5px solid #e31d40!important;padding:26px!important;box-shadow:0 8px 24px rgba(20,32,55,.06)!important}
  .diet-studio .diet-meal-editor:before{content:'🍽️ REFEIÇÃO • EDITOR'!important;font-size:12px!important;letter-spacing:1.2px!important;color:#c51f3d!important;margin-bottom:2px!important}
