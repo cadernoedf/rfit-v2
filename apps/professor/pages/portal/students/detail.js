@@ -7,7 +7,7 @@ import { getCurrentUser, logout } from '../../../../shared/js/api-client.js';
 /* Salvamento robusto da dieta: bloqueia submit HTML padrão e mantém o ID do aluno. */
 async function saveDietSafely(event){
  event.preventDefault();event.stopPropagation();
- const form=event.currentTarget;if(form.dataset.saving==='1')return;
+ const form=event.target;if(!form||form.id!=='diet-form')return;if(form.dataset.saving==='1')return;
  const button=form.querySelector('button[type=submit]'),meals=collectDietMeals();
  if(!studentId){message('ID do aluno ausente na URL. Volte ao perfil do aluno e abra Nova dieta novamente.','error');return;}
  if(!meals.length){message('Adicione alimentos em pelo menos uma refeição antes de salvar.','error');return;}
@@ -553,6 +553,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
  // Corrige o CTA da aba Nutrição: abrir sempre o Nutrition Studio, não expandir o formulário legado na lista.
  document.addEventListener('click',function openDietFromList(e){const btn=e.target.closest('button,a,[role=button],summary');if(!btn)return;const label=(btn.textContent||'').replace(/[＋+📋🥗]/g,'').trim().toLowerCase();if(!/^(adicionar dieta|nova dieta|criar dieta)$/.test(label))return;if(btn.closest('.diet-studio'))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();document.querySelector('[data-student-tab="nutrition"]')?.click();openDietStudio();},{capture:true});
  // O submit da dieta é interceptado globalmente em capture para impedir GET/navegação acidental.
- document.querySelector('#diet-form')?.addEventListener('submit',saveDietSafely);
+ // O listener global em capture acima é o único responsável pelo submit.
  $('#logout')?.addEventListener('click',async()=>{try{await logout()}finally{location.replace('/student/pages/login.html')}});
 });
