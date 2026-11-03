@@ -36,6 +36,16 @@
 .workout-builder-dialog .workout-selected-list{min-height:0!important;overflow:auto!important;scrollbar-width:thin!important;scrollbar-color:#cbd2dc transparent!important;padding-right:4px!important}
 .workout-builder-dialog .workout-builder-actions{display:flex!important;justify-content:flex-end!important;gap:8px!important;padding-top:10px!important;margin-top:0!important;border-top:1px solid #e8ebf1!important}
 @media(max-width:760px){.workout-builder-dialog{width:calc(100vw - 20px)!important;max-height:calc(100vh - 20px)!important;padding:15px!important}.workout-builder-dialog .workout-builder-columns{grid-template-columns:1fr!important;overflow:auto!important}.workout-builder-dialog .workout-library-pane{min-height:320px!important}.workout-builder-dialog .workout-prescription-pane{min-height:260px!important}.workout-builder-dialog .workout-builder-top{grid-template-columns:1fr 1fr!important}.workout-builder-dialog .workout-builder-top label:first-child{grid-column:1/-1}}
+
+/* R-FIT | corrige área rolável da biblioteca: cards e GIFs sempre visíveis */
+.workout-builder-dialog .workout-builder-columns{grid-template-rows:minmax(0,1fr)!important;min-height:360px!important;height:clamp(360px,52vh,620px)!important;flex:0 0 auto!important}
+.workout-builder-dialog .workout-library-pane{display:flex!important;flex-direction:column!important;min-height:0!important;height:100%!important}
+.workout-builder-dialog #exercise-library-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:min-content!important;align-content:start!important;flex:1 1 0!important;height:100%!important;min-height:180px!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important}
+.workout-builder-dialog #exercise-library-grid .exercise-library-card{min-width:0!important;display:flex!important;flex-direction:column!important;position:relative!important;overflow:hidden!important}
+.workout-builder-dialog #exercise-library-grid .exercise-library-card img{display:block!important;width:100%!important;height:100px!important;min-height:100px!important;object-fit:contain!important;background:#fff!important}
+.workout-builder-dialog #exercise-library-grid .exercise-library-card strong{display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important;line-height:1.25!important}
+.workout-builder-dialog #exercise-library-grid .exercise-library-card small{font-size:.64rem!important}
+@media(max-width:760px){.workout-builder-dialog .workout-builder-columns{height:auto!important;min-height:0!important}.workout-builder-dialog #exercise-library-grid{height:360px!important;flex:none!important}}
 </style><style>
 /* Ficha do aluno — layout exclusivo da sessão do professor */
 .professor-student-detail .student-profile-page{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;width:100%;max-width:none;margin:20px 0 36px}
