@@ -27,7 +27,7 @@ function mealSubs(items){
  return 'Prefira substituições do mesmo grupo alimentar e mantenha porções equivalentes. Em caso de restrição ou condição clínica, confirme com nutricionista.';
 }
 function mealsHTML(){
- const meals=(data.current?.meals||[]).filter(m=>String(m.meal_name||'').startsWith('Dia '+(day+1)+' ·'));
+ const meals=(data.current?.meals||[]).filter(m=>{const n=String(m.meal_name||'').trim();const prefix=n.match(/^Dia\s*(\d+)\s*[·–—-]/i);const suffix=n.match(/[·–—-]\s*Dia\s*(\d+)\s*$/i);return prefix?Number(prefix[1])===day+1:suffix?Number(suffix[1])===day+1:day===0;});
  if(!meals.length)return '<div class="food-empty">Não há refeições cadastradas para este dia.</div>';
  return '<div class="meal-grid">'+meals.map((m,i)=>{
   const items=(m.items||[]).map(foodRow);
