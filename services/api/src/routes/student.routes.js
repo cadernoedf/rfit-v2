@@ -133,8 +133,11 @@ export async function studentRoutes(request, env, url) {
       const isWorkout=url.pathname.endsWith('/workouts');
       const sub=await env.RFIT_DB.prepare("SELECT s.id,s.status,s.expires_at,s.lifetime,p.name AS plan_name,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
       const exp=sub?.expires_at?new Date(sub.expires_at).getTime():null;
-      const expired=Boolean(!sub||sub.status!=='active'||(!Number(sub.lifetime)&&(!Number.isFinite(exp)||exp<=Date.now())));
-      const included=Boolean(sub&&!expired&&(isWorkout?Number(sub.includes_training):Number(sub.includes_nutrition)));
+      // Cortesia sem prazo definido permanece ativa até o personal definir vencimento.
+      const courtesy=Boolean(sub&&sub.status==='active'&&!Number(sub.lifetime)&&!sub.expires_at);
+      const expired=Boolean(!sub||sub.status!=='active'||(!Number(sub.lifetime)&&Boolean(sub.expires_at)&&(!Number.isFinite(exp)||exp<=Date.now())));
+      // Cortesia libera treino e dieta mesmo que o plano comercial não inclua esses recursos.
+      const included=Boolean(sub&&!expired&&(courtesy||(isWorkout?Number(sub.includes_training):Number(sub.includes_nutrition))));
       if(expired)return reply({ok:true,locked:true,reason:'expired',history:[],current:null});
       if(!included)return reply({ok:true,locked:true,reason:'upgrade',history:[],current:null});
       // Reconstrói fichas automáticas antigas incompletas; fichas do professor nunca são tocadas.
