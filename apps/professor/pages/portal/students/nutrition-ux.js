@@ -36,10 +36,34 @@
     loadFav.onclick=()=>{toolbar.classList.remove('open');let all=[];try{all=JSON.parse(localStorage.getItem('rfit-favorite-meals')||'[]')}catch{}if(!all.length){alert('Você ainda não salvou refeições favoritas.');return;}const choice=prompt('Digite o número da refeição favorita:\\n'+all.map((x,i)=>(i+1)+'. '+x.name).join('\\n'));const item=all[Number(choice)-1];if(!item)return;card.querySelector('[data-field=name]').value=item.name;const addBtn=card.querySelector('.diet-add-food');item.items.forEach((food,i)=>{if(i)addBtn?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name;row.querySelector('[data-food=qty]').value=food.qty;const unit=row.querySelector('[data-food=unit]');if([...unit.options].some(o=>o.value===food.unit))unit.value=food.unit;});};
     fav.onclick=()=>{toolbar.classList.remove('open');const name=card.querySelector('[data-field=name]')?.value.trim()||'Refeição favorita';const items=[...card.querySelectorAll('.diet-food-row')].map(r=>({name:r.querySelector('[data-food=name]')?.value||'',qty:r.querySelector('[data-food=qty]')?.value||'100',unit:r.querySelector('[data-food=unit]')?.value||'g'})).filter(x=>x.name.trim());if(!items.length){alert('Adicione alimentos antes de favoritar.');return;}let all=[];try{all=JSON.parse(localStorage.getItem('rfit-favorite-meals')||'[]')}catch{}all.unshift({id:Date.now(),name,items});localStorage.setItem('rfit-favorite-meals',JSON.stringify(all.slice(0,100)));fav.textContent='★ Favorita salva';fav.classList.add('saved');fav.disabled=true;};
   }
+  const redesignCSS=`
+  .diet-studio .diet-meal-editor{padding:14px!important;border:1px solid #e3e8f0!important;background:#fff!important;border-radius:13px!important;box-shadow:0 3px 12px #17203308!important}
+  .diet-studio .diet-meal-editor:before{content:none!important}
+  .diet-studio .nutrition-meal-toolbar{margin:0 0 5px!important}
+  .diet-studio .nutrition-meal-toolbar .nm-menu-trigger{font-size:12px!important;min-height:30px!important;padding:4px 9px!important}
+  .diet-studio .diet-meal-editor [data-field=name]{font-size:15px!important;min-height:40px!important;background:#f8fafc!important}
+  .diet-studio .diet-food-row{gap:7px!important;margin:0!important;padding:8px!important;border:1px solid #edf0f5!important;border-radius:9px!important;background:#fbfcfe!important}
+  .diet-studio .diet-food-row input,.diet-studio .diet-food-row select{min-height:36px!important;padding:7px!important;font-size:13px!important}
+  .diet-studio .diet-studio-body{padding:16px!important;gap:11px!important}
+  .diet-studio .diet-studio-import{padding:9px 12px!important;border-radius:10px!important}
+  .diet-studio .diet-studio-actions{padding:9px 14px!important}
+  .diet-studio .diet-studio-actions button{min-height:40px!important}
+  .diet-studio .diet-meal-nav{display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 9px}
+  .diet-studio .diet-meal-nav button{border:1px solid #dce3ee;background:#fff;color:#536079;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer}
+  .diet-studio .diet-meal-nav button.active{background:#e51f42;color:#fff;border-color:#e51f42}
+  @media(max-width:760px){.diet-studio .diet-meal-editor{padding:10px!important}.diet-studio .diet-meal-nav button{flex:1}}
+  `;const rs=document.createElement('style');rs.textContent=redesignCSS;document.head.append(rs);
   function boot(){
     const meals=document.querySelector('#diet-meals');if(!meals||meals.dataset.nutritionUx)return;meals.dataset.nutritionUx='1';
     const scan=()=>meals.querySelectorAll('.diet-meal-editor').forEach(enhanceMeal);
-    scan();new MutationObserver(scan).observe(meals,{childList:true});
+    scan();
+    const form=meals.closest('.detail-form');
+    if(form&&!form.querySelector('.diet-meal-nav')){
+      const nav=document.createElement('nav');nav.className='diet-meal-nav';meals.before(nav);
+      const refresh=()=>{const cards=[...meals.querySelectorAll('.diet-meal-editor')];nav.replaceChildren();const all=document.createElement('button');all.textContent='Todas';all.classList.add('active');nav.append(all);all.onclick=()=>{nav.querySelectorAll('button').forEach(b=>b.classList.remove('active'));all.classList.add('active');cards.forEach(card=>card.hidden=false);};cards.forEach((card,i)=>{const b=document.createElement('button');b.textContent=card.querySelector('[data-field=name]')?.value||'Refeição '+(i+1);b.onclick=()=>{nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');cards.forEach(x=>x.hidden=x!==card);card.hidden=false;};nav.append(b);});};
+      refresh();new MutationObserver(refresh).observe(meals,{childList:true,subtree:true});
+    }
+    new MutationObserver(scan).observe(meals,{childList:true});
   }
   new MutationObserver(()=>{if(document.querySelector('.diet-studio.is-open,#diet-form'))boot();}).observe(document.body,{childList:true,subtree:true});
   document.addEventListener('DOMContentLoaded',boot);setTimeout(boot,400);
