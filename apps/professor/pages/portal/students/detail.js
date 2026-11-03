@@ -416,21 +416,39 @@ function openDietStudio(){
   const ux=document.createElement('style');ux.textContent='.diet-studio-context{display:none!important}.diet-studio-body{flex:1;min-height:0;overflow:auto!important}.diet-studio .detail-form{max-height:none!important;overflow:visible!important}';document.head.append(ux);
   const studioLayout=document.createElement('style');studioLayout.textContent=".diet-studio{height:92vh!important;max-height:92vh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}.diet-studio-body{display:flex!important;flex-direction:column!important;gap:14px!important}.diet-studio .detail-form{display:flex!important;flex-direction:column!important;max-height:none!important;overflow:visible!important}.diet-studio .detail-form input,.diet-studio .detail-form textarea,.diet-studio .detail-form select{width:100%!important;box-sizing:border-box!important;color:#172033!important;background:#fff!important}.diet-studio #diet-meals{grid-template-columns:repeat(2,minmax(0,1fr))!important}.diet-studio .diet-meal-editor{min-width:0!important;margin:0!important;background:#fff!important}.diet-library-card b,.diet-library-card small{color:#172033!important}.diet-studio-actions{position:static!important;flex:0 0 auto!important}@media(max-width:760px){.diet-studio{width:100vw!important;height:100dvh!important;max-height:100dvh!important}.diet-studio #diet-meals{grid-template-columns:1fr!important}}";document.head.append(studioLayout);
   const close=()=>dietStudioModal.classList.remove('is-open');dietStudioModal.querySelector('.diet-studio-close').onclick=close;dietStudioModal.querySelector('[data-diet-cancel]').onclick=close;dietStudioModal.addEventListener('click',e=>{if(e.target===dietStudioModal)close();});
-  dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const input=e.target;const btn=input.closest('label');const old=btn?.firstChild?.textContent;try{
- if(btn)btn.firstChild.textContent='⏳ Lendo planilha...';
- let rows=[];
- if(/\.xlsx?$/i.test(file.name)){let XLSX=window.XLSX;if(!XLSX){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=resolve;sc.onerror=()=>reject(new Error('Biblioteca Excel não carregou. Verifique a internet e tente novamente.'));document.head.append(sc);});XLSX=window.XLSX;}const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});const sheet=wb.Sheets[wb.SheetNames[0]];rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});}
- else {const text=await file.text();rows=text.split(/\\r?\\n/).filter(Boolean).map(line=>line.split(/[;,\\t]/).map(v=>v.replace(/^"|"$/g,'').trim()));}
- const norm=v=>String(v??'').trim(),mealRows=[];const multi=rows.some(r=>norm(r[1]).toLowerCase()==='dia 1'||norm(r[4]).toLowerCase()==='dia 2'||norm(r[7]).toLowerCase()==='dia 3');
- if(multi){const days=[{label:'Dia 1',offset:1},{label:'Dia 2',offset:4},{label:'Dia 3',offset:7}],maps=days.map(d=>({label:d.label,meals:new Map()}));let current='';
- rows.forEach(r=>{const first=norm(r[0]),second=norm(r[1]);if(!first)return;if(/^refeição$/i.test(first))return;const hasData=r.slice(1).some(v=>norm(v));if(!hasData){current=first;return;}if(/^(opção|opcoes|opções|observação|observacoes|observações)$/i.test(first))return;
- maps.forEach((m,di)=>{const o=days[di].offset,food=norm(r[o]),qty=norm(r[o+1]),practical=norm(r[o+2]);if(!food||/^(alimento|dia [123])$/i.test(food))return;const key=current||'Refeição';if(!m.meals.has(key))m.meals.set(key,[]);m.meals.get(key).push({food,qty,practical});});});
- maps.forEach(m=>m.meals.forEach((foods,name)=>{if(foods.length)mealRows.push({name:name+' · '+m.label,foods});}));
- }else{let header=rows.findIndex(r=>r.some(v=>/refeiç|meal/i.test(norm(v)))&&r.some(v=>/alimento|food/i.test(norm(v))));const grouped=new Map();rows.slice(header>=0?header+1:0).forEach(row=>{if(row.length<2)return;const meal=norm(row[0])||'Refeição',food=norm(row[1]),qty=norm(row[2])||'';if(!food||/^(alimento|food)$/i.test(food))return;if(!grouped.has(meal))grouped.set(meal,[]);grouped.get(meal).push({food,qty,practical:norm(row[3])});});grouped.forEach((foods,name)=>mealRows.push({name,foods}));}
- if(!mealRows.length)throw new Error('Não encontrei refeições/alimentos na primeira aba. Confira se sua planilha tem refeições identificadas.');
- $('#diet-meals').replaceChildren();mealRows.forEach(({name,foods})=>{const card=addDietMeal(name);foods.forEach((item,index)=>{if(index>0)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[index];if(!row)return;row.querySelector('[data-food=name]').value=item.food+(item.practical&&item.practical!=='—'?' · '+item.practical:'');const match=String(item.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\\s*(g|kg|ml|l|un\\.?|unidade|unidades|fatia|colher|xícara|concha)?/i);if(match&&match[1]){row.querySelector('[data-food=qty]').value=match[1].replace(',','.');const u=(match[2]||'g').replace(/un\\.?/i,'unidade').toLowerCase(),unit=row.querySelector('[data-food=unit]');if([...unit.options].some(o=>o.value===u))unit.value=u;}});});
- updateDietNutrition();message('Excel importado: '+mealRows.length+' refeições. Revise antes de salvar.','success');
- }catch(err){message('Falha na importação: '+(err.message||err),'error');}finally{if(btn&&old)btn.firstChild.textContent=old;input.value='';}});
+  dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;const input=e.target,label=input.closest('label'),old=label?.firstChild?.textContent;
+ try{
+ if(label)label.firstChild.textContent='⏳ Lendo Excel...';
+ if(!/\\.xlsx?$/i.test(file.name))throw new Error('Selecione um arquivo Excel .xlsx ou .xls.');
+ let XLSX=window.XLSX;if(!XLSX){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=resolve;sc.onerror=()=>reject(new Error('Não carregou o leitor Excel.'));document.head.append(sc);});XLSX=window.XLSX;}
+ const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}),sheetName=wb.SheetNames[0],sheet=wb.Sheets[sheetName];
+ // Preserve original cell types and inspect workbook layout before mapping.
+ const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true}),norm=v=>String(v??'').replace(/\\s+/g,' ').trim(),nonempty=r=>r.some(v=>norm(v));
+ const mealRows=[];let currentMeal='';const foodRows=[];
+ // Layout expected: first column labels meal sections; day columns contain food/quantity/practical measure.
+ const dayHeader=rows.findIndex(r=>r.some(v=>/^dia\\s*1$/i.test(norm(v))));
+ if(dayHeader>=0){
+ const header=rows[dayHeader],dayStarts=[];header.forEach((v,i)=>{if(/^dia\\s*\\d+$/i.test(norm(v)))dayStarts.push(i);});
+ const sectionCol=0;
+ for(let ri=dayHeader+1;ri<rows.length;ri++){const row=rows[ri];if(!nonempty(row))continue;const section=norm(row[sectionCol]);if(section&&!/^alimento|refeiç|dia/i.test(section)&&row.slice(1).every(v=>!norm(v)))currentMeal=section;
+ if(/^(opções|opcoes|observações|observacoes)$/i.test(section))continue;
+ dayStarts.forEach((start,di)=>{const food=norm(row[start]),qty=norm(row[start+1]),measure=norm(row[start+2]);if(!food||/^(alimento|quantidade|medida prática)$/i.test(food))return;foodRows.push({meal:(currentMeal||'Refeição')+' · Dia '+(di+1),food,qty,measure});});
+ }
+ const grouped=new Map();foodRows.forEach(x=>{if(!grouped.has(x.meal))grouped.set(x.meal,[]);grouped.get(x.meal).push(x);});grouped.forEach((foods,name)=>mealRows.push({name,foods}));
+ }else{
+ // General tabular Excel: detect column names and use explicit meal/food/quantity fields.
+ const hi=rows.findIndex(r=>r.some(v=>/refeiç|meal/i.test(norm(v)))&&r.some(v=>/alimento|food/i.test(norm(v))));
+ if(hi<0)throw new Error('Não achei cabeçalho Dia 1 ou colunas Refeição/Alimento na primeira aba (“'+sheetName+'”).');
+ const hdr=rows[hi].map(norm),idxMeal=hdr.findIndex(v=>/refeiç|meal/i.test(v)),idxFood=hdr.findIndex(v=>/alimento|food/i.test(v)),idxQty=hdr.findIndex(v=>/quantidade|qty/i.test(v)),idxMeasure=hdr.findIndex(v=>/medida prática|medida/i.test(v)),groups=new Map();
+ rows.slice(hi+1).forEach(row=>{const meal=norm(row[idxMeal]),food=norm(row[idxFood]);if(!food)return;const key=meal||'Refeição';if(!groups.has(key))groups.set(key,[]);groups.get(key).push({food,qty:norm(row[idxQty]),measure:norm(row[idxMeasure])});});groups.forEach((foods,name)=>mealRows.push({name,foods}));
+ }
+ if(!mealRows.length)throw new Error('Nenhum alimento reconhecido. Aba: '+sheetName+'. Confira a estrutura do Excel.');
+ const container=$('#diet-meals');container.replaceChildren();
+ mealRows.forEach(({name,foods})=>{const card=addDietMeal(name);foods.forEach((item,index)=>{if(index)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[index];if(!row)return;row.querySelector('[data-food=name]').value=item.food+(item.measure?' · '+item.measure:'');const match=String(item.qty).match(/([0-9]+(?:[.,][0-9]+)?)\\s*(g|kg|ml|l|un\\.?|unidade|unidades|fatia|colher|xícara|concha)?/i);if(match?.[1]){row.querySelector('[data-food=qty]').value=match[1].replace(',','.');const unit=(match[2]||'g').replace(/un\\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}});});
+ updateDietNutrition();message('Excel lido! '+mealRows.length+' refeições importadas da aba '+sheetName+'.','success');
+ }catch(err){message('Importação Excel: '+(err.message||err),'error');}finally{if(label&&old)label.firstChild.textContent=old;input.value='';}
+ });
  }
  const ctx=dietStudioModal.querySelector('#diet-studio-context');ctx.replaceChildren();const s=workoutStudentContext.student||{};[['Aluno',s.full_name||'—'],['Objetivo',s.goal||'Defina o objetivo'],['Peso',s.weight_kg?s.weight_kg+' kg':'Dados da avaliação'],['Editor','Plano alimentar individual']].forEach(([k,v])=>{const chip=document.createElement('div');chip.className='diet-studio-chip';const b=document.createElement('b');b.textContent=k;chip.append(b,document.createElement('br'),document.createTextNode(v));ctx.append(chip);});
  updateDietNutrition();dietStudioModal.classList.add('is-open');form.elements.title?.focus({preventScroll:true});
