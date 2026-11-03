@@ -424,6 +424,7 @@ dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  const dayMeals=new Map();let sectionMeal='';
  const norm=v=>String(v||'').trim().replace(/\s+/g,' ');
  const addFood=(meal,day,name,qty,measure)=>{if(!name||!qty)return;const key=meal+'::'+day;if(!dayMeals.has(key))dayMeals.set(key,{name:meal+' — Dia '+day,foods:[]});dayMeals.get(key).foods.push({name,qty,measure});};
+ const parseQty=(v)=>{const x=norm(v).match(/^(.*?)(?:\\s+(\\d+(?:[.,]\\d+)?\\s*(?:g|kg|ml|l|un\\.?|unidade|unidades)))?$/i);return x&&x[2]?{name:x[1].trim(),qty:x[2].trim()}:{name:norm(v),qty:''};};
  const top=rows.find(r=>r.some(v=>/^dia\\s*1$/i.test(v)));
  const dayCols=top?top.map((v,i)=>{const m=String(v).match(/^dia\\s*(\\d+)$/i);return m?{day:Number(m[1]),start:i}:null;}).filter(Boolean):[];
  // Formato horizontal só quando existem Dia 2/3; tabela vertical fica no parser simples.
@@ -435,7 +436,7 @@ dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
    dayCols.forEach(({day,start})=>{const s=day===1?0:start-1;const food=norm(r[s]),qty=norm(r[s+1]),measure=norm(r[s+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
   });
  }else{
-  let current=null; rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]); if(/^refeiç/i.test(a)){current=null;return;} if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;} if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;addFood(current,1,b,q,m);return;} if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a||!b)return; addFood(current,1,a,b);});
+  let current=null; rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]); if(/^refeiç/i.test(a)){current=null;return;} if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;} if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;const z=parseQty(b);addFood(current,1,z.name,z.qty||q,m);return;} if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a||!b)return; const z=parseQty(a);addFood(current,1,z.name,z.qty||b,m);});
  }
  const valid=[...dayMeals.values()].filter(m=>m.foods.length);
  if(!valid.length){message('Não consegui identificar alimentos. Confira colunas Alimento, Quantidade e Medida prática.','error');return;}
