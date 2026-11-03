@@ -174,7 +174,7 @@ export async function studentRoutes(request, env, url) {
           for(const [dayNumber,items] of Object.entries(byDay)){
             if(items.length===4&&!items.some(x=>/jantar/i.test(x.meal_name))){
               const last=items[items.length-1];
-              await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=?,items_json=?,notes=? WHERE id=?').bind('Dia '+dayNumber+' · Jantar',JSON.stringify(['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)']),'Refeição noturna corrigida automaticamente; porções ilustrativas.',last.id).run();
+              await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=?,items_json=?,notes=? WHERE id=?').bind('Dia '+dayNumber+' · Jantar', JSON.stringify(['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)']), 'Refeição noturna corrigida automaticamente; porções ilustrativas.', last.id).run();
             }
           }
         }
