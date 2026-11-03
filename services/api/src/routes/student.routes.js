@@ -168,13 +168,17 @@ export async function studentRoutes(request, env, url) {
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM diets WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
         if(current?.source==='template'){
           const existingMeals=await env.RFIT_DB.prepare('SELECT id,meal_name,meal_order FROM diet_meals WHERE diet_id=? ORDER BY meal_order').bind(current.id).all();
-          const rows=existingMeals.results||[];
-          const byDay={};
+          const rows=existingMeals.results||[],byDay={};
           for(const row of rows){const match=String(row.meal_name||'').match(/^Dia (\\d+)/);if(match)(byDay[match[1]]??=[]).push(row);}
           for(const [dayNumber,items] of Object.entries(byDay)){
             if(items.length===4&&!items.some(x=>/jantar/i.test(x.meal_name))){
-              const last=items[items.length-1];
-              await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=?,items_json=?,notes=? WHERE id=?').bind('Dia '+dayNumber+' · Jantar', JSON.stringify(['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)']), 'Refeição noturna corrigida automaticamente; porções ilustrativas.', last.id).run();
+              const fixes=[
+                ['Dia '+dayNumber+' · Café da manhã',null],
+                ['Dia '+dayNumber+' · Almoço',['Frango grelhado (150 g)','Arroz cozido (120 g)','Feijão (100 g)','Salada variada + azeite (5 g)']],
+                ['Dia '+dayNumber+' · Lanche',['Iogurte natural (170 g)','Fruta (100 g)','Castanhas (10 g)']],
+                ['Dia '+dayNumber+' · Jantar',['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)']]
+              ];
+              for(let i=0;i<4;i++){const [name,foods]=fixes[i],row=items[i];if(foods)await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=?,items_json=?,notes=? WHERE id=?').bind(name,JSON.stringify(foods),'Modelo automático reorganizado em café, almoço, lanche e jantar; porções ilustrativas.',row.id).run();else await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=? WHERE id=?').bind(name,row.id).run();}
             }
           }
         }
