@@ -142,6 +142,8 @@ let workoutDays=[];
 let selectedWorkoutDay=0;
 let exerciseCatalog=[];
 let exerciseCatalogLoaded=false;
+let exerciseFavorites=new Set(JSON.parse(localStorage.getItem('rfit-exercise-favorites')||'[]'));
+let showExerciseFavorites=false;
 const EXERCISE_BASE='https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0';
 const workoutModal=$('#workout-builder-modal');
 const workoutForm=$('#workout-form');
@@ -185,15 +187,17 @@ async function loadExerciseCatalog(){
 function renderExerciseLibrary(){
  const grid=$('#exercise-library-grid'),search=$('#exercise-library-search').value.trim().toLowerCase(),muscle=$('#exercise-library-muscle').value;
  grid.replaceChildren();
- const filtered=exerciseCatalog.filter(ex=>(!muscle||ex.muscle===muscle)&&(!search||String(ex.name+' '+ex.slug+' '+ex.muscle+' '+ex.equipment).toLowerCase().includes(search))).slice(0,120);
- filtered.forEach(ex=>{const card=document.createElement('button');card.type='button';card.className='exercise-library-card';card.title='Adicionar '+ex.name;
+ const filtered=exerciseCatalog.filter(ex=>(!showExerciseFavorites||exerciseFavorites.has(ex.slug||ex.name))&&(!muscle||ex.muscle===muscle)&&(!search||String(ex.name+' '+ex.slug+' '+ex.muscle+' '+ex.equipment).toLowerCase().includes(search))).slice(0,120);
+ filtered.forEach(ex=>{const card=document.createElement('button');card.type='button';card.className='exercise-library-card';card.title='Adicionar '+ex.name;const favKey=ex.slug||ex.name;if(exerciseFavorites.has(favKey))card.classList.add('is-favorite');
  const img=document.createElement('img');img.src=ex.gifUrl||EXERCISE_BASE+'/'+ex.file;img.alt=ex.name;img.loading='lazy';
  const name=document.createElement('strong');name.textContent=exercisePt(ex.name);const tag=document.createElement('small');tag.textContent=(ex.muscle||'')+' · '+(ex.equipment||'');
- card.append(img,name,tag);card.onclick=()=>{const day=ensureWorkoutDay(selectedWorkoutDay);day.exercises.push({name:ex.name,displayName:exercisePt(ex.name),gifUrl:ex.gifUrl||EXERCISE_BASE+'/'+ex.file,muscle:ex.muscle,equipment:ex.equipment,slug:ex.slug,sets:3,reps:12,load:'',rest:60});renderWorkoutDays();};grid.append(card);});
+ const star=document.createElement('button');star.type='button';star.className='exercise-favorite-mark';star.textContent=exerciseFavorites.has(favKey)?'⭐':'☆';star.title=exerciseFavorites.has(favKey)?'Remover dos favoritos':'Favoritar exercício';star.onclick=e=>{e.stopPropagation();if(exerciseFavorites.has(favKey))exerciseFavorites.delete(favKey);else exerciseFavorites.add(favKey);localStorage.setItem('rfit-exercise-favorites',JSON.stringify([...exerciseFavorites]));renderExerciseLibrary();updateExerciseFavoriteCount();};card.append(img,name,tag,star);card.onclick=()=>{const day=ensureWorkoutDay(selectedWorkoutDay);day.exercises.push({name:ex.name,displayName:exercisePt(ex.name),gifUrl:ex.gifUrl||EXERCISE_BASE+'/'+ex.file,muscle:ex.muscle,equipment:ex.equipment,slug:ex.slug,sets:3,reps:12,load:'',rest:60});renderWorkoutDays();};grid.append(card);});
  if(!filtered.length){const empty=document.createElement('p');empty.className='workout-library-empty';empty.textContent='Nenhum exercício encontrado com esses filtros.';grid.append(empty);}
 }
+function updateExerciseFavoriteCount(){const count=$('#exercise-favorites-count');if(count)count.textContent=exerciseFavorites.size;}
+$('#toggle-exercise-favorites')?.addEventListener('click',()=>{showExerciseFavorites=!showExerciseFavorites;$('#toggle-exercise-favorites').classList.toggle('is-active',showExerciseFavorites);renderExerciseLibrary();});
 function openWorkoutBuilder(){
- workoutDays=[{title:'Treino A',exercises:[]}];selectedWorkoutDay=0;renderWorkoutDays();workoutModal.classList.add('is-open');workoutModal.setAttribute('aria-hidden','false');loadExerciseCatalog();
+ workoutDays=[{title:'Treino A',exercises:[]}];selectedWorkoutDay=0;showExerciseFavorites=false;updateExerciseFavoriteCount();renderWorkoutDays();workoutModal.classList.add('is-open');workoutModal.setAttribute('aria-hidden','false');loadExerciseCatalog();
 }
 $('#open-workout-builder')?.addEventListener('click',openWorkoutBuilder);
 $('#duplicate-workout-day-modal')?.addEventListener('click',()=>{if(workoutDays.length>=7)return;const source=ensureWorkoutDay(selectedWorkoutDay);const copy=JSON.parse(JSON.stringify(source));copy.title=source.title+' (cópia)';workoutDays.splice(selectedWorkoutDay+1,0,copy);selectedWorkoutDay++;renderWorkoutDays();});
