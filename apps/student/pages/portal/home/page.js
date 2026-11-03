@@ -148,7 +148,24 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(message)message.textContent='';
  }catch(error){if(message)message.textContent='Não foi possível carregar todos os dados do painel. Atualize a página para tentar novamente.';console.error('student_home_dashboard_failed',error)}
  const checkinModal=document.getElementById('daily-checkin-modal');
- const openCheckin=()=>{if(checkinModal){checkinModal.hidden=false;document.body.style.overflow='hidden';}};
+ const checkinAction=document.getElementById('open-daily-checkin');
+ const checkinActionTitle=checkinAction?.querySelector('strong');
+ const checkinActionDesc=checkinAction?.querySelector('small');
+ let didCheckinToday=false;
+ const refreshTodayCheckin=async()=>{
+  try{
+   const response=await fetch('/api/student/checkins',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+   const data=await response.json();if(!response.ok||!data.ok)throw new Error('checkins_unavailable');
+   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+   const row=(data.checkins||[]).find(item=>item.kind==='daily'&&item.checkin_date===today);
+   didCheckinToday=Boolean(row);
+   if(checkinActionTitle)checkinActionTitle.textContent=didCheckinToday?'✓ Você já fez o check-in hoje!':'Check-in diário';
+   if(checkinActionDesc)checkinActionDesc.textContent=didCheckinToday?'Registro de hoje concluído. Volte amanhã para o próximo.':'Registre como está sua rotina hoje.';
+   if(checkinAction){checkinAction.disabled=didCheckinToday;checkinAction.setAttribute('aria-disabled',String(didCheckinToday));checkinAction.style.opacity=didCheckinToday?'.75':'';checkinAction.style.cursor=didCheckinToday?'default':'pointer';}
+  }catch(error){console.warn('today_checkin_status_unavailable',error);}
+ };
+ const openCheckin=()=>{if(didCheckinToday){return;}if(checkinModal){checkinModal.hidden=false;document.body.style.overflow='hidden';}};
+ refreshTodayCheckin();
  const closeCheckin=()=>{if(checkinModal){checkinModal.hidden=true;document.body.style.overflow='';}};
  document.getElementById('open-daily-checkin')?.addEventListener('click',openCheckin);
  document.getElementById('close-daily-checkin')?.addEventListener('click',closeCheckin);
@@ -178,7 +195,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
      const result=await response.json();
      if(!response.ok||!result.ok)throw new Error(result.error||'checkin_save_failed');
      if(status)status.textContent='✓ Check-in salvo com sucesso!';
-     updateHydrationCard(payload.water_liters);
+     updateHydrationCard(payload.water_liters);\n     didCheckinToday=true;await refreshTodayCheckin();
      form.reset();
      checkinModal.querySelectorAll('.daily-checkin-scale').forEach(group=>{group.dataset.value='3';group.querySelectorAll('button').forEach((item,index)=>item.setAttribute('aria-pressed',index===2?'true':'false'));});
      ['training-adherence-value','nutrition-adherence-value'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='80%';});
