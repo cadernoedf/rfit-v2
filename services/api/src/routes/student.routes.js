@@ -148,7 +148,7 @@ export async function studentRoutes(request, env, url) {
       const freq=Math.max(1,Math.min(7,Number(a.training_frequency)||3)),goal=String(a.goal||'condicionamento').toLowerCase();
       const goalLabel=a.goal||'Melhorar saúde em geral';
       const sex=String(a.sex||a.gender||a.sexo||'').toLowerCase(),female=/fem|mulher|f$/.test(sex);
-      if(isWorkout&&Number(sub.includes_training)){
+      if(isWorkout&&(courtesy||Number(sub.includes_training))){
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
         if(!current){ // GET nunca substitui nem recria uma ficha já ativa; template inicial permanece até o professor prescrever outra.
           
@@ -168,7 +168,7 @@ export async function studentRoutes(request, env, url) {
           }
         }
       }
-      if(!isWorkout&&Number(sub.includes_nutrition)){
+      if(!isWorkout&&(courtesy||Number(sub.includes_nutrition))){
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM diets WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
         if(current){
           // Normaliza dietas automáticas já existentes (independente do source), sem criar registros novos.
@@ -590,9 +590,10 @@ export async function studentRoutes(request, env, url) {
         await env.RFIT_DB.prepare("UPDATE student_profiles SET birth_date=?,sex=?,height_cm=?,weight_kg=?,goal=?,training_frequency=?,experience_level=?,restrictions_json=?,anamnesis_completed_at=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?").bind(answers.birth_date,answers.sex,Number(answers.height_cm),Number(answers.weight_kg),answers.goal,Number(answers.training_frequency),answers.experience_level,JSON.stringify({health_conditions:answers.health_conditions,medications:answers.medications,allergies:answers.allergies,restrictions:answers.restrictions,additional_notes:answers.additional_notes}),completedAt,session.sub).run();
         // Na primeira anamnese, criar uma ficha inicial persistida (nunca recalcular em acessos posteriores).
         {
-          const plan=await env.RFIT_DB.prepare("SELECT p.includes_training,p.includes_nutrition FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+          const plan=await env.RFIT_DB.prepare("SELECT s.id AS subscription_id,s.status,s.expires_at,s.lifetime,p.includes_training,p.includes_nutrition FROM subscriptions s LEFT JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? AND s.status='active' AND (s.lifetime=1 OR s.expires_at IS NULL OR s.expires_at>CURRENT_TIMESTAMP) ORDER BY s.created_at DESC LIMIT 1").bind(session.sub).first();
+          const courtesy=Boolean(plan&&plan.status==='active'&&!Number(plan.lifetime)&&!plan.expires_at);
           const freq=Math.max(2,Math.min(6,Number(answers.training_frequency)||3));
-          if(Number(plan?.includes_training)){
+          if(courtesy||Number(plan?.includes_training)){
             const existing=await env.RFIT_DB.prepare("SELECT id FROM workouts WHERE user_id=? LIMIT 1").bind(session.sub).first();
             if(!existing){
               const wid=crypto.randomUUID(),days=Math.min(freq,4);
@@ -604,7 +605,7 @@ export async function studentRoutes(request, env, url) {
               for(let d=0;d<days;d++){const sid=crypto.randomUUID();await env.RFIT_DB.prepare("INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)").bind(sid,wid,d+1,'Treino '+String.fromCharCode(65+d),'Ficha inicial geral. Ajustar cargas e amplitude sem dor; interromper se houver desconforto.').run();for(let j=0;j<routines[d%2].length;j++){const e=routines[d%2][j];await env.RFIT_DB.prepare("INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),sid,e.n,e.s,e.r,60,j,'Carga leve/moderada e técnica controlada.').run();}}
             }
           }
-          if(Number(plan?.includes_nutrition)){
+          if(courtesy||Number(plan?.includes_nutrition)){
             const existing=await env.RFIT_DB.prepare("SELECT id FROM diets WHERE user_id=? LIMIT 1").bind(session.sub).first();
             if(!existing){
               const did=crypto.randomUUID(),kg=Number(answers.weight_kg),protein=Math.round(kg*1.6),water=Math.round(kg*35/250)*250,kcal=Math.round(kg*30),fats=Math.round(kcal*.25/9),carbs=Math.round((kcal-protein*4-fats*9)/4);
