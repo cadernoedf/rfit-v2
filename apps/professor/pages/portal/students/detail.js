@@ -434,7 +434,10 @@ dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
    if(!sectionMeal)return;
    dayCols.forEach(({day,start})=>{const s=day===1?0:start-1;const food=norm(r[s]),qty=norm(r[s+1]),measure=norm(r[s+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
   });
- }else{ const valid=[...dayMeals.values()].filter(m=>m.foods.length);
+ }else{
+  let current=null; rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]); if(/^refeiç/i.test(a)){current=null;return;} if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;} if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;addFood(current,1,b,q,m);return;} if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a||!b)return; addFood(current,1,a,b);});
+ }
+ const valid=[...dayMeals.values()].filter(m=>m.foods.length);
  if(!valid.length){message('Não consegui identificar alimentos. Confira colunas Alimento, Quantidade e Medida prática.','error');return;}
  const container=$('#diet-meals');container.replaceChildren();
  valid.forEach(g=>{const card=addDietMeal(g.name);g.foods.forEach((food,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name;row.querySelector('[data-food=measure]').value=food.measure||'';const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\s*(g|kg|ml|l|un\.?|unidade|unidades)?/i);if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}});});
