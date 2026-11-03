@@ -62,8 +62,8 @@ try {
 } catch (error) { console.warn('Peso não carregado:', error); }
 // Estimativa dos macros a partir dos alimentos e porções cadastrados.
 const foodBase={
- 'arroz branco cozido':[2.5,28,0.3,130],'arroz integral':[2.6,25,1,123],'batata-doce':[1.3,20,0.1,86],'batata inglesa':[1.9,17,0.1, карто],
- 'macarrão cozido':[5,25,1.1,131],'aveia':[13, yapıl,7,389],'pão francês':[8,57,3,300],'pão integral':[10,43,4,250],'tapioca':[0,25,0,100],
+ 'arroz branco cozido':[2.5,28,0.3,130],'arroz integral':[2.6,25,1,123],'batata-doce':[1.3,20,0.1,86],'batata inglesa':[1.9,17,0.1, 77],
+ 'macarrão cozido':[5,25,1.1,131],'aveia':[13,66,7,389],'pão francês':[8,57,3,300],'pão integral':[10,43,4,250],'tapioca':[0,25,0,100],
  'banana':[1.1,23,0.3,89],'maçã':[0.3,14,0.2,52],'mamão':[0.5,11,0.1,43],'morango':[0.7,8,0.3,32],'laranja':[0.9,12,0.1,47],'abacate':[2,9,15,160],
  'frango grelhado':[31,0,3.6,165],'patinho magro':[27,0,7,170],'carne moída magra':[26,0,8,180],'tilápia':[26,0,2.7,128],'atum em água':[25,0,1,116],'ovo':[13,1,10,143],'clara de ovo':[11,0.7,0.2,52],
  'iogurte natural':[4,5,3,60],'whey protein':[80,8,5,390],'cottage':[12,3,4,98],'leite desnatado':[3.4,5,0.1,34],'feijão':[5,14,0.5,76],'lentilha':[6.3,16,0.4,93],'grão-de-bico':[8.9,27,2.6,164],
