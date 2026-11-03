@@ -43,7 +43,7 @@ function render(data){
  const digits=String(s.phone||'').replace(/\\D/g,'');
  if(digits.length>=10){const wa=document.createElement('a');wa.className='student-quick-button is-whatsapp';wa.href='https://wa.me/'+(digits.startsWith('55')?digits:'55'+digits);wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Conversar no WhatsApp';quick.append(wa);}
  const assessment=document.createElement('button');assessment.type='button';assessment.className='student-quick-button is-primary';assessment.textContent='＋ Registrar avaliação';assessment.addEventListener('click',()=>{document.querySelector('[data-student-tab="evolution"]')?.click();document.querySelector('#open-assessment')?.click();});quick.append(assessment);
- const workout=document.createElement('button');workout.type='button';workout.className='student-quick-button';workout.textContent='＋ Novo treino';workout.addEventListener('click',()=>{document.querySelector('[data-student-tab="workouts"]')?.click();document.querySelector('#workout-form')?.scrollIntoView({behavior:'smooth',block:'start'});});quick.append(workout);
+ const workout=document.createElement('button');workout.type='button';workout.className='student-quick-button';workout.textContent='＋ Novo treino';workout.addEventListener('click',()=>{document.querySelector('[data-student-tab="workouts"]')?.click();$('#open-workout-builder')?.click();});quick.append(workout);
  hero.append(avatar,info,actions,quick);const settingsWrap=$('#student-settings-button')?.parentElement;if(settingsWrap){hero.append(settingsWrap);hero.style.position='relative';settingsWrap.style.position='absolute';settingsWrap.style.right='24px';settingsWrap.style.top='20px';settingsWrap.style.left='auto';settingsWrap.style.bottom='auto';}
  const measurements=data.measurements||[];
  const latest=measurements[0]||{};
@@ -137,21 +137,60 @@ function render(data){
 
 }
 
-/* ===== EDITOR DE TREINO ===== */
-let workoutDayCount=0;
-function addWorkoutDay(){
- if(workoutDayCount>=7)return;
- workoutDayCount++;
- const day=document.createElement('fieldset');day.className='workout-day-editor';
- const legend=document.createElement('legend');legend.textContent='Treino '+String.fromCharCode(64+workoutDayCount);day.append(legend);
- const title=document.createElement('input');title.placeholder='Nome do dia (ex.: Peito e tríceps)';title.maxLength=100;title.value='Treino '+String.fromCharCode(64+workoutDayCount);title.dataset.field='title';day.append(title);
- const exercise=document.createElement('input');exercise.placeholder='Exercício';exercise.maxLength=120;exercise.dataset.field='exercise';exercise.dataset.field='exercise';day.append(exercise);
- const sets=document.createElement('input');sets.type='number';sets.min='1';sets.max='20';sets.value='3';sets.dataset.field='sets';sets.setAttribute('aria-label','Séries');day.append(sets);
- const reps=document.createElement('input');reps.placeholder='Repetições';reps.value='12';reps.dataset.field='reps';reps.setAttribute('aria-label','Repetições');day.append(reps);
- const more=document.createElement('button');more.type='button';more.className='secondary-button';more.textContent='Adicionar exercício';more.addEventListener('click',()=>{const row=document.createElement('div');row.className='workout-exercise-editor';[['exercise','Exercício'],['sets','Séries'],['reps','Repetições']].forEach(([field,placeholder])=>{const input=document.createElement('input');input.dataset.field=field;input.placeholder=placeholder;if(field==='sets'){input.type='number';input.min='1';input.max='20';input.value='3'}if(field==='reps')input.value='12';row.append(input)});day.insertBefore(row,more);});day.append(more);$('#workout-days').append(day);
+/* ===== EDITOR VISUAL DE TREINO COM GIFS ===== */
+let workoutDays=[];
+let selectedWorkoutDay=0;
+let exerciseCatalog=[];
+let exerciseCatalogLoaded=false;
+const EXERCISE_BASE='https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0';
+const workoutModal=$('#workout-builder-modal');
+const workoutForm=$('#workout-form');
+const closeWorkoutBuilder=()=>{workoutModal?.classList.remove('is-open');workoutModal?.setAttribute('aria-hidden','true');};
+function ensureWorkoutDay(index=workoutDays.length){
+ if(!workoutDays[index])workoutDays[index]={title:'Treino '+String.fromCharCode(65+index),exercises:[]};
+ return workoutDays[index];
 }
-function collectWorkoutDays(){return Array.from(document.querySelectorAll('.workout-day-editor')).map(day=>{const title=day.querySelector('[data-field=title]')?.value||'Dia';const rows=[day,...day.querySelectorAll('.workout-exercise-editor')];const exercises=rows.map(row=>({name:row.querySelector('[data-field=exercise]')?.value||'',sets:Number(row.querySelector('[data-field=sets]')?.value||3),reps:row.querySelector('[data-field=reps]')?.value||'12'})).filter(x=>x.name.trim());return{title,exercises};});}
-
+function renderWorkoutDays(){
+ const nav=$('#workout-day-tabs'),list=$('#workout-selected-list');nav.replaceChildren();list.replaceChildren();
+ workoutDays.forEach((day,i)=>{const b=document.createElement('button');b.type='button';b.className='workout-day-tab'+(i===selectedWorkoutDay?' is-active':'');b.textContent=String.fromCharCode(65+i);b.title=day.title;b.addEventListener('click',()=>{selectedWorkoutDay=i;renderWorkoutDays();});nav.append(b);});
+ const day=ensureWorkoutDay(selectedWorkoutDay);
+ const title=$('#workout-day-title');title.value=day.title;title.oninput=()=>day.title=title.value;
+ day.exercises.forEach((ex,i)=>{
+  const row=document.createElement('article');row.className='workout-selected-card';
+  const img=document.createElement('img');img.src=ex.gifUrl||'';img.alt=ex.name;img.loading='lazy';
+  const info=document.createElement('div');info.className='workout-selected-info';
+  const name=document.createElement('strong');name.textContent=ex.name;
+  const meta=document.createElement('small');meta.textContent=(ex.muscle||'Exercício')+' · '+(ex.equipment||'');
+  const fields=document.createElement('div');fields.className='workout-prescription-fields';
+  [['sets','Séries',1,20],['reps','Reps',1,100],['load','Carga (kg)',0,1000],['rest','Descanso (s)',0,600]].forEach(([key,label,min,max])=>{const input=document.createElement('input');input.type='number';input.min=min;input.max=max;input.placeholder=label;input.setAttribute('aria-label',label);input.value=ex[key]??(key==='sets'?3:key==='reps'?12:key==='rest'?60:'');input.onchange=()=>ex[key]=input.value;fields.append(input);});
+  info.append(name,meta,fields);const remove=document.createElement('button');remove.type='button';remove.className='workout-remove-exercise';remove.textContent='×';remove.title='Remover exercício';remove.onclick=()=>{day.exercises.splice(i,1);renderWorkoutDays();};row.append(img,info,remove);list.append(row);
+ });
+ if(!day.exercises.length){const empty=document.createElement('p');empty.className='workout-library-empty';empty.textContent='Escolha exercícios na biblioteca para montar este dia.';list.append(empty);}
+}
+async function loadExerciseCatalog(){
+ if(exerciseCatalogLoaded)return;
+ const status=$('#exercise-library-status');status.textContent='Carregando biblioteca de exercícios…';
+ try{const response=await fetch(EXERCISE_BASE+'/api/es/exercises.json',{cache:'force-cache'});if(!response.ok)throw new Error('Biblioteca indisponível');const data=await response.json();exerciseCatalog=data.exercises||data;exerciseCatalog=Array.isArray(exerciseCatalog)?exerciseCatalog:[];exerciseCatalogLoaded=true;status.textContent=exerciseCatalog.length+' exercícios disponíveis';renderExerciseLibrary();}
+ catch(e){status.textContent='Não foi possível carregar a biblioteca. Tente novamente.';console.error(e);}
+}
+function renderExerciseLibrary(){
+ const grid=$('#exercise-library-grid'),search=$('#exercise-library-search').value.trim().toLowerCase(),muscle=$('#exercise-library-muscle').value;
+ grid.replaceChildren();
+ const filtered=exerciseCatalog.filter(ex=>(!muscle||ex.muscle===muscle)&&(!search||String(ex.name+' '+ex.slug+' '+ex.muscle+' '+ex.equipment).toLowerCase().includes(search))).slice(0,120);
+ filtered.forEach(ex=>{const card=document.createElement('button');card.type='button';card.className='exercise-library-card';card.title='Adicionar '+ex.name;
+ const img=document.createElement('img');img.src=ex.gifUrl||EXERCISE_BASE+'/'+ex.file;img.alt=ex.name;img.loading='lazy';
+ const name=document.createElement('strong');name.textContent=ex.name;const tag=document.createElement('small');tag.textContent=(ex.muscle||'')+' · '+(ex.equipment||'');
+ card.append(img,name,tag);card.onclick=()=>{const day=ensureWorkoutDay(selectedWorkoutDay);day.exercises.push({name:ex.name,gifUrl:ex.gifUrl||EXERCISE_BASE+'/'+ex.file,muscle:ex.muscle,equipment:ex.equipment,slug:ex.slug,sets:3,reps:12,load:'',rest:60});renderWorkoutDays();};grid.append(card);});
+ if(!filtered.length){const empty=document.createElement('p');empty.className='workout-library-empty';empty.textContent='Nenhum exercício encontrado com esses filtros.';grid.append(empty);}
+}
+function openWorkoutBuilder(){
+ workoutDays=[{title:'Treino A',exercises:[]}];selectedWorkoutDay=0;renderWorkoutDays();workoutModal.classList.add('is-open');workoutModal.setAttribute('aria-hidden','false');loadExerciseCatalog();
+}
+$('#open-workout-builder')?.addEventListener('click',openWorkoutBuilder);
+$('#add-workout-day-modal')?.addEventListener('click',()=>{if(workoutDays.length>=7)return;workoutDays.push({title:'Treino '+String.fromCharCode(65+workoutDays.length),exercises:[]});selectedWorkoutDay=workoutDays.length-1;renderWorkoutDays();});
+$('#exercise-library-search')?.addEventListener('input',renderExerciseLibrary);
+$('#exercise-library-muscle')?.addEventListener('change',renderExerciseLibrary);
+workoutModal?.querySelectorAll('[data-close-workout]').forEach(el=>el.addEventListener('click',closeWorkoutBuilder));
 /* ===== EDITOR DE DIETA ===== */
 function addDietMeal(){
  const meal=document.createElement('fieldset');meal.className='diet-meal-editor';const title=document.createElement('input');title.placeholder='Nome da refeição (ex.: Café da manhã)';title.maxLength=100;title.dataset.field='name';
@@ -205,8 +244,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  assessmentForm?.addEventListener('submit',async event=>{event.preventDefault();const button=assessmentForm.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(assessmentForm);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/measurements',{method:'POST',body:JSON.stringify({measured_at:fd.get('measured_at'),weight_kg:fd.get('weight_kg'),waist_cm:fd.get('waist_cm'),bmr_kcal:fd.get('bmr_kcal'),notes:fd.get('notes')})});assessmentForm.reset();closeAssessment();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Avaliação registrada com sucesso.','success');}catch(error){message('Não foi possível salvar a avaliação: '+error.message+(error.stage?' · Etapa: '+error.stage:''),'error');}finally{button.disabled=false;}});
  $('#journey-note-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,field=form.elements.note,button=form.querySelector('button');if(!field.value.trim())return;button.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/journey-notes',{method:'POST',body:JSON.stringify({note:field.value.trim()})});field.value='';render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Observação salva.','success');}catch(error){message('Não foi possível salvar a observação: '+error.message,'error');}finally{button.disabled=false;}});
  const gear=$('#student-settings-button'),menu=$('#student-settings-menu'),planModal=$('#student-plan-modal'),planForm=$('#student-plan-form');gear?.addEventListener('click',()=>menu.hidden=!menu.hidden);document.addEventListener('click',e=>{if(!e.target.closest('.student-settings-wrap'))menu.hidden=true;});const closePlan=()=>{planModal.classList.remove('is-open');planModal.setAttribute('aria-hidden','true');};document.querySelectorAll('[data-close-plan]').forEach(x=>x.addEventListener('click',closePlan));async function fillPlans(){const d=await api('/api/professor/plans');const s=planForm.elements.plan_id;s.replaceChildren(new Option('Selecione um plano',''));(d.plans||[]).filter(p=>p.is_active).forEach(p=>s.add(new Option(p.name,p.id)));}document.querySelectorAll('[data-student-setting]').forEach(b=>b.addEventListener('click',async()=>{menu.hidden=true;const a=b.dataset.studentSetting;if(a==='plan'){try{await fillPlans();planModal.classList.add('is-open');planModal.setAttribute('aria-hidden','false');}catch(e){message('Erro ao carregar planos: '+e.message,'error');}return;}if(a==='suspend'||a==='reactivate'){const status=a==='suspend'?'suspended':'active';if(!confirm(a==='suspend'?'Suspender o acesso deste aluno?':'Reativar o acesso deste aluno?'))return;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/status',{method:'PATCH',body:JSON.stringify({status})});render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Acesso atualizado.','success');}catch(e){message('Erro: '+e.message,'error');}return;}if(a==='delete')$('#delete-student')?.click();}));planForm?.addEventListener('submit',async e=>{e.preventDefault();const d=new FormData(planForm),btn=planForm.querySelector('button[type=submit]');btn.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/subscription',{method:'PATCH',body:JSON.stringify({plan_id:d.get('plan_id'),lifetime:d.get('lifetime')==='on'})});closePlan();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Plano atualizado.','success');}catch(err){message('Erro ao alterar plano: '+err.message,'error');}finally{btn.disabled=false;}}); $('#delete-student')?.addEventListener('click',async()=>{const studentName=$('#student-title').textContent.replace(/\.$/,'');if(!confirm('ATENÇÃO: excluir '+studentName+'? A conta e os registros vinculados serão removidos permanentemente. Esta ação não pode ser desfeita.'))return;if(prompt('Para confirmar, digite EXCLUIR')!=='EXCLUIR')return;const button=$('#delete-student');button.disabled=true;button.textContent='Excluindo…';try{await api('/api/professor/students/'+encodeURIComponent(studentId),{method:'DELETE'});alert('Aluno excluído.');location.href='./index.html';}catch(error){button.disabled=false;button.textContent='Excluir aluno';message('Não foi possível excluir o aluno: '+error.message,'error');}});
- $('#add-workout-day').addEventListener('click',addWorkoutDay);addWorkoutDay();
- $('#workout-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type=submit]'),days=collectWorkoutDays();if(!days.length){message('Adicione pelo menos um dia de treino.','error');return;}button.disabled=true;try{const fd=new FormData(form);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/workouts',{method:'POST',body:JSON.stringify({title:fd.get('title'),goal:fd.get('goal'),weekly_frequency:Number(fd.get('weekly_frequency')),sessions:days})});form.reset();$('#workout-days').replaceChildren();workoutDayCount=0;addWorkoutDay();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Treino cadastrado e vinculado ao aluno.','success');}catch(error){message('Não foi possível salvar o treino: '+error.message,'error');}finally{button.disabled=false;}});
+ $('#workout-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type=submit]'),days=workoutDays.filter(d=>d.exercises.length).map(d=>({title:d.title,exercises:d.exercises.map(ex=>({name:ex.name,gifUrl:ex.gifUrl,muscle:ex.muscle,equipment:ex.equipment,sets:Number(ex.sets||3),reps:String(ex.reps||12),load:ex.load||'',rest:Number(ex.rest||60)}))}));if(!days.length){message('Selecione pelo menos um exercício para salvar o treino.','error');return;}button.disabled=true;try{const fd=new FormData(form);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/workouts',{method:'POST',body:JSON.stringify({title:fd.get('title'),goal:fd.get('goal'),weekly_frequency:Number(fd.get('weekly_frequency')),sessions:days})});closeWorkoutBuilder();form.reset();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Treino cadastrado com exercícios e GIFs.','success');}catch(error){message('Não foi possível salvar o treino: '+error.message,'error');}finally{button.disabled=false;}});
  $('#add-diet-meal').addEventListener('click',addDietMeal);addDietMeal();
  $('#diet-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type=submit]'),meals=collectDietMeals();if(!meals.length){message('Adicione pelo menos uma refeição.','error');return;}button.disabled=true;try{const fd=new FormData(form);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/diets',{method:'POST',body:JSON.stringify({title:fd.get('title'),goal:fd.get('goal'),calories_target:fd.get('calories_target')||null,meals})});form.reset();$('#diet-meals').replaceChildren();addDietMeal();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Dieta cadastrada e vinculada ao aluno.','success');}catch(error){message('Não foi possível salvar a dieta: '+error.message,'error');}finally{button.disabled=false;}});
  $('#logout')?.addEventListener('click',async()=>{try{await logout()}finally{location.replace('/student/pages/login.html')}});
