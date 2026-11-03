@@ -166,6 +166,18 @@ export async function studentRoutes(request, env, url) {
       }
       if(!isWorkout&&Number(sub.includes_nutrition)){
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM diets WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
+        if(current?.source==='template'){
+          const existingMeals=await env.RFIT_DB.prepare('SELECT id,meal_name,meal_order FROM diet_meals WHERE diet_id=? ORDER BY meal_order').bind(current.id).all();
+          const rows=existingMeals.results||[];
+          const byDay={};
+          for(const row of rows){const match=String(row.meal_name||'').match(/^Dia (\\d+)/);if(match)(byDay[match[1]]??=[]).push(row);}
+          for(const [dayNumber,items] of Object.entries(byDay)){
+            if(items.length===4&&!items.some(x=>/jantar/i.test(x.meal_name))){
+              const last=items[items.length-1];
+              await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=?,items_json=?,notes=? WHERE id=?').bind('Dia '+dayNumber+' · Jantar',JSON.stringify(['Patinho ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)']),'Refeição noturna corrigida automaticamente; porções ilustrativas.',last.id).run();
+            }
+          }
+        }
         if(!current){ // GET nunca substitui nem recria uma dieta já ativa; template inicial permanece até o professor prescrever outra.
           
           const did=crypto.randomUUID(),kg=Number(a.weight_kg||profile.weight_kg)||70,cm=Number(a.height_cm||profile.height_cm)||170,age=Math.max(18,Math.min(90,Number(a.age)||30)),sex=String(a.sex||a.gender||'').toLowerCase();
