@@ -625,8 +625,21 @@ export async function studentRoutes(request, env, url) {
             if(!existing){
               const did=crypto.randomUUID(),kg=Number(answers.weight_kg),protein=Math.round(kg*1.6),water=Math.round(kg*35/250)*250,kcal=Math.round(kg*30),fats=Math.round(kcal*.25/9),carbs=Math.round((kcal-protein*4-fats*9)/4);
               await env.RFIT_DB.prepare("INSERT INTO diets(id,user_id,subscription_id,title,goal,calories_target,source,status,created_by) VALUES(?,?,?,'Plano alimentar inicial R-Fit',?,?, 'template','active',NULL)").bind(did,session.sub,active.id,answers.goal,kcal).run();
-              const meals=[['Café da manhã',['Proteína (ovos, iogurte ou queijo)','Carboidrato (aveia, pão ou fruta)','Água'] ],['Almoço',['Proteína (frango, peixe, ovos ou leguminosas)','Arroz/batata/mandioca','Feijão e verduras/legumes','Água']],['Lanche',['Fruta + iogurte ou outra fonte proteica'] ],['Jantar',['Proteína','Carboidrato conforme fome/atividade','Verduras/legumes','Água']]];
-              for(let i=0;i<meals.length;i++)await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,i+1,meals[i][0],JSON.stringify(meals[i][1]),'Estrutura geral; ajustar por preferências, restrições e orientação profissional.').run();
+              const meals=[
+                ['Dia 1 · Café da manhã',[{name:'Ovos mexidos',quantity:'2',unit:'unidades'},{name:'Pão integral',quantity:'2',unit:'fatias'},{name:'Mamão',quantity:'150',unit:'g'}]],
+                ['Dia 1 · Almoço',[{name:'Frango grelhado',quantity:'150',unit:'g'},{name:'Arroz cozido',quantity:'120',unit:'g'},{name:'Feijão',quantity:'100',unit:'g'},{name:'Salada variada',quantity:'à vontade',unit:''}]],
+                ['Dia 1 · Lanche da tarde',[{name:'Iogurte natural',quantity:'170',unit:'g'},{name:'Banana',quantity:'1',unit:'unidade'},{name:'Aveia',quantity:'20',unit:'g'}]],
+                ['Dia 1 · Jantar',[{name:'Patinho moído',quantity:'130',unit:'g'},{name:'Batata-doce',quantity:'150',unit:'g'},{name:'Legumes cozidos',quantity:'150',unit:'g'}]],
+                ['Dia 2 · Café da manhã',[{name:'Tapioca',quantity:'50',unit:'g'},{name:'Queijo cottage',quantity:'80',unit:'g'},{name:'Morango',quantity:'100',unit:'g'}]],
+                ['Dia 2 · Almoço',[{name:'Tilápia grelhada',quantity:'160',unit:'g'},{name:'Batata inglesa',quantity:'180',unit:'g'},{name:'Lentilha',quantity:'100',unit:'g'},{name:'Brócolis',quantity:'100',unit:'g'}]],
+                ['Dia 2 · Lanche da tarde',[{name:'Maçã',quantity:'1',unit:'unidade'},{name:'Pasta de amendoim',quantity:'15',unit:'g'},{name:'Iogurte natural',quantity:'170',unit:'g'}]],
+                ['Dia 2 · Jantar',[{name:'Omelete',quantity:'3',unit:'ovos'},{name:'Arroz integral',quantity:'100',unit:'g'},{name:'Tomate e pepino',quantity:'150',unit:'g'}]],
+                ['Dia 3 · Café da manhã',[{name:'Pão francês',quantity:'1',unit:'unidade'},{name:'Ovos cozidos',quantity:'2',unit:'unidades'},{name:'Laranja',quantity:'1',unit:'unidade'}]],
+                ['Dia 3 · Almoço',[{name:'Carne magra grelhada',quantity:'150',unit:'g'},{name:'Macarrão cozido',quantity:'120',unit:'g'},{name:'Feijão',quantity:'80',unit:'g'},{name:'Salada verde',quantity:'à vontade',unit:''}]],
+                ['Dia 3 · Lanche da tarde',[{name:'Whey protein',quantity:'30',unit:'g'},{name:'Banana',quantity:'1',unit:'unidade'},{name:'Castanhas',quantity:'15',unit:'g'}]],
+                ['Dia 3 · Jantar',[{name:'Frango desfiado',quantity:'130',unit:'g'},{name:'Mandioca cozida',quantity:'120',unit:'g'},{name:'Abobrinha refogada',quantity:'150',unit:'g'}]]
+              ];
+              for(let i=0;i<meals.length;i++)await env.RFIT_DB.prepare("INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),did,i+1,meals[i][0],JSON.stringify(meals[i][1]),'Sugestão educativa inicial; adequar por preferências, restrições, necessidades individuais e acompanhamento profissional.').run();
               await env.RFIT_DB.prepare("UPDATE diets SET goal=? WHERE id=?").bind(answers.goal+' | Proteína ~'+protein+' g/dia; Carboidratos ~'+carbs+' g/dia; Gorduras ~'+fats+' g/dia; água ~'+(water/1000).toFixed(2)+' L/dia. Estimativas iniciais, não prescrição clínica.',did).run();
             }
           }
