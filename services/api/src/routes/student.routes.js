@@ -170,7 +170,7 @@ export async function studentRoutes(request, env, url) {
           // Normaliza dietas automáticas já existentes (independente do source), sem criar registros novos.
           const existingMeals=await env.RFIT_DB.prepare('SELECT id,meal_name,meal_order FROM diet_meals WHERE diet_id=? ORDER BY meal_order').bind(current.id).all();
           const rows=existingMeals.results||[],byDay={};
-          for(const row of rows){const match=String(row.meal_name||'').match(/dia\\s*(\\d+)/i);if(match)(byDay[match[1]]??=[]).push(row);}
+          for(const row of rows){const match=String(row.meal_name||'').match(/dia\s*(\d+)/i);if(match)(byDay[match[1]]??=[]).push(row);}
           for(const [dayNumber,items] of Object.entries(byDay)){
             if(items.length===4&&!items.some(x=>/jantar/i.test(x.meal_name))){
               const fixes=[
