@@ -367,7 +367,7 @@ function openDietStudio(){
   `;document.head.append(polish);
   const toolsBar=document.createElement('div');toolsBar.className='diet-studio-tools';toolsBar.innerHTML='<button type="button" data-diet-template-save>💾 Salvar modelo</button><button type="button" data-diet-template-load>📚 Meus modelos</button><button type="button" data-diet-copy>⧉ Copiar dieta salva</button><button type="button" data-diet-preview>👁 Pré-visualizar aluno</button>';form.insertBefore(toolsBar,$('#diet-meals'));
   const getDietDraft=()=>({title:form.elements.title?.value||'',objective:form.elements.objective?.value||'',calories:form.elements.calories?.value||'',water:form.elements.water?.value||'',meals:collectDietMeals()});
-  const applyDietDraft=d=>{if(!d)return;form.elements.title.value=d.title||'';if(form.elements.objective)form.elements.objective.value=d.objective||'';if(form.elements.calories)form.elements.calories.value=d.calories||'';if(form.elements.water)form.elements.water.value=d.water||'';$('#diet-meals').replaceChildren();(d.meals||[]).forEach(m=>{const card=addDietMeal(m.name);(m.items||[]).forEach((item,i)=>{if(i)card.querySelector('.diet-add-food').click();const row=card.querySelectorAll('.diet-food-row')[i];if(row){const p=String(item).split(' — '),match=(p[1]||'').match(/^([0-9.,]+)\s*(.*)$/);row.querySelector('[data-food=name]').value=p[0];if(match){row.querySelector('[data-food=qty]').value=match[1].replace(',','.');row.querySelector('[data-food=unit]').value=match[2]||'g';}}});});updateDietNutrition();};
+  const applyDietDraft=d=>{if(!d)return;form.elements.title.value=d.title||'';if(form.elements.objective)form.elements.objective.value=d.objective||'';if(form.elements.calories)form.elements.calories.value=d.calories||'';if(form.elements.water)form.elements.water.value=d.water||'';$('#diet-meals').replaceChildren();(d.meals||[]).forEach(m=>{const card=addDietMeal(m.name);(m.items||[]).forEach((item,i)=>{if(i)card.querySelector('.diet-add-food').click();const row=card.querySelectorAll('.diet-food-row')[i];if(row){const p=String(item).split(' — '),match=(p[1]||'').match(/^([0-9.,]+)\s*(.*)$/);row.querySelector('[data-food=name]').value=p[0];row.querySelector('[data-food=measure]').value=p[2]||'';if(match){row.querySelector('[data-food=qty]').value=match[1].replace(',','.');row.querySelector('[data-food=unit]').value=match[2]||'g';}}});});updateDietNutrition();};
   const draftKey='rfit-diet-draft-'+(studentId||'unknown');
   form.addEventListener('input',()=>{try{localStorage.setItem(draftKey,JSON.stringify(getDietDraft()));}catch{}});
   const draft=localStorage.getItem(draftKey);if(draft&&!form.dataset.draftOffered){form.dataset.draftOffered='1';const ask=document.createElement('div');ask.className='diet-studio-tools';ask.innerHTML='<span style="color:#58657b;font-size:12px">Existe um rascunho local desta dieta.</span><button type="button" data-draft-restore>↩ Restaurar rascunho</button><button type="button" data-draft-discard>Descartar</button>';toolsBar.after(ask);ask.querySelector('[data-draft-restore]').onclick=()=>{try{applyDietDraft(JSON.parse(localStorage.getItem(draftKey)));ask.remove();}catch{}};ask.querySelector('[data-draft-discard]').onclick=()=>{localStorage.removeItem(draftKey);ask.remove();};}
@@ -419,44 +419,30 @@ function openDietStudio(){
   dietStudioModal.querySelector('#diet-paste-toggle').onclick=()=>{const box=dietStudioModal.querySelector('#diet-paste-box');box.style.display=box.style.display==='grid'?'none':'grid';};
 dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  const raw=dietStudioModal.querySelector('#diet-paste-text').value.trim();if(!raw){message('Cole a tabela primeiro.','error');return;}
- // Mantém colunas vazias: elas representam separadores entre Dia 1, Dia 2 e Dia 3.
- const rows=raw.split(/\r?\n/).map(line=>line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(v=>v.trim().replace(/\\s+/g,' '))).filter(r=>r.some(Boolean)&&!r.every(v=>/^[-: ]*$/.test(v)));
+ const rows=raw.split(/\r?\n/).map(line=>line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(v=>v.trim().replace(/\s+/g,' '))).filter(r=>r.some(Boolean)&&!r.every(v=>/^[-: ]*$/.test(v)));
  const mealNames=/^(café(?: da manhã)?|almoço|lanche|jantar|ceia|pré[- ]?treino|pós[- ]?treino)$/i;
- const dayMeals=new Map();let sectionMeal='',headerDays=[];
- const normMeal=v=>String(v||'').trim().replace(/\\s+/g,' ');
- const addFood=(meal,day,name,qty,measure)=>{if(!name)return;const key=meal+'::'+day;if(!dayMeals.has(key))dayMeals.set(key,{name:meal+' — Dia '+day,foods:[]});dayMeals.get(key).foods.push({name,qty,measure});};
- // Detect a wide Excel table with repeated triplets (food, quantity, practical measure) per day.
- const top=rows.find(r=>r.some(v=>/^dia\\s*1$/i.test(v)));
- if(top){
-   const dayCols=[];top.forEach((v,i)=>{const m=String(v).match(/^dia\\s*(\\d+)$/i);if(m)dayCols.push({day:Number(m[1]),start:i});});
-   rows.forEach(r=>{
-    const first=normMeal(r[0]);
-    if(/^refeiç/i.test(first)){sectionMeal='';return;}
-    if(mealNames.test(first)&&/^alimento$/i.test(r[1]||'')){sectionMeal=first;return;}
-    if(!sectionMeal)return;
-    dayCols.forEach(({day,start})=>{
-      const food=normMeal(r[start]||''),qty=normMeal(r[start+1]||''),measure=normMeal(r[start+2]||'');
-      if(/^alimento$/i.test(food)||!food||!qty)return;
-      addFood(sectionMeal,day,food,qty,measure);
-    });
-   });
+ const dayMeals=new Map();let sectionMeal='';
+ const norm=v=>String(v||'').trim().replace(/\s+/g,' ');
+ const addFood=(meal,day,name,qty,measure)=>{if(!name||!qty)return;const key=meal+'::'+day;if(!dayMeals.has(key))dayMeals.set(key,{name:meal+' — Dia '+day,foods:[]});dayMeals.get(key).foods.push({name,qty,measure});};
+ const top=rows.find(r=>r.some(v=>/^dia\s*1$/i.test(v)));
+ const dayCols=top?top.map((v,i)=>{const m=String(v).match(/^dia\s*(\d+)$/i);return m?{day:Number(m[1]),start:i}:null;}).filter(Boolean):[];
+ if(dayCols.length>1){
+  rows.forEach(r=>{const first=norm(r[0]);if(/^refeiç/i.test(first)){sectionMeal='';return;}
+   if(mealNames.test(first)){if(/^alimento$/i.test(r[1]||'')){sectionMeal=first;return;}sectionMeal=first;dayCols.forEach(({day,start})=>addFood(sectionMeal,day,norm(r[start]),norm(r[start+1]),norm(r[start+2])));return;}
+   if(!sectionMeal)return;dayCols.forEach(({day,start})=>{const food=norm(r[start]),qty=norm(r[start+1]),measure=norm(r[start+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
+  });
  }else{
-   // Single-day/vertical format: each meal section contains food, quantity and measure rows.
-   let current=null;
-   rows.forEach(r=>{
-    const a=normMeal(r[0]),b=normMeal(r[1]),d=normMeal(r[2]),e=normMeal(r[3]);
-    if(/^refeiç/i.test(a)&&/^dia\\s*\\d+/i.test(b)){current=null;return;}
-    if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;}
-    if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;addFood(current,1,b,d,e);return;}
-    if(/^alimento$/i.test(a)||/^dia\\s*\\d+$/i.test(a)||!current||!a||!b)return;
-    addFood(current,1,a,b,d);
-   });
+  let current=null;rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]);if(/^refeiç/i.test(a)){current=null;return;}
+   if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;}
+   if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;addFood(current,1,b,q,m);return;}
+   if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a||!b)return;addFood(current,1,a,b,q);
+  });
  }
  const valid=[...dayMeals.values()].filter(m=>m.foods.length);
- if(!valid.length){message('Não consegui identificar alimentos. Confira se a tabela tem colunas Alimento, Quantidade e Medida prática.','error');return;}
+ if(!valid.length){message('Não consegui identificar alimentos. Confira colunas Alimento, Quantidade e Medida prática.','error');return;}
  const container=$('#diet-meals');container.replaceChildren();
- valid.forEach(g=>{const card=addDietMeal(g.name);g.foods.forEach((food,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name+(food.measure?' · '+food.measure:'');const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\\s*(g|kg|ml|l|un\\.?|unidade|unidades)?/i);if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}});});
- updateDietNutrition();message('Ficha montada: '+valid.length+' cards de refeição/dia. Revise e salve.','success');
+ valid.forEach(g=>{const card=addDietMeal(g.name);g.foods.forEach((food,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name;row.querySelector('[data-food=measure]').value=food.measure||'';const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\s*(g|kg|ml|l|un\.?|unidade|unidades)?/i);if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}});});
+ updateDietNutrition();message('Ficha montada: '+valid.length+' cards com alimentos e medidas práticas. Revise e salve.','success');
 };
 dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{
  const file=e.target.files?.[0];if(!file)return;const input=e.target,label=input.closest('label'),old=label?.firstChild?.textContent;
@@ -508,14 +494,14 @@ function addDietMeal(name=''){
  const addFood=()=>{const row=document.createElement('div');row.className='diet-food-row';row.style.cssText='display:grid;grid-template-columns:minmax(190px,1fr) 105px 115px 42px;gap:10px;align-items:center;width:100%;box-sizing:border-box;padding:2px 0';
  const food=document.createElement('input');food.placeholder='Alimento (ex.: arroz branco cozido)';food.dataset.food='name';food.setAttribute('list','rfit-food-suggestions');
  const qty=document.createElement('input');qty.placeholder='Qtd.';qty.type='number';qty.min='0';qty.step='any';qty.dataset.food='qty';
- const unit=document.createElement('select');unit.dataset.food='unit';['g','ml','unidade','fatia','colher','xícara','concha'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;unit.append(o);});
+ const unit=document.createElement('select');unit.dataset.food='unit';['g','ml','unidade','fatia','colher','xícara','concha'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;unit.append(o);});const practical=document.createElement('input');practical.dataset.food='measure';practical.placeholder='Medida prática (ex.: 1 filé médio)';practical.style.cssText='grid-column:1/-2;width:100%;min-width:0';
  const del=document.createElement('button');del.type='button';del.textContent='×';del.title='Remover alimento';del.style.cssText='border:0;background:#ffe5e9;color:#c51d3b;border-radius:8px;font-size:20px;cursor:pointer';del.onclick=()=>{row.remove();updateDietNutrition();};
- [food,qty,unit].forEach(el=>el.addEventListener('input',updateDietNutrition));[food,qty,unit].forEach(el=>el.addEventListener('change',updateDietNutrition));row.append(food,qty,unit,del);rows.append(row);};
+ [food,qty,unit,practical].forEach(el=>el.addEventListener('input',updateDietNutrition));[food,qty,unit,practical].forEach(el=>el.addEventListener('change',updateDietNutrition));row.append(food,qty,unit,del,practical);rows.append(row);};
  const controls=document.createElement('div');controls.className='diet-meal-controls';const add=document.createElement('button');add.type='button';add.textContent='＋ Adicionar alimento';add.className='secondary-button diet-add-food';add.onclick=addFood;
  const duplicate=document.createElement('button');duplicate.type='button';duplicate.textContent='⧉ Duplicar refeição';duplicate.className='secondary-button diet-duplicate-meal';duplicate.onclick=()=>{const copy=addDietMeal((title.value||'Refeição')+' (cópia)'),source=Array.from(rows.querySelectorAll('.diet-food-row'));source.forEach((r,i)=>{if(i>0)copy.querySelector('.diet-add-food')?.click();const target=copy.querySelectorAll('.diet-food-row')[i];if(target)['name','qty','unit'].forEach(k=>target.querySelector('[data-food='+k+']').value=r.querySelector('[data-food='+k+']').value);});updateDietNutrition();copy.querySelector('[data-field=name]').focus();};
  controls.append(add,duplicate);meal.append(head,rows,controls);$('#diet-meals').append(meal);addFood();return meal;
 }
-function collectDietMeals(){return Array.from(document.querySelectorAll('.diet-meal-editor')).map(meal=>({name:meal.querySelector('[data-field=name]').value.trim(),items:Array.from(meal.querySelectorAll('.diet-food-row')).map(row=>{const f=row.querySelector('[data-food=name]').value.trim(),q=row.querySelector('[data-food=qty]').value,u=row.querySelector('[data-food=unit]').value;return f?(q?f+' — '+q+' '+u:f):''}).filter(Boolean)})).filter(m=>m.name&&m.items.length);}
+function collectDietMeals(){return Array.from(document.querySelectorAll('.diet-meal-editor')).map(meal=>({name:meal.querySelector('[data-field=name]').value.trim(),items:Array.from(meal.querySelectorAll('.diet-food-row')).map(row=>{const f=row.querySelector('[data-food=name]').value.trim(),q=row.querySelector('[data-food=qty]').value,u=row.querySelector('[data-food=unit]').value;const practical=row.querySelector('[data-food=measure]').value.trim();return f?(q?f+' — '+q+' '+u+' — '+practical:f+' —  —  — '+practical):''}).filter(Boolean)})).filter(m=>m.name&&m.items.length);}
 
 /* Navegação por abas da ficha 360 */
 document.querySelectorAll('[data-student-tab]').forEach(button=>button.addEventListener('click',()=>{const target=button.dataset.studentTab;document.querySelectorAll('[data-student-tab]').forEach(tab=>{const active=tab===button;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',String(active));});document.querySelectorAll('[data-student-panel]').forEach(panel=>{const active=panel.dataset.studentPanel===target;panel.classList.toggle('is-active',active);panel.hidden=!active;});}));
