@@ -564,4 +564,182 @@ document.addEventListener('DOMContentLoaded',async()=>{
  document.addEventListener('click',function openDietFromList(e){const btn=e.target.closest('button,a,[role=button],summary');if(!btn)return;const label=(btn.textContent||'').replace(/[＋+📋🥗]/g,'').trim().toLowerCase();if(!/^(adicionar dieta|nova dieta|criar dieta)$/.test(label))return;if(btn.closest('.diet-studio'))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();document.querySelector('[data-student-tab="nutrition"]')?.click();openDietStudio();},{capture:true});
  $('#diet-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type=submit]'),meals=collectDietMeals();if(!meals.length){message('Adicione pelo menos uma refeição.','error');return;}button.disabled=true;try{const fd=new FormData(form);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/diets',{method:'POST',body:JSON.stringify({title:fd.get('title'),goal:fd.get('goal'),calories_target:fd.get('calories_target')||null,meals})});form.reset();$('#diet-meals').replaceChildren();addDietMeal();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Dieta cadastrada e vinculada ao aluno.','success');localStorage.removeItem('rfit-diet-draft-'+(studentId||'unknown'));dietStudioModal?.classList.remove('is-open');}catch(error){message('Não foi possível salvar a dieta: '+error.message,'error');}finally{button.disabled=false;}});
  $('#logout')?.addEventListener('click',async()=>{try{await logout()}finally{location.replace('/student/pages/login.html')}});
+}); dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
+  const raw=dietStudioModal.querySelector('#diet-paste-text').value.trim();
+  if(!raw){message('Cole a tabela primeiro.','error');return;}
+  const rows=raw.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+    const cells=line.includes('|')?line.replace(/^\|/,'').replace(/\|$/,'').split('|'):line.split('\t');
+    return cells.map(v=>v.trim().replace(/\s+/g,' '));
+  }).filter(r=>r.some(v=>v)&&!r.every(v=>/^[-: ]*$/.test(v)));
+  const mealRx=/^(café(?: da manhã)?|almoço|lanche|jantar|ceia|pré[- ]?treino|pós[- ]?treino)$/i;
+  const norm=v=>String(v||'').trim().replace(/\s+/g,' ');
+  const meals=new Map();
+  const add=(meal,day,name,qty,measure)=>{if(!name||/^alimento$/i.test(name)||!qty)return;const key=day+'|'+meal;if(!meals.has(key))meals.set(key,{day,meal,foods:[]});meals.get(key).foods.push({name,qty,measure});};
+  const headers=rows.find(r=>r.some(v=>/^dia\s*1$/i.test(v)))||[];
+  const days=headers.map((v,i)=>{const m=v.match(/^dia\s*(\d+)$/i);return m?{day:+m[1],col:i}:null;}).filter(Boolean);
+  const wide=days.some(d=>d.day>1);
+  if(wide){
+    let section='';
+    rows.forEach(r=>{
+      const a=norm(r[0]),b=norm(r[1]);
+      if(/^refeiç/i.test(a)){section='';return;}
+      if(mealRx.test(a)){
+        section=a;
+        if(/^alimento$/i.test(b))return; // header row
+        days.forEach(({day,col})=>add(section,day,norm(r[col]),norm(r[col+1]),norm(r[col+2])));
+        return;
+      }
+      if(!section)return;
+      days.forEach(({day,col})=>{const offset=col===1?0:col-1;add(section,day,norm(r[offset]),norm(r[offset+1]),norm(r[offset+2]));});
+    });
+  }else{
+    let current='';
+    rows.forEach(r=>{
+      const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]);
+      if(/^refeiç/i.test(a)){current='';return;}
+      if(mealRx.test(a)&&/^alimento$/i.test(b)){current=a;return;}
+      if(mealRx.test(a)&&b){current=a;add(current,1,b,q,m);return;}
+      if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a)return;
+      add(current,1,a,b,m);
+    });
+  }
+  const groups=[...meals.values()].filter(x=>x.foods.length).sort((a,b)=>a.day-b.day);
+  if(!groups.length){message('Não identifiquei alimentos. Cole as 3 colunas: Alimento, Quantidade e Medida prática.','error');return;}
+  const container=$('#diet-meals');container.replaceChildren();
+  groups.forEach(g=>{
+    const card=addDietMeal(g.meal); // abas representam o dia; título da refeição não repete "Dia 1"
+    card.dataset.dietDay=g.day;
+    g.foods.forEach((food,i)=>{
+      if(i)card.querySelector('.diet-add-food')?.click();
+      const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;
+      row.querySelector('[data-food=name]').value=food.name;
+      row.querySelector('[data-food=measure]').value=food.measure||'';
+      const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\s*(g|kg|ml|l|un\.?|unidade|unidades)?/i);
+      if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){let u=m[2].toLowerCase().replace(/un\.?/,'unidade');if(u==='l')u='ml';const sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===u))sel.value=u;}}
+    });
+  });
+  const byDay=new Map();groups.forEach(g=>{if(!byDay.has(g.day))byDay.set(g.day,[]);});
+  container.querySelectorAll('.diet-meal-editor').forEach(card=>{const d=Number(card.dataset.dietDay||1);byDay.get(d)?.push(card);});
+  if(byDay.size>1){
+    const nav=document.createElement('div');nav.className='rfit-diet-day-tabs';nav.style.cssText='display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap';
+    const panels=document.createElement('div');panels.className='rfit-diet-day-panels';
+    [...byDay.keys()].sort((a,b)=>a-b).forEach((day,i)=>{
+      const btn=document.createElement('button');btn.type='button';btn.textContent='Dia '+day;btn.style.cssText='padding:9px 18px;border:1px solid #d7dfec;border-radius:9px;background:'+(i?'#fff':'#d7193f')+';color:'+(i?'#243149':'#fff')+';font-weight:700';
+      const panel=document.createElement('section');panel.dataset.day=day;panel.style.cssText='display:grid;gap:12px';panel.hidden=!!i;byDay.get(day).forEach(card=>panel.append(card));
+      btn.onclick=()=>{nav.querySelectorAll('button').forEach(x=>{x.style.background='#fff';x.style.color='#243149'});btn.style.background='#d7193f';btn.style.color='#fff';panels.querySelectorAll('section').forEach(x=>x.hidden=x.dataset.day!==String(day));};
+      nav.append(btn);panels.append(panel);
+    });container.replaceChildren(nav,panels);
+  }
+  updateDietNutrition();message('Refeições montadas: '+groups.length+' cards. Revise e salve.','success');
+ };
+dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;const input=e.target,label=input.closest('label'),old=label?.firstChild?.textContent;
+ try{
+ if(label)label.firstChild.textContent='⏳ Lendo Excel...';
+ if(!/\\.xlsx?$/i.test(file.name))throw new Error('Selecione um arquivo Excel .xlsx ou .xls.');
+ let XLSX=window.XLSX;if(!XLSX){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=resolve;sc.onerror=()=>reject(new Error('Não carregou o leitor Excel.'));document.head.append(sc);});XLSX=window.XLSX;}
+ const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}),sheetName=wb.SheetNames[0],sheet=wb.Sheets[sheetName];
+ // Preserve original cell types and inspect workbook layout before mapping.
+ const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true}),norm=v=>String(v??'').replace(/\\s+/g,' ').trim(),nonempty=r=>r.some(v=>norm(v));
+ const mealRows=[];let currentMeal='';const foodRows=[];
+ // Layout expected: first column labels meal sections; day columns contain food/quantity/practical measure.
+ const dayHeader=rows.findIndex(r=>r.some(v=>/^dia\\s*1$/i.test(norm(v))));
+ if(dayHeader>=0){
+ const header=rows[dayHeader],dayStarts=[];header.forEach((v,i)=>{if(/^dia\\s*\\d+$/i.test(norm(v)))dayStarts.push(i);});
+ const sectionCol=0;
+ for(let ri=dayHeader+1;ri<rows.length;ri++){const row=rows[ri];if(!nonempty(row))continue;const section=norm(row[sectionCol]);if(section&&!/^alimento|refeiç|dia/i.test(section)&&row.slice(1).every(v=>!norm(v)))currentMeal=section;
+ if(/^(opções|opcoes|observações|observacoes)$/i.test(section))continue;
+ dayStarts.forEach((start,di)=>{const food=norm(row[start]),qty=norm(row[start+1]),measure=norm(row[start+2]);if(!food||/^(alimento|quantidade|medida prática)$/i.test(food))return;foodRows.push({meal:(currentMeal||'Refeição')+' · Dia '+(di+1),food,qty,measure});});
+ }
+ const grouped=new Map();foodRows.forEach(x=>{if(!grouped.has(x.meal))grouped.set(x.meal,[]);grouped.get(x.meal).push(x);});grouped.forEach((foods,name)=>mealRows.push({name,foods}));
+ }else{
+ // General tabular Excel: detect column names and use explicit meal/food/quantity fields.
+ const hi=rows.findIndex(r=>r.some(v=>/refeiç|meal/i.test(norm(v)))&&r.some(v=>/alimento|food/i.test(norm(v))));
+ if(hi<0)throw new Error('Não achei cabeçalho Dia 1 ou colunas Refeição/Alimento na primeira aba (“'+sheetName+'”).');
+ const hdr=rows[hi].map(norm),idxMeal=hdr.findIndex(v=>/refeiç|meal/i.test(v)),idxFood=hdr.findIndex(v=>/alimento|food/i.test(v)),idxQty=hdr.findIndex(v=>/quantidade|qty/i.test(v)),idxMeasure=hdr.findIndex(v=>/medida prática|medida/i.test(v)),groups=new Map();
+ rows.slice(hi+1).forEach(row=>{const meal=norm(row[idxMeal]),food=norm(row[idxFood]);if(!food)return;const key=meal||'Refeição';if(!groups.has(key))groups.set(key,[]);groups.get(key).push({food,qty:norm(row[idxQty]),measure:norm(row[idxMeasure])});});groups.forEach((foods,name)=>mealRows.push({name,foods}));
+ }
+ if(!mealRows.length)throw new Error('Nenhum alimento reconhecido. Aba: '+sheetName+'. Confira a estrutura do Excel.');
+ const container=$('#diet-meals');container.replaceChildren();
+ mealRows.forEach(({name,foods})=>{const card=addDietMeal(name);foods.forEach((item,index)=>{if(index)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[index];if(!row)return;row.querySelector('[data-food=name]').value=item.food+(item.measure?' · '+item.measure:'');const match=String(item.qty).match(/([0-9]+(?:[.,][0-9]+)?)\\s*(g|kg|ml|l|un\\.?|unidade|unidades|fatia|colher|xícara|concha)?/i);if(match?.[1]){row.querySelector('[data-food=qty]').value=match[1].replace(',','.');const unit=(match[2]||'g').replace(/un\\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}});});
+ updateDietNutrition();message('Excel lido! '+mealRows.length+' refeições importadas da aba '+sheetName+'.','success');
+ }catch(err){message('Importação Excel: '+(err.message||err),'error');}finally{if(label&&old)label.firstChild.textContent=old;input.value='';}
+ });
+ }
+ const ctx=dietStudioModal.querySelector('#diet-studio-context');ctx.replaceChildren();const s=workoutStudentContext.student||{};[['Aluno',s.full_name||'—'],['Objetivo',s.goal||'Defina o objetivo'],['Peso',s.weight_kg?s.weight_kg+' kg':'Dados da avaliação'],['Editor','Plano alimentar individual']].forEach(([k,v])=>{const chip=document.createElement('div');chip.className='diet-studio-chip';const b=document.createElement('b');b.textContent=k;chip.append(b,document.createElement('br'),document.createTextNode(v));ctx.append(chip);});
+ updateDietNutrition();dietStudioModal.classList.add('is-open');form.elements.title?.focus({preventScroll:true});
+}
+/* ===== EDITOR DE DIETA ===== */
+/* Valores aproximados por 100 g; confirmar preparo e rótulo. */
+const FOOD_NUTRITION=[['arroz branco cozido',128,2.5,28.1,.2],['arroz integral cozido',124,2.6,25.8,1],['feijão cozido',76,4.8,13.6,.5],['frango peito grelhado',159,32,0,2.5],['peito de frango',159,32,0,2.5],['ovo',143,13,1.1,9.5],['banana',89,1.1,22.8,.3],['aveia',394,13.9,66.6,8.5],['pão francês',300,8,58,3.1],['pão integral',253,9.5,43,4.2],['batata doce cozida',86,1.6,20.1,.1],['batata inglesa cozida',87,1.9,20.1,.1],['macarrão cozido',157,5.8,30.9,.9],['carne bovina magra',170,26,0,7],['patinho',170,26,0,7],['tilápia',128,26,0,2.7],['atum',116,25.5,0,.8],['iogurte natural',61,3.5,4.7,3.3],['leite integral',61,3.2,4.8,3.3],['leite desnatado',35,3.4,5,.1],['whey',400,80,8,6],['queijo minas',264,17,3,20],['azeite',884,0,0,100],['abacate',160,2,8.5,14.7],['maçã',52,.3,14,.2],['mamão',43,.5,11,.3],['tapioca',240,.2,60,0],['cuscuz',112,2.2,25,.5],['granola',450,10,64,15],['castanha',607,20,21,54]];
+function nutritionFor(food,qty,unit){const name=String(food||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase(),n=Number(qty||0);if(!n)return null;const match=FOOD_NUTRITION.find(([key])=>name.includes(key.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase()));if(!match)return null;const factor=unit==='ml'?n/100:unit==='unidade'?n*(/ovo/.test(name)?50:/banana/.test(name)?90:100)/100:unit==='fatia'?n*25/100:unit==='colher'?n*15/100:unit==='xícara'?n*160/100:unit==='concha'?n:n/100;return{kcal:match[1]*factor,p:match[2]*factor,c:match[3]*factor,g:match[4]*factor};}
+function updateDietNutrition(){const box=$('#diet-nutrition-summary');if(!box)return;const total={kcal:0,p:0,c:0,g:0};let known=0,items=0;document.querySelectorAll('.diet-food-row').forEach(row=>{const n=nutritionFor(row.querySelector('[data-food=name]').value,row.querySelector('[data-food=qty]').value,row.querySelector('[data-food=unit]').value);items++;if(n){known++;Object.keys(total).forEach(k=>total[k]+=n[k]);}});box.querySelector('[data-nutri-kcal]').textContent=Math.round(total.kcal).toLocaleString('pt-BR')+' kcal';box.querySelector('[data-nutri-p]').textContent=total.p.toFixed(1).replace('.',',')+' g';box.querySelector('[data-nutri-c]').textContent=total.c.toFixed(1).replace('.',',')+' g';box.querySelector('[data-nutri-g]').textContent=total.g.toFixed(1).replace('.',',')+' g';box.querySelector('[data-nutri-coverage]').textContent=items?known+' de '+items+' alimentos reconhecidos · estimativa parcial':'Preencha alimentos e porções para estimar os macros';}
+function addDietMeal(name='',container=null){
+ const meal=document.createElement('fieldset');meal.className='diet-meal-editor';const head=document.createElement('div');head.className='diet-meal-head';head.style.cssText='display:flex;gap:8px;align-items:center';
+ const title=document.createElement('input');title.placeholder='Ex.: Café da manhã';title.maxLength=100;title.dataset.field='name';title.value=name;title.style.flex='1';
+ const remove=document.createElement('button');remove.type='button';remove.textContent='✕';remove.title='Remover refeição';remove.style.cssText='border:0;background:#ffe5e9;color:#c51d3b;border-radius:9px;padding:10px 13px;cursor:pointer';remove.onclick=()=>{meal.remove();updateDietNutrition();};head.append(title,remove);
+ const rows=document.createElement('div');rows.dataset.field='foods';rows.style.cssText='display:grid;gap:8px';
+ const addFood=()=>{const row=document.createElement('div');row.className='diet-food-row';row.style.cssText='display:grid;grid-template-columns:minmax(190px,1fr) 105px 115px 42px;gap:10px;align-items:center;width:100%;box-sizing:border-box;padding:2px 0';
+ const food=document.createElement('input');food.placeholder='Alimento (ex.: arroz branco cozido)';food.dataset.food='name';food.setAttribute('list','rfit-food-suggestions');
+ const qty=document.createElement('input');qty.placeholder='Qtd.';qty.type='number';qty.min='0';qty.step='any';qty.dataset.food='qty';
+ const unit=document.createElement('select');unit.dataset.food='unit';['g','ml','unidade','fatia','colher','xícara','concha'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;unit.append(o);});const practical=document.createElement('input');practical.dataset.food='measure';practical.placeholder='Medida prática (ex.: 1 filé médio)';practical.style.cssText='grid-column:1/-2;width:100%;min-width:0';
+ const del=document.createElement('button');del.type='button';del.textContent='×';del.title='Remover alimento';del.style.cssText='border:0;background:#ffe5e9;color:#c51d3b;border-radius:8px;font-size:20px;cursor:pointer';del.onclick=()=>{row.remove();updateDietNutrition();};
+ [food,qty,unit,practical].forEach(el=>el.addEventListener('input',updateDietNutrition));[food,qty,unit,practical].forEach(el=>el.addEventListener('change',updateDietNutrition));row.append(food,qty,unit,del,practical);rows.append(row);};
+ const paste=document.createElement('textarea');paste.className='diet-meal-paste';paste.rows=3;paste.placeholder='Cole aqui somente esta refeição (Alimento | Quantidade | Medida prática)...';paste.style.cssText='width:100%;box-sizing:border-box;margin:8px 0;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;font:12px/1.4 inherit';const pasteBtn=document.createElement('button');pasteBtn.type='button';pasteBtn.className='secondary-button';pasteBtn.textContent='📋 Montar alimentos desta refeição';pasteBtn.onclick=()=>{const lines=paste.value.split(/\r?\n/).map(x=>x.trim()).filter(x=>x.includes('|')&&!/^\|?\s*:?-{2,}/.test(x));const data=lines.map(x=>x.replace(/^\\|/,'').replace(/\\|$/,'').split('|').map(v=>v.trim())).filter(a=>a.length>=2);const foods=data.filter(a=>!/(alimento|quantidade|medida prática)/i.test(a.join(' '))&&a[0]);if(!foods.length){alert('Cole as linhas da tabela com alimento, quantidade e medida.');return;}rows.replaceChildren();foods.forEach(a=>{addFood();const row=rows.lastElementChild,vals=a.slice(0,3);row.querySelector('[data-food=name]').value=vals[0]||'';const q=(vals[1]||'').match(/[0-9]+(?:[.,][0-9]+)?/);row.querySelector('[data-food=qty]').value=q?q[0].replace(',','.'):'';const unit=(vals[1]||'').match(/kg|g|ml|un\\.?|unidade|fatias?|colheres?/i);if(unit){const u=unit[0].toLowerCase().replace(/\\.?$/,'');row.querySelector('[data-food=unit]').value=u==='un'?'unidade':u==='fatias'?'fatia':u==='colheres'?'colher':u;}row.querySelector('[data-food=measure]').value=vals[2]||'';});updateDietNutrition();paste.value='';}; const controls=document.createElement('div');controls.className='diet-meal-controls';const add=document.createElement('button');add.type='button';add.textContent='＋ Adicionar alimento';add.className='secondary-button diet-add-food';add.onclick=addFood;
+ const duplicate=document.createElement('button');duplicate.type='button';duplicate.textContent='⧉ Duplicar refeição';duplicate.className='secondary-button diet-duplicate-meal';duplicate.onclick=()=>{const copy=addDietMeal((title.value||'Refeição')+' (cópia)'),source=Array.from(rows.querySelectorAll('.diet-food-row'));source.forEach((r,i)=>{if(i>0)copy.querySelector('.diet-add-food')?.click();const target=copy.querySelectorAll('.diet-food-row')[i];if(target)['name','qty','unit'].forEach(k=>target.querySelector('[data-food='+k+']').value=r.querySelector('[data-food='+k+']').value);});updateDietNutrition();copy.querySelector('[data-field=name]').focus();};
+ controls.append(add,duplicate);meal.append(head,paste,pasteBtn,rows,controls);(container||document.querySelector('#diet-meals')).append(meal);addFood();return meal;
+}
+function collectDietMeals(){return Array.from(document.querySelectorAll('.diet-meal-editor')).map(meal=>({name:meal.querySelector('[data-field=name]').value.trim(),items:Array.from(meal.querySelectorAll('.diet-food-row')).map(row=>{const f=row.querySelector('[data-food=name]').value.trim(),q=row.querySelector('[data-food=qty]').value,u=row.querySelector('[data-food=unit]').value;const practical=row.querySelector('[data-food=measure]').value.trim();return f?(q?f+' — '+q+' '+u+' — '+practical:f+' —  —  — '+practical):''}).filter(Boolean)})).filter(m=>m.name&&m.items.length);}
+
+/* Navegação por abas da ficha 360 */
+document.querySelectorAll('[data-student-tab]').forEach(button=>button.addEventListener('click',()=>{const target=button.dataset.studentTab;document.querySelectorAll('[data-student-tab]').forEach(tab=>{const active=tab===button;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',String(active));});document.querySelectorAll('[data-student-panel]').forEach(panel=>{const active=panel.dataset.studentPanel===target;panel.classList.toggle('is-active',active);panel.hidden=!active;});}));
+document.querySelectorAll('[data-go-tab]').forEach(button=>button.addEventListener('click',()=>document.querySelector('[data-student-tab="'+button.dataset.goTab+'"]')?.click()));
+/* ===== INICIALIZAÇÃO E SALVAMENTO ===== */
+document.addEventListener('DOMContentLoaded',async()=>{
+ try{const auth=await getCurrentUser();if(!['professor','admin'].includes(auth.user.role)){location.replace('/student/dashboard.html');return;}$('#professor-welcome').textContent='Olá, '+(auth.user.name||auth.user.email)+'.';}
+ catch{location.replace('/student/pages/login.html');return;}
+ if(!studentId){message('Identificador do aluno não informado.');return;}
+ try{render(await api('/api/professor/students/'+encodeURIComponent(studentId)));}catch(error){message('Não foi possível carregar o aluno: '+error.message);}
+
+ /* ===== AVALIAÇÃO FÍSICA AVANÇADA PREMIUM ===== */
+ const advancedUrl='/api/professor/students/'+encodeURIComponent(studentId)+'/advanced-assessments';
+ const advancedModal=$('#advanced-assessment-modal'),advancedForm=$('#advanced-assessment-form'),advancedHistory=$('#advanced-assessment-history');
+ const closeAdvanced=()=>{advancedModal?.classList.remove('is-open');advancedModal?.setAttribute('aria-hidden','true');};
+ function renderAdvanced(rows){
+   advancedHistory.replaceChildren();
+   if(!rows.length){advancedHistory.textContent='Nenhuma avaliação avançada registrada ainda.';return;}
+   const latest=rows[0],grid=document.createElement('div');grid.className='advanced-history-grid';
+   const fmt=(value,digits=1,suffix='')=>value==null?'—':Number(value).toFixed(digits).replace('.',',')+suffix;
+   const cards=[['Gordura corporal',fmt(latest.body_fat_pct,1,'%')],['Massa magra',fmt(latest.lean_mass_kg,1,' kg')],['IMC',fmt(latest.bmi,1)],['Massa de gordura',fmt(latest.fat_mass_kg,1,' kg')],['Cintura/estatura',fmt(latest.waist_height_ratio,2)],['Densidade corporal',fmt(latest.body_density,4)]];
+   cards.forEach(([label,value])=>{const card=document.createElement('div');card.className='advanced-result';const strong=document.createElement('strong');strong.textContent=value;const span=document.createElement('span');span.textContent=label;card.append(strong,span);grid.append(card);});advancedHistory.append(grid);
+   const visual=document.createElement('div');visual.className='advanced-visual-grid';
+   const body=document.createElement('section');body.className='advanced-body-visual';body.innerHTML='<h3>Mapa corporal</h3><div class="advanced-figures"><div class="advanced-figure"><svg viewBox="0 0 80 170" aria-label="Silhueta corporal frontal"><circle cx="40" cy="13" r="10" fill="#e8aeb8"/><path d="M29 28 Q40 23 51 28 L57 70 L50 77 L54 112 L49 163 L39 163 L36 112 L33 163 L23 163 L27 112 L30 77 L23 70Z" fill="#f2cbd1" stroke="#c96b7d" stroke-width="1.5"/><path d="M25 34 L10 83 M55 34 L70 83" stroke="#c96b7d" stroke-width="8" stroke-linecap="round"/></svg>Frente</div><div class="advanced-figure"><svg viewBox="0 0 80 170" aria-label="Silhueta corporal posterior"><circle cx="40" cy="13" r="10" fill="#e8aeb8"/><path d="M29 28 Q40 23 51 28 L57 70 L50 77 L54 112 L49 163 L39 163 L36 112 L33 163 L23 163 L27 112 L30 77 L23 70Z" fill="#e8d9ef" stroke="#9875ad" stroke-width="1.5"/><path d="M25 34 L10 83 M55 34 L70 83" stroke="#9875ad" stroke-width="8" stroke-linecap="round"/></svg>Costas</div></div><p class="advanced-chart-caption">Referência visual para organizar as medidas corporais.</p>';
+   const chart=document.createElement('section');chart.className='advanced-chart-card';const heading=document.createElement('h3');heading.textContent='Evolução da composição corporal';chart.append(heading);
+   const metric=rows.filter(r=>r.body_fat_pct!=null).length>=2?'body_fat_pct':'weight_kg';const points=rows.slice().reverse().filter(r=>r[metric]!=null);
+   if(points.length>=2){const w=620,h=190,pad=28,vals=points.map(r=>Number(r[metric])),min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;const coords=vals.map((v,i)=>[pad+i*(w-2*pad)/(vals.length-1),h-pad-(v-min)/range*(h-2*pad)]);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+w+' '+h);const line=document.createElementNS(svg.namespaceURI,'polyline');line.setAttribute('points',coords.map(p=>p.join(',')).join(' '));line.setAttribute('fill','none');line.setAttribute('stroke','#d93652');line.setAttribute('stroke-width','4');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');svg.append(line);coords.forEach((p,i)=>{const c=document.createElementNS(svg.namespaceURI,'circle');c.setAttribute('cx',p[0]);c.setAttribute('cy',p[1]);c.setAttribute('r','5');c.setAttribute('fill','#d93652');svg.append(c);});chart.append(svg);const caption=document.createElement('p');caption.className='advanced-chart-caption';caption.textContent='Linha: '+(metric==='body_fat_pct'?'percentual de gordura corporal':'peso corporal')+'. '+points.length+' registros.';chart.append(caption);}else{const empty=document.createElement('div');empty.className='advanced-chart-empty';empty.textContent='O gráfico de evolução aparecerá quando houver pelo menos duas avaliações com dados comparáveis.';chart.append(empty);}
+   visual.append(body,chart);advancedHistory.append(visual);
+   const history=document.createElement('div');history.className='advanced-assessment-history-list';const label=document.createElement('h3');label.textContent='Histórico de avaliações';history.append(label);
+   rows.forEach(row=>{const item=document.createElement('div');item.className='advanced-assessment-row';const date=document.createElement('strong');date.textContent=new Date(row.measured_at+'T12:00:00').toLocaleDateString('pt-BR');const detail=document.createElement('div');detail.textContent=['Peso '+(row.weight_kg??'—')+' kg','Cintura '+(row.waist_cm??'—')+' cm',row.body_fat_pct!=null?'Gordura '+Number(row.body_fat_pct).toFixed(1)+'%':'Dobras não calculadas'].join(' · ');item.append(date,detail);history.append(item);});advancedHistory.append(history);
+ }
+ async function loadAdvanced(){const panel=$('#advanced-assessment-panel');panel.hidden=false;$('#advanced-premium-lock').hidden=true;$('#advanced-premium-content').hidden=false;advancedHistory.hidden=false;$('#open-advanced-assessment').hidden=false;try{const d=await api(advancedUrl);renderAdvanced(d.assessments||[]);}catch(e){advancedHistory.textContent='Não foi possível carregar as avaliações avançadas: '+e.message;}}
+ $('#open-advanced-assessment')?.addEventListener('click',()=>{const now=new Date();advancedForm.elements.measured_at.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');advancedModal.classList.add('is-open');advancedModal.setAttribute('aria-hidden','false');});
+ advancedModal?.querySelectorAll('[data-close-advanced]').forEach(el=>el.addEventListener('click',closeAdvanced));
+ $('#print-advanced-report')?.addEventListener('click',()=>window.print());
+ advancedForm?.addEventListener('submit',async event=>{event.preventDefault();const button=advancedForm.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(advancedForm),payload={measured_at:fd.get('measured_at'),sex:(['m','male','masculino'].includes(currentStudentSex)?'m':['f','female','feminino'].includes(currentStudentSex)?'f':String(fd.get('skinfold_sex')||'')),skinfold_protocol:'',notes:fd.get('notes')};['weight_kg','height_cm','neck_cm','shoulder_cm','chest_cm','waist_cm','abdomen_cm','hip_cm','right_arm_cm','left_arm_cm','right_forearm_cm','left_forearm_cm','right_thigh_cm','left_thigh_cm','right_calf_cm','left_calf_cm'].forEach(k=>payload[k]=fd.get(k));const skin={};['pectoral','midaxillary','triceps','subscapular','abdominal','suprailiac','thigh'].forEach(k=>{const v=fd.get('skinfold_'+k);if(v)skin[k]=v;});if(Object.keys(skin).length){if(Object.keys(skin).length!==7)throw new Error('Para calcular Pollock 7, preencha as sete dobras.');if(!['m','f'].includes(payload.sex))throw new Error('Selecione o sexo para o cálculo Pollock 7.');payload.skinfold_protocol='pollock7';payload.skinfolds=skin;}else payload.skinfold_protocol='';await api(advancedUrl,{method:'POST',body:JSON.stringify(payload)});advancedForm.reset();closeAdvanced();await loadAdvanced();message('Avaliação física avançada salva.','success');}catch(e){message('Não foi possível salvar: '+e.message,'error');}finally{button.disabled=false;}});
+ loadAdvanced();
+
+ const modal=$('#assessment-modal'),assessmentForm=$('#assessment-form');
+ const closeAssessment=()=>{modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');};
+ $('#open-assessment')?.addEventListener('click',()=>{const now=new Date();assessmentForm.elements.measured_at.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');assessmentForm.elements.weight_kg.focus();});
+ modal.querySelectorAll('[data-close-assessment]').forEach(el=>el.addEventListener('click',closeAssessment));
+ document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAssessment();});
+ assessmentForm?.addEventListener('submit',async event=>{event.preventDefault();const button=assessmentForm.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(assessmentForm);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/measurements',{method:'POST',body:JSON.stringify({measured_at:fd.get('measured_at'),weight_kg:fd.get('weight_kg'),waist_cm:fd.get('waist_cm'),bmr_kcal:fd.get('bmr_kcal'),notes:fd.get('notes')})});assessmentForm.reset();closeAssessment();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Avaliação registrada com sucesso.','success');}catch(error){message('Não foi possível salvar a avaliação: '+error.message+(error.stage?' · Etapa: '+error.stage:''),'error');}finally{button.disabled=false;}});
+ $('#journey-note-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,field=form.elements.note,button=form.querySelector('button');if(!field.value.trim())return;button.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/journey-notes',{method:'POST',body:JSON.stringify({note:field.value.trim()})});field.value='';render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Observação salva.','success');}catch(error){message('Não foi possível salvar a observação: '+error.message,'error');}finally{button.disabled=false;}});
+ const gear=$('#student-settings-button'),menu=$('#student-settings-menu'),planModal=$('#student-plan-modal'),planForm=$('#student-plan-form');gear?.addEventListener('click',()=>menu.hidden=!menu.hidden);document.addEventListener('click',e=>{if(!e.target.closest('.student-settings-wrap'))menu.hidden=true;});const closePlan=()=>{planModal.classList.remove('is-open');planModal.setAttribute('aria-hidden','true');};document.querySelectorAll('[data-close-plan]').forEach(x=>x.addEventListener('click',closePlan));async function fillPlans(){const d=await api('/api/professor/plans');const s=planForm.elements.plan_id;s.replaceChildren(new Option('Selecione um plano',''));(d.plans||[]).filter(p=>p.is_active).forEach(p=>s.add(new Option(p.name,p.id)));}document.querySelectorAll('[data-student-setting]').forEach(b=>b.addEventListener('click',async()=>{menu.hidden=true;const a=b.dataset.studentSetting;if(a==='plan'){try{await fillPlans();planModal.classList.add('is-open');planModal.setAttribute('aria-hidden','false');}catch(e){message('Erro ao carregar planos: '+e.message,'error');}return;}if(a==='suspend'||a==='reactivate'){const status=a==='suspend'?'suspended':'active';if(!confirm(a==='suspend'?'Suspender o acesso deste aluno?':'Reativar o acesso deste aluno?'))return;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/status',{method:'PATCH',body:JSON.stringify({status})});render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Acesso atualizado.','success');}catch(e){message('Erro: '+e.message,'error');}return;}if(a==='delete')$('#delete-student')?.click();}));planForm?.addEventListener('submit',async e=>{e.preventDefault();const d=new FormData(planForm),btn=planForm.querySelector('button[type=submit]');btn.disabled=true;try{await api('/api/professor/students/'+encodeURIComponent(studentId)+'/subscription',{method:'PATCH',body:JSON.stringify({plan_id:d.get('plan_id'),lifetime:d.get('lifetime')==='on'})});closePlan();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Plano atualizado.','success');}catch(err){message('Erro ao alterar plano: '+err.message,'error');}finally{btn.disabled=false;}}); $('#delete-student')?.addEventListener('click',async()=>{const studentName=$('#student-title').textContent.replace(/\.$/,'');if(!confirm('ATENÇÃO: excluir '+studentName+'? A conta e os registros vinculados serão removidos permanentemente. Esta ação não pode ser desfeita.'))return;if(prompt('Para confirmar, digite EXCLUIR')!=='EXCLUIR')return;const button=$('#delete-student');button.disabled=true;button.textContent='Excluindo…';try{await api('/api/professor/students/'+encodeURIComponent(studentId),{method:'DELETE'});alert('Aluno excluído.');location.href='./index.html';}catch(error){button.disabled=false;button.textContent='Excluir aluno';message('Não foi possível excluir o aluno: '+error.message,'error');}});
+ $('#workout-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type=submit]'),days=workoutDays.filter(d=>d.exercises.length).map(d=>({title:d.title,exercises:d.exercises.map(ex=>({name:ex.name,gifUrl:ex.gifUrl,muscle:ex.muscle,equipment:ex.equipment,sets:Number(ex.sets||3),reps:String(ex.reps||12),load:ex.load||'',rest:Number(ex.rest||60)}))}));if(!days.length){message('Selecione pelo menos um exercício para salvar o treino.','error');return;}button.disabled=true;try{const fd=new FormData(form);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/workouts',{method:'POST',body:JSON.stringify({title:fd.get('title'),goal:fd.get('goal'),weekly_frequency:Number(fd.get('weekly_frequency')),sessions:days})});closeWorkoutBuilder();form.reset();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Treino cadastrado com exercícios e GIFs.','success');}catch(error){message('Não foi possível salvar o treino: '+error.message,'error');}finally{button.disabled=false;}});
+ $('#add-diet-meal').addEventListener('click',addDietMeal);addDietMeal();
+ // Corrige o CTA da aba Nutrição: abrir sempre o Nutrition Studio, não expandir o formulário legado na lista.
+ document.addEventListener('click',function openDietFromList(e){const btn=e.target.closest('button,a,[role=button],summary');if(!btn)return;const label=(btn.textContent||'').replace(/[＋+📋🥗]/g,'').trim().toLowerCase();if(!/^(adicionar dieta|nova dieta|criar dieta)$/.test(label))return;if(btn.closest('.diet-studio'))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();document.querySelector('[data-student-tab="nutrition"]')?.click();openDietStudio();},{capture:true});
+ $('#diet-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type=submit]'),meals=collectDietMeals();if(!meals.length){message('Adicione pelo menos uma refeição.','error');return;}button.disabled=true;try{const fd=new FormData(form);await api('/api/professor/students/'+encodeURIComponent(studentId)+'/diets',{method:'POST',body:JSON.stringify({title:fd.get('title'),goal:fd.get('goal'),calories_target:fd.get('calories_target')||null,meals})});form.reset();$('#diet-meals').replaceChildren();addDietMeal();render(await api('/api/professor/students/'+encodeURIComponent(studentId)));message('Dieta cadastrada e vinculada ao aluno.','success');localStorage.removeItem('rfit-diet-draft-'+(studentId||'unknown'));dietStudioModal?.classList.remove('is-open');}catch(error){message('Não foi possível salvar a dieta: '+error.message,'error');}finally{button.disabled=false;}});
+ $('#logout')?.addEventListener('click',async()=>{try{await logout()}finally{location.replace('/student/pages/login.html')}});
 });
