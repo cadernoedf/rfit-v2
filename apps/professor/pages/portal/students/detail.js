@@ -416,50 +416,6 @@ function openDietStudio(){
   const ux=document.createElement('style');ux.textContent='.diet-studio-context{display:none!important}.diet-studio-body{flex:1;min-height:0;overflow:auto!important}.diet-studio .detail-form{max-height:none!important;overflow:visible!important}';document.head.append(ux);
   const studioLayout=document.createElement('style');studioLayout.textContent=".diet-studio{height:92vh!important;max-height:92vh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}.diet-studio-body{display:flex!important;flex-direction:column!important;gap:14px!important}.diet-studio .detail-form{display:flex!important;flex-direction:column!important;max-height:none!important;overflow:visible!important}.diet-studio .detail-form input,.diet-studio .detail-form textarea,.diet-studio .detail-form select{width:100%!important;box-sizing:border-box!important;color:#172033!important;background:#fff!important}.diet-studio #diet-meals{grid-template-columns:repeat(2,minmax(0,1fr))!important}.diet-studio .diet-meal-editor{min-width:0!important;margin:0!important;background:#fff!important}.diet-library-card b,.diet-library-card small{color:#172033!important}.diet-studio-actions{position:static!important;flex:0 0 auto!important}@media(max-width:760px){.diet-studio{width:100vw!important;height:100dvh!important;max-height:100dvh!important}.diet-studio #diet-meals{grid-template-columns:1fr!important}}";document.head.append(studioLayout);
   const close=()=>dietStudioModal.classList.remove('is-open');dietStudioModal.querySelector('.diet-studio-close').onclick=close;dietStudioModal.querySelector('[data-diet-cancel]').onclick=close;dietStudioModal.addEventListener('click',e=>{if(e.target===dietStudioModal)close();});
-  dietStudioModal.querySelector('#diet-paste-toggle').onclick=()=>{const box=dietStudioModal.querySelector('#diet-paste-box');box.style.display=box.style.display==='grid'?'none':'grid';};
-dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
- const raw=dietStudioModal.querySelector('#diet-paste-text').value.trim();if(!raw){message('Cole a tabela primeiro.','error');return;}
- const rows=raw.split(/\r?\n/).map(line=>{const s=line.trim();if(!s)return [];const cells=s.includes('|')?s.replace(/^\|/,'').replace(/\|$/,'').split('|'):s.split('\t');return cells.map(v=>v.trim().replace(/\s+/g,' '));}).filter(r=>r.some(Boolean)&&!r.every(v=>/^[-: ]*$/.test(v)));
- const mealNames=/^(café(?: da manhã)?|almoço|lanche|jantar|ceia|pré[- ]?treino|pós[- ]?treino)$/i;
- const dayMeals=new Map();let sectionMeal='';
- const norm=v=>String(v||'').trim().replace(/\s+/g,' ');
- const addFood=(meal,day,name,qty,measure)=>{if(!name||!qty)return;const key=meal+'::'+day;if(!dayMeals.has(key))dayMeals.set(key,{name:meal+' — Dia '+day,foods:[]});dayMeals.get(key).foods.push({name,qty,measure});};
- const top=rows.find(r=>r.some(v=>/^dia\s*1$/i.test(v)));
- const dayCols=top?top.map((v,i)=>{const m=String(v).match(/^dia\s*(\d+)$/i);return m?{day:Number(m[1]),start:i}:null;}).filter(Boolean):[];
- if(dayCols.length>1){
-  // Em Excel, a linha de cabeçalho "Alimento | Quantidade | Medida prática"
-  // define o início real de cada trio; Dia N pode estar em coluna mesclada.
-  rows.forEach(r=>{const first=norm(r[0]);if(/^refeiç/i.test(first)){sectionMeal='';return;}
-   // A primeira linha de cada refeição traz o nome da refeição na coluna A;
-   // nas linhas seguintes, o alimento do Dia 1 volta para a coluna A.
-   if(mealNames.test(first)){sectionMeal=first;if(/^alimento$/i.test(r[1]||''))return;
-    dayCols.forEach(({day,start})=>{const s=start+(day===1?0:0);addFood(sectionMeal,day,norm(r[s]),norm(r[s+1]),norm(r[s+2]));});return;}
-   if(!sectionMeal)return;
-   dayCols.forEach(({day,start})=>{const s=day===1?0:start-1;const food=norm(r[s]),qty=norm(r[s+1]),measure=norm(r[s+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
-  });
- }else{
-  let current=null;rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]);if(/^refeiç/i.test(a)){current=null;return;}
-   if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;}
-   if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;addFood(current,1,b,q,m);return;}
-   if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a||!b)return;addFood(current,1,a,b,q);
-  });
- }
- const valid=[...dayMeals.values()].filter(m=>m.foods.length);
- if(!valid.length){message('Não consegui identificar alimentos. Confira colunas Alimento, Quantidade e Medida prática.','error');return;}
- const container=$('#diet-meals');container.replaceChildren();
- valid.forEach(g=>{const card=addDietMeal(g.name);g.foods.forEach((food,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name;row.querySelector('[data-food=measure]').value=food.measure||'';const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\s*(g|kg|ml|l|un\.?|unidade|unidades)?/i);if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}});});
- // Organiza a ficha importada em abas por DIA (e não uma aba por refeição).
- const mealsBox=$('#diet-meals'),cards=[...mealsBox.querySelectorAll('.diet-meal-editor')],byDay=new Map();
- cards.forEach(card=>{const title=card.querySelector('[data-field=name]'),match=title.value.match(/(?:—|-)\s*Dia\s*(\d+)/i),day=match?Number(match[1]):1;if(!byDay.has(day))byDay.set(day,[]);byDay.get(day).push(card);});
- if(byDay.size>1){const nav=document.createElement('div');nav.className='rfit-diet-day-tabs';nav.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px';
- const panels=document.createElement('div');panels.className='rfit-diet-day-panels';
- [...byDay.keys()].sort((a,b)=>a-b).forEach((day,index)=>{const btn=document.createElement('button');btn.type='button';btn.textContent='📅 Dia '+day;btn.style.cssText='border:1px solid #d7dfec;border-radius:10px;padding:11px 20px;background:'+(index===0?'#d7193f':'#fff')+';color:'+(index===0?'#fff':'#243149')+';font-weight:750;cursor:pointer';
- const panel=document.createElement('section');panel.dataset.day=day;panel.style.cssText='display:grid;gap:14px';if(index)panel.hidden=true;byDay.get(day).forEach(card=>panel.append(card));panels.append(panel);btn.onclick=()=>{nav.querySelectorAll('button').forEach(x=>{x.style.background='#fff';x.style.color='#243149';});btn.style.background='#d7193f';btn.style.color='#fff';panels.querySelectorAll('section').forEach(x=>x.hidden=x.dataset.day!==String(day));};nav.append(btn);});
- mealsBox.replaceChildren(nav,panels);
- const dayCss=document.createElement('style');dayCss.textContent='.rfit-diet-day-panels .diet-meal-editor{width:100%;box-sizing:border-box}.rfit-diet-day-panels section[hidden]{display:none!important}';document.head.append(dayCss);
- }
- updateDietNutrition();message('Ficha montada: '+valid.length+' cards com alimentos e medidas práticas. Revise e salve.','success');
-};
 dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{
  const file=e.target.files?.[0];if(!file)return;const input=e.target,label=input.closest('label'),old=label?.firstChild?.textContent;
  try{
