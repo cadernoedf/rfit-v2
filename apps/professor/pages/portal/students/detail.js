@@ -424,27 +424,17 @@ dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  const dayMeals=new Map();let sectionMeal='';
  const norm=v=>String(v||'').trim().replace(/\s+/g,' ');
  const addFood=(meal,day,name,qty,measure)=>{if(!name||!qty)return;const key=meal+'::'+day;if(!dayMeals.has(key))dayMeals.set(key,{name:meal+' — Dia '+day,foods:[]});dayMeals.get(key).foods.push({name,qty,measure});};
- const top=rows.find(r=>r.some(v=>/^dia\s*1$/i.test(v)));
- const dayCols=top?top.map((v,i)=>{const m=String(v).match(/^dia\s*(\d+)$/i);return m?{day:Number(m[1]),start:i}:null;}).filter(Boolean):[];
- if(dayCols.length>1){
-  // Em Excel, a linha de cabeçalho "Alimento | Quantidade | Medida prática"
-  // define o início real de cada trio; Dia N pode estar em coluna mesclada.
+ const top=rows.find(r=>r.some(v=>/^dia\\s*1$/i.test(v)));
+ const dayCols=top?top.map((v,i)=>{const m=String(v).match(/^dia\\s*(\\d+)$/i);return m?{day:Number(m[1]),start:i}:null;}).filter(Boolean):[];
+ // Formato horizontal só quando existem Dia 2/3; tabela vertical fica no parser simples.
+ if(dayCols.some(x=>x.day>=2)){
   rows.forEach(r=>{const first=norm(r[0]);if(/^refeiç/i.test(first)){sectionMeal='';return;}
-   // A primeira linha de cada refeição traz o nome da refeição na coluna A;
-   // nas linhas seguintes, o alimento do Dia 1 volta para a coluna A.
    if(mealNames.test(first)){sectionMeal=first;if(/^alimento$/i.test(r[1]||''))return;
-    dayCols.forEach(({day,start})=>{const s=start+(day===1?0:0);addFood(sectionMeal,day,norm(r[s]),norm(r[s+1]),norm(r[s+2]));});return;}
+    dayCols.forEach(({day,start})=>{const s=day===1?1:start;addFood(sectionMeal,day,norm(r[s]),norm(r[s+1]),norm(r[s+2]));});return;}
    if(!sectionMeal)return;
    dayCols.forEach(({day,start})=>{const s=day===1?0:start-1;const food=norm(r[s]),qty=norm(r[s+1]),measure=norm(r[s+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
   });
- }else{
-  let current=null;rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]);if(/^refeiç/i.test(a)){current=null;return;}
-   if(mealNames.test(a)&&/^alimento$/i.test(b)){current=a;return;}
-   if(mealNames.test(a)&&b&&!/^alimento$/i.test(b)){current=a;addFood(current,1,b,q,m);return;}
-   if(/^alimento$/i.test(a)||/^dia\s*\d+$/i.test(a)||!current||!a||!b)return;addFood(current,1,a,b,q);
-  });
- }
- const valid=[...dayMeals.values()].filter(m=>m.foods.length);
+ }else{ const valid=[...dayMeals.values()].filter(m=>m.foods.length);
  if(!valid.length){message('Não consegui identificar alimentos. Confira colunas Alimento, Quantidade e Medida prática.','error');return;}
  const container=$('#diet-meals');container.replaceChildren();
  valid.forEach(g=>{const card=addDietMeal(g.name);g.foods.forEach((food,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=food.name;row.querySelector('[data-food=measure]').value=food.measure||'';const m=String(food.qty||'').match(/([0-9]+(?:[.,][0-9]+)?)\s*(g|kg|ml|l|un\.?|unidade|unidades)?/i);if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}});});
