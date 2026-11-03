@@ -178,8 +178,6 @@ export async function adminRoutes(request, env, url) {
       const notes=[String(body.notes||'').trim(),bmr?('Gasto calórico basal: '+bmr+' kcal'):null].filter(Boolean).join(' | ').slice(0,1200);
       assessmentStage='measurement_insert';
       await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at,notes) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),studentId,weight,student.height_cm||null,waist,bmr,measuredAt,notes||null).run();
-      const assessmentId=crypto.randomUUID();
-      await env.RFIT_DB.prepare('INSERT INTO student_measurements (id,user_id,weight_kg,height_cm,waist_cm,basal_kcal,measured_at,notes) VALUES (?,?,?,?,?,?,?,?)').bind(assessmentId,studentId,weight,student.height_cm||null,waist,bmr,measuredAt,notes||null).run();
       await env.RFIT_DB.prepare("INSERT OR IGNORE INTO notifications(id,user_id,channel,template_code,payload_json,status,sent_at,dedupe_key) VALUES(?,?,'in_app',?,?,'sent',CURRENT_TIMESTAMP,?)").bind(crypto.randomUUID(),studentId,'new_assessment',JSON.stringify({title:'Nova avaliação registrada',message:'Seu professor registrou uma nova avaliação física.',url:'/student/pages/portal/journey/index.html'}),'assessment:'+assessmentId).run();
       assessmentStage='profile_update';
       if(weight!==null)await env.RFIT_DB.prepare('UPDATE student_profiles SET weight_kg=? WHERE user_id=?').bind(weight,studentId).run();
