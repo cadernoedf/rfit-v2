@@ -146,6 +146,8 @@ const EXERCISE_BASE='https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB
 const workoutModal=$('#workout-builder-modal');
 const workoutForm=$('#workout-form');
 const closeWorkoutBuilder=()=>{workoutModal?.classList.remove('is-open');workoutModal?.setAttribute('aria-hidden','true');};
+const EXERCISE_PT={"Barbell Bench Press":"Supino reto com barra","Bench Press":"Supino reto","Incline Bench Press":"Supino inclinado","Decline Bench Press":"Supino declinado","Lat Pulldown":"Puxada frontal","Pull Up":"Barra fixa","Pull-Up":"Barra fixa","Romanian Deadlift":"Levantamento terra romeno","Deadlift":"Levantamento terra","Hip Thrust":"Elevação pélvica","Squat":"Agachamento","Leg Press":"Leg press","Leg Extension":"Cadeira extensora","Leg Curl":"Mesa flexora","Biceps Curl":"Rosca de bíceps","Barbell Curl":"Rosca direta","Dumbbell Curl":"Rosca com halteres","Triceps Pushdown":"Tríceps na polia","Lateral Raise":"Elevação lateral","Shoulder Press":"Desenvolvimento de ombros","Plank":"Prancha","Crunch":"Abdominal"};
+function exercisePt(name){const n=String(name||'');if(EXERCISE_PT[n])return EXERCISE_PT[n];return n.replace(/\bwith\b/gi,'com').replace(/\bbarbell\b/gi,'barra').replace(/\bdumbbell\b/gi,'halteres').replace(/\bcable\b/gi,'polia').replace(/\bincline\b/gi,'inclinado').replace(/\bdecline\b/gi,'declinado').replace(/\bseated\b/gi,'sentado').replace(/\blying\b/gi,'deitado').replace(/\bstanding\b/gi,'em pé');}
 function ensureWorkoutDay(index=workoutDays.length){
  if(!workoutDays[index])workoutDays[index]={title:'Treino '+String.fromCharCode(65+index),exercises:[]};
  return workoutDays[index];
@@ -159,7 +161,7 @@ function renderWorkoutDays(){
   const row=document.createElement('article');row.className='workout-selected-card';
   const img=document.createElement('img');img.src=ex.gifUrl||'';img.alt=ex.name;img.loading='lazy';
   const info=document.createElement('div');info.className='workout-selected-info';
-  const name=document.createElement('strong');name.textContent=ex.name;
+  const name=document.createElement('input');name.type='text';name.className='workout-exercise-custom-name';name.setAttribute('aria-label','Nome personalizado do exercício');name.value=ex.displayName||exercisePt(ex.name);name.oninput=()=>ex.displayName=name.value;name.style.cssText='width:100%;font-weight:700;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-bottom:6px';
   const meta=document.createElement('small');meta.textContent=(ex.muscle||'Exercício')+' · '+(ex.equipment||'');
   const fields=document.createElement('div');fields.className='workout-prescription-fields';
   [['sets','Séries',1,20],['reps','Reps',1,100],['load','Carga (kg)',0,1000],['rest','Descanso (s)',0,600]].forEach(([key,label,min,max])=>{const input=document.createElement('input');input.type='number';input.min=min;input.max=max;input.placeholder=label;input.setAttribute('aria-label',label);input.value=ex[key]??(key==='sets'?3:key==='reps'?12:key==='rest'?60:'');input.onchange=()=>ex[key]=input.value;fields.append(input);});
@@ -179,8 +181,8 @@ function renderExerciseLibrary(){
  const filtered=exerciseCatalog.filter(ex=>(!muscle||ex.muscle===muscle)&&(!search||String(ex.name+' '+ex.slug+' '+ex.muscle+' '+ex.equipment).toLowerCase().includes(search))).slice(0,120);
  filtered.forEach(ex=>{const card=document.createElement('button');card.type='button';card.className='exercise-library-card';card.title='Adicionar '+ex.name;
  const img=document.createElement('img');img.src=ex.gifUrl||EXERCISE_BASE+'/'+ex.file;img.alt=ex.name;img.loading='lazy';
- const name=document.createElement('strong');name.textContent=ex.name;const tag=document.createElement('small');tag.textContent=(ex.muscle||'')+' · '+(ex.equipment||'');
- card.append(img,name,tag);card.onclick=()=>{const day=ensureWorkoutDay(selectedWorkoutDay);day.exercises.push({name:ex.name,gifUrl:ex.gifUrl||EXERCISE_BASE+'/'+ex.file,muscle:ex.muscle,equipment:ex.equipment,slug:ex.slug,sets:3,reps:12,load:'',rest:60});renderWorkoutDays();};grid.append(card);});
+ const name=document.createElement('strong');name.textContent=exercisePt(ex.name);const tag=document.createElement('small');tag.textContent=(ex.muscle||'')+' · '+(ex.equipment||'');
+ card.append(img,name,tag);card.onclick=()=>{const day=ensureWorkoutDay(selectedWorkoutDay);day.exercises.push({name:ex.name,displayName:exercisePt(ex.name),gifUrl:ex.gifUrl||EXERCISE_BASE+'/'+ex.file,muscle:ex.muscle,equipment:ex.equipment,slug:ex.slug,sets:3,reps:12,load:'',rest:60});renderWorkoutDays();};grid.append(card);});
  if(!filtered.length){const empty=document.createElement('p');empty.className='workout-library-empty';empty.textContent='Nenhum exercício encontrado com esses filtros.';grid.append(empty);}
 }
 function openWorkoutBuilder(){
