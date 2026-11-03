@@ -175,6 +175,21 @@ export async function studentRoutes(request, env, url) {
           const existingMeals=await env.RFIT_DB.prepare('SELECT id,meal_name,meal_order FROM diet_meals WHERE diet_id=? ORDER BY meal_order').bind(current.id).all();
           const rows=existingMeals.results||[],byDay={};
           for(const row of rows){const match=String(row.meal_name||'').match(/dia\s*(\d+)/i);if(match)(byDay[match[1]]??=[]).push(row);}
+          // Repara ficha legada criada com apenas 4 refeições sem identificação de dia.
+          // Preserva o registro ativo e completa os 3 dias; não duplica dietas.
+          if(rows.length===4&&!Object.keys(byDay).length){
+            const template=[
+              {name:'Café da manhã',items:['Ovos mexidos (2 un./100 g)','Pão integral (2 fatias/50 g)','Banana (1 un./80 g)']},
+              {name:'Almoço',items:['Frango grelhado (150 g)','Arroz cozido (120 g)','Feijão (100 g)','Salada variada (150 g)','Azeite (5 g)']},
+              {name:'Lanche da tarde',items:['Iogurte natural (170 g)','Aveia (20 g)','Mamão (150 g)']},
+              {name:'Jantar',items:['Patinho magro ou peixe (150 g)','Batata cozida (180 g)','Legumes (150 g)','Azeite (5 g)']}
+            ];
+            for(let d=1;d<=3;d++)for(let i=0;i<4;i++){
+              const name='Dia '+d+' · '+template[i].name,itemsJson=JSON.stringify(template[i].items);
+              if(d===1)await env.RFIT_DB.prepare('UPDATE diet_meals SET meal_name=?,items_json=?,notes=? WHERE id=?').bind(name,itemsJson,'Modelo alimentar ilustrativo; revisar porções, preferências e restrições com profissional habilitado.',rows[i].id).run();
+              else await env.RFIT_DB.prepare('INSERT INTO diet_meals(id,diet_id,meal_order,meal_name,items_json,notes) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),current.id,(d-1)*4+i+1,name,itemsJson,'Modelo alimentar ilustrativo; revisar porções, preferências e restrições com profissional habilitado.').run();
+            }
+          }
           for(const [dayNumber,items] of Object.entries(byDay)){
             if(items.length===4&&!items.some(x=>/jantar/i.test(x.meal_name))){
               const fixes=[
