@@ -183,7 +183,7 @@ export async function adminRoutes(request, env, url) {
       if(weight!==null)await env.RFIT_DB.prepare('UPDATE student_profiles SET weight_kg=? WHERE user_id=?').bind(weight,studentId).run();
       return Response.json({ok:true},{headers:noStore});
       } catch (error) {
-        console.error('assessment_save_failed', assessmentStage, error?.message || 'unknown');
+        console.error('assessment_save_failed', assessmentStage, error?.message || 'unknown', error?.cause?.message || '', error?.stack || '');
         return Response.json({ok:false,error:'assessment_save_failed',stage:assessmentStage},{status:503,headers:noStore});
       }
     }
