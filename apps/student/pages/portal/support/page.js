@@ -33,5 +33,5 @@ document.addEventListener('DOMContentLoaded',async()=>{
   catch(error){$('#page-message').textContent='Falha ao enviar: '+(error.message||'erro inesperado')+'.';console.error('R-Fit support send:',error);}
   finally{button.disabled=false;input.focus();}
  });
- $('#logout')?.addEventListener('click',async function(){this.disabled=true;try{await logout();}finally{window.location.replace('/student/pages/login.html');}});
+ $('#logout')?.addEventListener('click',async function(event){event.preventDefault();if(this.dataset.loggingOut==='1')return;this.dataset.loggingOut='1';this.disabled=true;this.textContent='Saindo…';try{await logout();}catch(error){console.warn('R-Fit logout support:',error);}finally{window.location.replace('/student/pages/login.html');}});
 });
