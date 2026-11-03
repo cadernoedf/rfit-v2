@@ -174,7 +174,12 @@ function renderWorkoutDays(){
   const meta=document.createElement('small');meta.textContent=(ex.muscle||'Exercício')+' · '+(ex.equipment||'');
   const fields=document.createElement('div');fields.className='workout-prescription-fields';
   [['sets','Séries',1,20],['reps','Reps',1,100],['load','Carga (kg)',0,1000],['rest','Descanso (s)',0,600]].forEach(([key,label,min,max])=>{const input=document.createElement('input');input.type='number';input.min=min;input.max=max;input.placeholder=label;input.setAttribute('aria-label',label);input.value=ex[key]??(key==='sets'?3:key==='reps'?12:key==='rest'?60:'');input.onchange=()=>ex[key]=input.value;fields.append(input);});
-  info.append(name,meta,fields);const remove=document.createElement('button');remove.type='button';remove.className='workout-remove-exercise';remove.textContent='×';remove.title='Remover exercício';remove.onclick=()=>{day.exercises.splice(i,1);renderWorkoutDays();};row.append(img,info,remove);list.append(row);
+  info.append(name,meta,fields);
+  const actions=document.createElement('div');actions.className='workout-exercise-actions';
+  const duplicate=document.createElement('button');duplicate.type='button';duplicate.textContent='⧉ Duplicar';duplicate.title='Duplicar exercício neste dia';duplicate.onclick=()=>{day.exercises.splice(i+1,0,JSON.parse(JSON.stringify(ex)));renderWorkoutDays();};
+  const copy=document.createElement('button');copy.type='button';copy.textContent='⇢ Copiar para dia';copy.title='Copiar exercício para outro treino';copy.onclick=()=>{if(workoutDays.length<2){alert('Crie outro dia de treino primeiro.');return;}const choices=workoutDays.map((d,k)=>k===selectedWorkoutDay?null:(String.fromCharCode(65+k)+' — '+d.title)).filter(Boolean);const choice=prompt('Copiar para qual dia?\\n'+choices.join('\\n')+'\\nDigite a letra do treino:');if(!choice)return;const target=workoutDays.findIndex((d,k)=>k!==selectedWorkoutDay&&String.fromCharCode(65+k).toLowerCase()===choice.trim().toLowerCase());if(target<0){alert('Dia não encontrado.');return;}workoutDays[target].exercises.push(JSON.parse(JSON.stringify(ex)));alert('Exercício copiado para '+workoutDays[target].title+'!');};
+  actions.append(duplicate,copy);info.append(actions);
+  const remove=document.createElement('button');remove.type='button';remove.className='workout-remove-exercise';remove.textContent='×';remove.title='Remover exercício';remove.onclick=()=>{day.exercises.splice(i,1);renderWorkoutDays();};row.append(img,info,remove);list.append(row);
  });
  if(!day.exercises.length){const empty=document.createElement('p');empty.className='workout-library-empty';empty.textContent='Escolha exercícios na biblioteca para montar este dia.';list.append(empty);}
 }
