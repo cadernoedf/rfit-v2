@@ -262,6 +262,20 @@ function openDietStudio(){
   .diet-studio-actions{padding:12px 22px!important;background:#f4f6fb!important;border:0!important}
   .diet-studio-actions button{min-width:130px!important;padding:11px 18px!important;border-radius:11px!important}
   @media(max-width:760px){.diet-studio-context{grid-template-columns:repeat(2,minmax(0,1fr))!important}.diet-studio .detail-form{grid-template-columns:1fr!important;max-height:calc(100vh - 245px)!important;padding:14px!important}.diet-studio .detail-form>label:nth-of-type(n){grid-column:1!important}.diet-studio #diet-meals{grid-template-columns:1fr!important}.diet-studio .detail-form-heading,.diet-studio #diet-meals,.diet-studio #add-diet-meal,.diet-studio .detail-form>button[type=submit]{grid-column:1!important}.diet-studio-actions{padding:10px 14px!important}}
+
+  /* UX polish: one roomy scroll area + accessible controls */
+  .diet-studio{overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important;scrollbar-width:auto!important;scrollbar-color:#aab4c5 #e8edf5!important}
+  .diet-studio::-webkit-scrollbar,.diet-studio .detail-form::-webkit-scrollbar{width:15px!important;height:15px!important}
+  .diet-studio::-webkit-scrollbar-track,.diet-studio .detail-form::-webkit-scrollbar-track{background:#e8edf5!important;border-radius:10px!important}
+  .diet-studio::-webkit-scrollbar-thumb,.diet-studio .detail-form::-webkit-scrollbar-thumb{background:#aab4c5!important;border:3px solid #e8edf5!important;border-radius:10px!important}
+  .diet-studio-body{overflow:visible!important}
+  .diet-studio .detail-form{overflow:visible!important;max-height:none!important;min-height:0!important}
+  .diet-studio .diet-meal-editor{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  .diet-studio .diet-meal-editor [data-food],.diet-studio .diet-meal-editor input,.diet-studio .diet-meal-editor select{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+  .diet-studio .diet-meal-editor select,.diet-studio select{background:#fff!important;color:#172033!important;border:1px solid #cbd5e1!important;min-height:42px!important;font-size:14px!important}
+  .diet-studio select option{background:#fff!important;color:#172033!important}
+  .diet-studio .diet-meal-editor input::placeholder{color:#8490a3!important;opacity:1!important}
+  @media(max-width:760px){.diet-studio{max-height:100dvh!important;width:100vw!important;max-width:100vw!important}.diet-studio .detail-form{max-height:none!important}}
   `;document.head.append(premium);
   dietStudioModal=document.createElement('div');dietStudioModal.className='diet-studio-overlay';dietStudioModal.innerHTML='<section class="diet-studio" role="dialog" aria-modal="true" aria-labelledby="diet-studio-title"><header class="diet-studio-head"><div><h2 id="diet-studio-title">🥗 R-Fit Nutrition Studio</h2><p>Monte, revise e publique um plano alimentar com organização profissional.</p></div><button type="button" class="diet-studio-close" aria-label="Fechar">×</button></header><div class="diet-studio-body"><div class="diet-studio-context" id="diet-studio-context"></div><div class="diet-studio-import"><div><strong>⚡ Importação inteligente</strong><small>CSV exportado do Excel: Refeição, Alimento, Quantidade. Confira antes de salvar.</small></div><label class="secondary-button" style="cursor:pointer">📥 Importar CSV<input type="file" id="diet-csv-import" accept=".csv,text/csv" hidden></label></div></div></section>';
   const panel=dietStudioModal.querySelector('.diet-studio');panel.append(form);
