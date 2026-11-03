@@ -58,6 +58,18 @@
 .workout-builder-dialog .workout-selected-list{max-height:440px!important}
 @media(min-width:761px){.workout-builder-dialog .workout-builder-columns{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)!important}}
 @media(max-width:760px){.workout-builder-dialog #exercise-library-grid{height:340px!important;min-height:340px!important;max-height:340px!important}.workout-builder-dialog .workout-prescription-pane{min-height:300px!important}}
+
+/* R-FIT | scrollbars claras e discretas em TODO o popup de treino */
+.workout-builder-dialog,.workout-builder-dialog *{scrollbar-color:#cbd2dc #f5f7fa!important;scrollbar-width:thin!important}
+.workout-builder-dialog *::-webkit-scrollbar{width:7px!important;height:7px!important}
+.workout-builder-dialog *::-webkit-scrollbar-track{background:#f5f7fa!important;border-radius:12px!important}
+.workout-builder-dialog *::-webkit-scrollbar-thumb{background:#cbd2dc!important;border:2px solid #f5f7fa!important;border-radius:12px!important}
+.workout-builder-dialog *::-webkit-scrollbar-thumb:hover{background:#aab4c2!important}
+.workout-builder-dialog *::-webkit-scrollbar-corner{background:#f5f7fa!important}
+.workout-builder-dialog{scrollbar-color:#cbd2dc #f5f7fa!important}
+.workout-builder-dialog::-webkit-scrollbar{width:7px!important}
+.workout-builder-dialog::-webkit-scrollbar-track{background:#f5f7fa!important}
+.workout-builder-dialog::-webkit-scrollbar-thumb{background:#cbd2dc!important;border-radius:12px!important;border:2px solid #f5f7fa!important}
 </style><style>
 /* Ficha do aluno — layout exclusivo da sessão do professor */
 .professor-student-detail .student-profile-page{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;width:100%;max-width:none;margin:20px 0 36px}
