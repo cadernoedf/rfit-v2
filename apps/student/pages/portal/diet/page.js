@@ -60,10 +60,32 @@ try {
     latestWeight = Number(records[0]?.weight_kg || records[0]?.weight || 0);
   }
 } catch (error) { console.warn('Peso não carregado:', error); }
-const protein = Number(g.protein) || 0;
-const carbs = Number(g.carbs) || 0;
-const fats = Number(g.fats) || 0;
-const kcal = Number(g.calories_target || g.kcal || g.calories) || Number(String(g.detail || g.description || '').match(/(\d{3,4})\s*kcal/i)?.[1]) || protein * 4 + carbs * 4 + fats * 9;
+// Estimativa dos macros a partir dos alimentos e porções cadastrados.
+const foodBase={
+ 'arroz branco cozido':[2.5,28,0.3,130],'arroz integral':[2.6,25,1,123],'batata-doce':[1.3,20,0.1,86],'batata inglesa':[1.9,17,0.1, карто],
+ 'macarrão cozido':[5,25,1.1,131],'aveia':[13, yapıl,7,389],'pão francês':[8,57,3,300],'pão integral':[10,43,4,250],'tapioca':[0,25,0,100],
+ 'banana':[1.1,23,0.3,89],'maçã':[0.3,14,0.2,52],'mamão':[0.5,11,0.1,43],'morango':[0.7,8,0.3,32],'laranja':[0.9,12,0.1,47],'abacate':[2,9,15,160],
+ 'frango grelhado':[31,0,3.6,165],'patinho magro':[27,0,7,170],'carne moída magra':[26,0,8,180],'tilápia':[26,0,2.7,128],'atum em água':[25,0,1,116],'ovo':[13,1,10,143],'clara de ovo':[11,0.7,0.2,52],
+ 'iogurte natural':[4,5,3,60],'whey protein':[80,8,5,390],'cottage':[12,3,4,98],'leite desnatado':[3.4,5,0.1,34],'feijão':[5,14,0.5,76],'lentilha':[6.3,16,0.4,93],'grão-de-bico':[8.9,27,2.6,164],
+ 'brócolis':[2.8,7,0.4,34],'cenoura':[0.9,10,0.2,41],'alface':[1.4,2.9,0.2,15],'tomate':[0.9,3.9,0.2,18],'pepino':[0.7,3.6,0.1,15],'abobrinha':[1.2,3.1,0.3,17],
+ 'azeite':[0,0,100,884],'pasta de amendoim':[25,20,50,588],'castanhas':[20,20,55,607]
+};
+const sums={p:0,c:0,f:0,k:0};
+(g.meals||[]).forEach(meal=>(meal.items||[]).forEach(raw=>{
+ const line=typeof raw==='string'?raw:String(raw?.name||raw?.food||'');
+ const name=line.split(/\\s*[—–-]\\s*/)[0].trim().toLowerCase();
+ const key=Object.keys(foodBase).find(k=>name.includes(k));if(!key)return;
+ const qtyPart=line.split(/\\s*[—–-]\\s*/)[1]||String(raw?.qty||raw?.quantity||'100');
+ const n=Number((qtyPart.match(/[0-9]+(?:[,.][0-9]+)?/)||[])[0]?.replace(',','.'))||100;
+ const unit=qtyPart.toLowerCase();let grams=n;
+ if(/unidade|\\bun\\b|ovo|fatia|lata/.test(unit)){if(/banana/.test(key)||/maçã|laranja/.test(key))grams=n*100;else if(/ovo/.test(key))grams=n*50;else if(/fatia/.test(unit))grams=n*25;else if(/lata/.test(unit))grams=n*120;else grams=n*50;}
+ if(/ml|\\bl\\b/.test(unit))grams=n*(unit.includes('l')&&!unit.includes('ml')?1000:1);
+ const v=foodBase[key],factor=grams/100;sums.p+=v[0]*factor;sums.c+=v[1]*factor;sums.f+=v[2]*factor;sums.k+=v[3]*factor;
+}));
+const protein=Number(g.protein)||Math.round(sums.p);
+const carbs=Number(g.carbs)||Math.round(sums.c);
+const fats=Number(g.fats)||Math.round(sums.f);
+const kcal=Number(g.calories_target||g.kcal||g.calories)||Math.round(sums.k)||Math.round(protein*4+carbs*4+fats*9);
 const fiber = kcal ? Math.round(kcal * 14 / 1000) : '—';
 const weight = Number(latestWeight || g.weight || data.student?.weight || data.profile?.weight || data.student?.weight_kg) || 0;
 const water = weight ? (weight * 35 / 1000).toFixed(1).replace('.', ',') + ' L' : '—';
