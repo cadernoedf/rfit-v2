@@ -272,12 +272,21 @@ function openDietStudio(){
  dietStudioModal.classList.add('is-open');form.elements.title?.focus({preventScroll:true});
 }
 /* ===== EDITOR DE DIETA ===== */
-function addDietMeal(){
- const meal=document.createElement('fieldset');meal.className='diet-meal-editor';const title=document.createElement('input');title.placeholder='Nome da refeição (ex.: Café da manhã)';title.maxLength=100;title.dataset.field='name';
- const items=document.createElement('textarea');items.rows=3;items.placeholder='Um alimento por linha';items.dataset.field='items';
- meal.append(title,items);$('#diet-meals').append(meal);
+function addDietMeal(name=''){
+ const meal=document.createElement('fieldset');meal.className='diet-meal-editor';
+ const head=document.createElement('div');head.className='diet-meal-head';head.style.cssText='display:flex;gap:8px;align-items:center';
+ const title=document.createElement('input');title.placeholder='Ex.: Café da manhã';title.maxLength=100;title.dataset.field='name';title.value=name;title.style.flex='1';
+ const remove=document.createElement('button');remove.type='button';remove.textContent='✕';remove.title='Remover refeição';remove.style.cssText='border:0;background:#ffe5e9;color:#c51d3b;border-radius:9px;padding:10px 13px;cursor:pointer';remove.onclick=()=>meal.remove();head.append(title,remove);
+ const rows=document.createElement('div');rows.dataset.field='foods';rows.style.cssText='display:grid;gap:8px';
+ const addFood=()=>{const row=document.createElement('div');row.className='diet-food-row';row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 90px 105px 34px;gap:6px;align-items:center';
+ const food=document.createElement('input');food.placeholder='Alimento';food.dataset.food='name';
+ const qty=document.createElement('input');qty.placeholder='Qtd.';qty.type='number';qty.min='0';qty.step='any';qty.dataset.food='qty';
+ const unit=document.createElement('select');unit.dataset.food='unit';['g','ml','unidade','fatia','colher','xícara','concha'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;unit.append(o);});
+ const del=document.createElement('button');del.type='button';del.textContent='×';del.title='Remover alimento';del.style.cssText='border:0;background:#ffe5e9;color:#c51d3b;border-radius:8px;font-size:20px;cursor:pointer';del.onclick=()=>row.remove();row.append(food,qty,unit,del);rows.append(row);};
+ const add=document.createElement('button');add.type='button';add.textContent='＋ Adicionar alimento';add.className='secondary-button';add.style.cssText='justify-self:start;padding:8px 12px';add.onclick=addFood;
+ meal.append(head,rows,add);$('#diet-meals').append(meal);addFood();return meal;
 }
-function collectDietMeals(){return Array.from(document.querySelectorAll('.diet-meal-editor')).map(meal=>({name:meal.querySelector('[data-field=name]').value,items:meal.querySelector('[data-field=items]').value.split('\n').map(v=>v.trim()).filter(Boolean)})).filter(m=>m.name.trim());}
+function collectDietMeals(){return Array.from(document.querySelectorAll('.diet-meal-editor')).map(meal=>({name:meal.querySelector('[data-field=name]').value.trim(),items:Array.from(meal.querySelectorAll('.diet-food-row')).map(row=>{const f=row.querySelector('[data-food=name]').value.trim(),q=row.querySelector('[data-food=qty]').value,u=row.querySelector('[data-food=unit]').value;return f?(q?f+' — '+q+' '+u:f):''}).filter(Boolean)})).filter(m=>m.name&&m.items.length);}
 
 /* Navegação por abas da ficha 360 */
 document.querySelectorAll('[data-student-tab]').forEach(button=>button.addEventListener('click',()=>{const target=button.dataset.studentTab;document.querySelectorAll('[data-student-tab]').forEach(tab=>{const active=tab===button;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',String(active));});document.querySelectorAll('[data-student-panel]').forEach(panel=>{const active=panel.dataset.studentPanel===target;panel.classList.toggle('is-active',active);panel.hidden=!active;});}));
