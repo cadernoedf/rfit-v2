@@ -85,7 +85,7 @@ export async function adminRoutes(request, env, url) {
         env.RFIT_DB.prepare(`SELECT u.id,u.full_name,u.email,u.phone,u.avatar_url,u.status,u.created_at,
           sp.birth_date,sp.sex,sp.height_cm,sp.weight_kg,sp.goal,sp.training_frequency,sp.experience_level,sp.anamnesis_completed_at
           FROM users u LEFT JOIN student_profiles sp ON sp.user_id=u.id WHERE u.id=? AND u.role='student'`).bind(studentId).first(),
-        env.RFIT_DB.prepare('SELECT id,weight_kg,height_cm,body_fat_pct,waist_cm,hip_cm,basal_kcal,measured_at,notes FROM student_measurements WHERE user_id=? ORDER BY measured_at DESC LIMIT 12').bind(studentId).all(),
+        env.RFIT_DB.prepare("SELECT id,weight_kg,height_cm,body_fat_pct,waist_cm,hip_cm,basal_kcal,measured_at,notes FROM (SELECT *,ROW_NUMBER() OVER (PARTITION BY user_id,measured_at,COALESCE(weight_kg,-1),COALESCE(waist_cm,-1),COALESCE(basal_kcal,-1),COALESCE(notes,'') ORDER BY id) AS rn FROM student_measurements WHERE user_id=?) WHERE rn=1 ORDER BY measured_at DESC LIMIT 12").bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT id,title,goal,weekly_frequency,status,created_at,updated_at FROM workouts WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
         env.RFIT_DB.prepare('SELECT id,title,goal,calories_target,status,created_at,updated_at FROM diets WHERE user_id=? ORDER BY created_at DESC LIMIT 30').bind(studentId).all(),
         env.RFIT_DB.prepare(`SELECT s.id,s.status,s.starts_at,s.expires_at,s.billing_starts_at,s.lifetime,p.name AS plan_name,p.price_cents
