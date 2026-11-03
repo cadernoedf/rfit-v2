@@ -195,7 +195,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
      const result=await response.json();
      if(!response.ok||!result.ok)throw new Error(result.error||'checkin_save_failed');
      if(status)status.textContent='✓ Check-in salvo com sucesso!';
-     updateHydrationCard(payload.water_liters);\n     didCheckinToday=true;await refreshTodayCheckin();
+     updateHydrationCard(payload.water_liters);
+     didCheckinToday=true;await refreshTodayCheckin();
      form.reset();
      checkinModal.querySelectorAll('.daily-checkin-scale').forEach(group=>{group.dataset.value='3';group.querySelectorAll('button').forEach((item,index)=>item.setAttribute('aria-pressed',index===2?'true':'false'));});
      ['training-adherence-value','nutrition-adherence-value'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='80%';});
