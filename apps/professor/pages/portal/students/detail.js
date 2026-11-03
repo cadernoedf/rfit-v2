@@ -196,9 +196,9 @@ async function loadExerciseCatalog(){
  catch(e){status.textContent='Não foi possível carregar a biblioteca. Tente novamente.';console.error(e);}
 }
 function renderExerciseLibrary(){
- const grid=$('#exercise-library-grid'),search=$('#exercise-library-search').value.trim().toLowerCase(),muscle=$('#exercise-library-muscle').value;
+ const grid=$('#exercise-library-grid'),search=$('#exercise-library-search').value.trim().toLowerCase(),muscle=$('#exercise-library-muscle').value,equipment=$('#exercise-library-equipment')?.value||'';
  grid.replaceChildren();
- const filtered=exerciseCatalog.filter(ex=>(!showExerciseFavorites||exerciseFavorites.has(ex.slug||ex.name))&&(!muscle||ex.muscle===muscle)&&(!search||String(ex.name+' '+ex.slug+' '+ex.muscle+' '+ex.equipment).toLowerCase().includes(search))).slice(0,120);
+ const filtered=exerciseCatalog.filter(ex=>(!showExerciseFavorites||exerciseFavorites.has(ex.slug||ex.name))&&(!muscle||ex.muscle===muscle)&&(!equipment||String(ex.equipment||'').toLowerCase().includes(equipment))&&(!search||String(ex.name+' '+ex.slug+' '+ex.muscle+' '+ex.equipment).toLowerCase().includes(search))).slice(0,120);
  filtered.forEach(ex=>{const card=document.createElement('div');card.className='exercise-library-card';card.setAttribute('role','button');card.tabIndex=0;card.title='Adicionar '+ex.name;const favKey=ex.slug||ex.name;if(exerciseFavorites.has(favKey))card.classList.add('is-favorite');
  const img=document.createElement('img');img.src=ex.gifUrl||EXERCISE_BASE+'/'+ex.file;img.alt=ex.name;img.loading='lazy';
  const name=document.createElement('strong');name.textContent=exercisePt(ex.name);const tag=document.createElement('small');tag.textContent=(ex.muscle||'')+' · '+(ex.equipment||'');
@@ -206,6 +206,10 @@ function renderExerciseLibrary(){
  if(!filtered.length){const empty=document.createElement('p');empty.className='workout-library-empty';empty.textContent='Nenhum exercício encontrado com esses filtros.';grid.append(empty);}
 }
 function updateExerciseFavoriteCount(){const count=$('#exercise-favorites-count');if(count)count.textContent=exerciseFavorites.size;}
+const WORKOUT_TEMPLATE_KEY='rfit-workout-templates';
+function readWorkoutTemplates(){try{return JSON.parse(localStorage.getItem(WORKOUT_TEMPLATE_KEY)||'[]');}catch{return [];}}
+$('#save-workout-template')?.addEventListener('click',()=>{if(!workoutDays.some(d=>d.exercises.length)){alert('Adicione exercícios antes de salvar um modelo.');return;}const name=prompt('Nome do modelo de treino:',workoutDays[0]?.title||'Treino modelo');if(!name?.trim())return;const templates=readWorkoutTemplates();templates.push({id:Date.now(),name:name.trim(),days:JSON.parse(JSON.stringify(workoutDays)),createdAt:new Date().toISOString()});localStorage.setItem(WORKOUT_TEMPLATE_KEY,JSON.stringify(templates));alert('Modelo "'+name.trim()+'" salvo neste navegador!');});
+$('#load-workout-template')?.addEventListener('click',()=>{const templates=readWorkoutTemplates();if(!templates.length){alert('Nenhum modelo salvo neste navegador.');return;}const choice=prompt('Modelos salvos:\\n'+templates.map((t,i)=>(i+1)+'. '+t.name).join('\\n')+'\\nDigite o número do modelo:');if(!choice)return;const selected=templates[Number(choice)-1];if(!selected){alert('Modelo não encontrado.');return;}if(!confirm('Substituir o treino atual pelo modelo "'+selected.name+'"?'))return;workoutDays=JSON.parse(JSON.stringify(selected.days));selectedWorkoutDay=0;renderWorkoutDays();alert('Modelo carregado! Revise e salve o treino do aluno.');});
 $('#toggle-exercise-favorites')?.addEventListener('click',()=>{showExerciseFavorites=!showExerciseFavorites;$('#toggle-exercise-favorites').classList.toggle('is-active',showExerciseFavorites);renderExerciseLibrary();});
 function openWorkoutBuilder(){
  workoutDays=[{title:'Treino A',exercises:[]}];selectedWorkoutDay=0;showExerciseFavorites=false;updateExerciseFavoriteCount();renderWorkoutDays();workoutModal.classList.add('is-open');workoutModal.setAttribute('aria-hidden','false');loadExerciseCatalog();
@@ -214,7 +218,7 @@ $('#open-workout-builder')?.addEventListener('click',openWorkoutBuilder);
 $('#duplicate-workout-day-modal')?.addEventListener('click',()=>{if(workoutDays.length>=7)return;const source=ensureWorkoutDay(selectedWorkoutDay);const copy=JSON.parse(JSON.stringify(source));copy.title=source.title+' (cópia)';workoutDays.splice(selectedWorkoutDay+1,0,copy);selectedWorkoutDay++;renderWorkoutDays();});
 $('#add-workout-day-modal')?.addEventListener('click',()=>{if(workoutDays.length>=7)return;workoutDays.push({title:'Treino '+String.fromCharCode(65+workoutDays.length),exercises:[]});selectedWorkoutDay=workoutDays.length-1;renderWorkoutDays();});
 $('#exercise-library-search')?.addEventListener('input',renderExerciseLibrary);
-$('#exercise-library-muscle')?.addEventListener('change',renderExerciseLibrary);
+$('#exercise-library-muscle')?.addEventListener('change',renderExerciseLibrary);$('#exercise-library-equipment')?.addEventListener('change',renderExerciseLibrary);
 workoutModal?.querySelectorAll('[data-close-workout]').forEach(el=>el.addEventListener('click',closeWorkoutBuilder));
 /* ===== EDITOR DE DIETA ===== */
 function addDietMeal(){
