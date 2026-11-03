@@ -175,6 +175,18 @@ export async function studentRoutes(request, env, url) {
           const existingMeals=await env.RFIT_DB.prepare('SELECT id,meal_name,meal_order FROM diet_meals WHERE diet_id=? ORDER BY meal_order').bind(current.id).all();
           const rows=existingMeals.results||[],byDay={};
           for(const row of rows){const match=String(row.meal_name||'').match(/dia\s*(\d+)/i);if(match)(byDay[match[1]]??=[]).push(row);}
+          // Atualiza a dieta automática já salva: mantém o mesmo diet_id e troca os alimentos repetidos por variedade real entre os dias.
+          if(current.source==='template'&&rows.length===12&&Object.keys(byDay).length===3){
+            const varied=[
+              [['Ovos mexidos (2 un.)','Pão integral (2 fatias)','Mamão (150 g)'],['Frango grelhado (150 g)','Arroz (120 g)','Feijão (100 g)','Salada (150 g)'],['Iogurte natural (170 g)','Banana (1 un.)','Aveia (20 g)'],['Patinho moído (130 g)','Batata-doce (150 g)','Legumes (150 g)']],
+              [['Tapioca (50 g)','Cottage (80 g)','Morango (100 g)'],['Tilápia grelhada (160 g)','Batata inglesa (180 g)','Lentilha (100 g)','Brócolis (100 g)'],['Maçã (1 un.)','Pasta de amendoim (15 g)','Iogurte (170 g)'],['Omelete (3 ovos)','Arroz integral (100 g)','Tomate e pepino (150 g)']],
+              [['Pão francês (1 un.)','Ovos cozidos (2 un.)','Laranja (1 un.)'],['Carne magra (150 g)','Macarrão (120 g)','Feijão (80 g)','Salada verde (150 g)'],['Whey (30 g)','Banana (1 un.)','Castanhas (15 g)'],['Frango desfiado (130 g)','Mandioca (120 g)','Abobrinha (150 g)']]
+            ];
+            for(let d=1;d<=3;d++)for(let i=0;i<4;i++){
+              const row=byDay[String(d)][i];
+              if(row)await env.RFIT_DB.prepare('UPDATE diet_meals SET items_json=?,notes=? WHERE id=?').bind(JSON.stringify(varied[d-1][i]),'Sugestão ilustrativa variada; porções e restrições devem ser revisadas pelo profissional.',row.id).run();
+            }
+          }
           // Repara ficha legada criada com apenas 4 refeições sem identificação de dia.
           // Preserva o registro ativo e completa os 3 dias; não duplica dietas.
           if(rows.length===4&&!Object.keys(byDay).length){
