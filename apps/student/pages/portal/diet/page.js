@@ -8,31 +8,31 @@ const css=`<style>
 </style>`;
 function mealEmoji(name){const n=String(name||'').toLowerCase();return /café|manha/.test(n)?'☕':/lanche/.test(n)?'🍎':/almoço/.test(n)?'🍛':/jantar/.test(n)?'🍽️':/ceia/.test(n)?'🌙':'🥗'}
 function foodRow(x){
- const obj=typeof x==='object'&&x!==null?x:{name:String(x||'')};
- let food=String(obj.name||obj.food||obj.item||obj.description||'').trim();
+ let obj=x&&typeof x==='object'?x:{};
+ let food=String(obj.name||obj.food||obj.item||obj.description||x||'').trim();
  let qty=String(obj.quantity||obj.qty||obj.amount||obj.grams||obj.weight||'').trim();
  let unit=String(obj.unit||obj.measure||obj.measurement||obj.household_measure||'').trim();
- const match=food.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
- if(match){food=match[1].trim();if(!qty)qty=match[2].trim()}
- if(!qty){const q=food.match(/\b(\d+(?:[,.]\d+)?\s*(?:g|kg|ml|l|un(?:idade)?s?|ovos?|fatias?|colheres?|conchas?|potes?|copos?))\b/i);if(q){qty=q[1];food=food.replace(q[0],'').trim()}}
- if(!unit){const m=food.match(/\b(\d+\s*(?:ovos?|fatias?|colheres?|conchas?|potes?|copos?|un(?:idade)?s?))\b/i);if(m)unit=m[1]}
+ if(typeof x==='string'&&x.includes('—')){const parts=x.split(/\s*—\s*/);food=(parts[0]||'').trim();if(!qty)qty=(parts[1]||'').trim();if(!unit)unit=(parts.slice(2).join(' — ')||'').trim();}
+ const match=food.match(/^(.*?)\s*\(([^()]*)\)\s*$/);if(match){food=match[1].trim();if(!qty)qty=match[2].trim();}
+ if(!qty){const q=food.match(/\b(\d+(?:[,.]\d+)?\s*(?:g|kg|ml|l|un(?:idade)?s?|ovos?|fatias?|colheres?|conchas?|potes?|copos?))\b/i);if(q){qty=q[1];food=food.replace(q[0],'').trim();}}
+ if(unit){const normalized=unit.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');food=food.replace(new RegExp('\\s*[—–-]?\\s*'+normalized+'\\s*$','i'),'').trim();}
+ food=food.replace(/\s*[—–-]\s*$/,'').trim();
  return {food:food||'Alimento',qty:qty||'Porção não informada',unit:unit||'—'}
 }
-function mealSubs(items){
- const all=items.map(x=>x.food.toLowerCase()).join(' ');
- if(/frango|carne|peixe|atum|ovo|whey/.test(all))return 'Alternativas proteicas: frango ↔ peixe ↔ carne magra ↔ ovos. Ajuste as porções para equivalência nutricional.';
- if(/arroz|batata|mandioca|macarrão|massa|pão/.test(all))return 'Alternativas de carboidrato: arroz ↔ batata ↔ mandioca ↔ macarrão ↔ pão. As porções não são iguais em gramas; ajuste pela equivalência.';
- if(/banana|maçã|morango|fruta|mamão/.test(all))return 'Pode variar entre frutas da estação, mantendo uma porção equivalente.';
- if(/iogurte|leite|queijo/.test(all))return 'Alternativas lácteas: leite ↔ iogurte natural ↔ queijo branco, considerando diferenças de proteína e gordura.';
- return 'Prefira substituições do mesmo grupo alimentar e mantenha porções equivalentes. Em caso de restrição ou condição clínica, confirme com nutricionista.';
+function mealSubs(meal){
+ const explicit=meal.substitutions||meal.alternatives||meal.swaps;
+ if(Array.isArray(explicit)&&explicit.length)return explicit.map(v=>typeof v==='string'?v:(v.text||v.name||JSON.stringify(v))).join(' · ');
+ if(typeof explicit==='string'&&explicit.trim())return explicit;
+ const perItem=(meal.items||[]).map(raw=>raw&&typeof raw==='object'?(raw.substitutions||raw.alternatives||raw.swaps||''):'').filter(Boolean);
+ return perItem.length?perItem.join(' · '):'';
 }
 function mealsHTML(){
  const meals=(data.current?.meals||[]).filter(m=>{const n=String(m.meal_name||'').trim();const prefix=n.match(/^Dia\s*(\d+)\s*[·–—-]/i);const suffix=n.match(/[·–—-]\s*Dia\s*(\d+)\s*$/i);return prefix?Number(prefix[1])===day+1:suffix?Number(suffix[1])===day+1:day===0;});
  if(!meals.length)return '<div class="food-empty">Não há refeições cadastradas para este dia.</div>';
  return '<div class="meal-grid">'+meals.map((m,i)=>{
-  const items=(m.items||[]).map(foodRow);
+  const items=(m.items||[]).map(foodRow),subs=mealSubs(m);
   const key='subs-'+day+'-'+i;
-  return '<article class="meal-card"><span class="meal-tag">'+mealEmoji(m.meal_name)+' REFEIÇÃO '+(i+1)+'</span><h3 class="meal-title"><i>'+mealEmoji(m.meal_name)+'</i>'+esc(String(m.meal_name||'Refeição '+(i+1)).replace(/^Dia \d+\s*[·-]\s*/,'') )+'</h3><table><thead><tr><th>Alimento</th><th>Quantidade</th><th>Medida prática</th></tr></thead><tbody>'+items.map(x=>'<tr><td>'+esc(x.food)+'</td><td>'+esc(x.qty)+'</td><td>'+esc(x.unit)+'</td></tr>').join('')+'</tbody></table>'+(m.notes?'<p class="meal-note">'+esc(m.notes)+'</p>':'')+'<button class="meal-sub-btn" data-subs="'+key+'">🔄 Substituições</button><div class="meal-subs" id="'+key+'" hidden>'+esc(mealSubs(items))+'<small> Sugestões gerais, não equivalências calculadas.</small></div></article>';
+  return '<article class="meal-card"><span class="meal-tag">'+mealEmoji(m.meal_name)+' REFEIÇÃO '+(i+1)+'</span><h3 class="meal-title"><i>'+mealEmoji(m.meal_name)+'</i>'+esc(String(m.meal_name||'Refeição '+(i+1)).replace(/^Dia \d+\s*[·-]\s*/,'') )+'</h3><table><thead><tr><th>Alimento</th><th>Quantidade</th><th>Medida prática</th></tr></thead><tbody>'+items.map(x=>'<tr><td>'+esc(x.food)+'</td><td>'+esc(x.qty)+'</td><td>'+esc(x.unit)+'</td></tr>').join('')+'</tbody></table>'+(m.notes?'<p class="meal-note">'+esc(m.notes)+'</p>':'')+(subs?'<button class="meal-sub-btn" data-subs="'+key+'">🔄 Substituições</button><div class="meal-subs" id="'+key+'" hidden>'+esc(subs)+'<small>Confira equivalência de porções antes de substituir.</small></div>':'')+'</article>';
  }).join('')+'</div>';
 }
 function openDiet(){const m=document.createElement('div');m.className='food-modal';const g=data.current;const title=String(g.goal||'').split('|')[0];m.innerHTML='<section class="food-dialog" role="dialog" aria-modal="true"><header class="food-head"><div><small>R-FIT · PLANO ALIMENTAR</small><h2>'+esc(g.title)+'</h2><span>'+esc(title)+'</span></div><button class="food-close" aria-label="Fechar">✕</button></header><div class="food-body"><div class="menu-tabs"><button class="menu-tab active" data-day="0">Dia 1</button><button class="menu-tab" data-day="1">Dia 2</button><button class="menu-tab" data-day="2">Dia 3</button><button class="menu-tab" data-menu="orient">Orientações</button></div><div id="menu-content">'+mealsHTML()+'</div></div><footer class="food-foot"><button class="food-print">🖨 Imprimir plano</button></footer></section>';document.body.append(m);const close=()=>m.remove();m.querySelector('.food-close').onclick=close;m.onclick=e=>{if(e.target===m)close()};m.querySelector('.food-print').onclick=()=>window.print();m.querySelector('#menu-content').addEventListener('click',e=>{const b=e.target.closest('[data-subs]');if(!b)return;const panel=m.querySelector('#'+b.dataset.subs);panel.hidden=!panel.hidden;b.textContent=panel.hidden?'🔄 Substituições':'✕ Fechar substituições'});m.querySelectorAll('[data-day]').forEach(btn=>btn.onclick=()=>{day=Number(btn.dataset.day);m.querySelectorAll('[data-day],[data-menu]').forEach(x=>x.classList.toggle('active',x===btn));m.querySelector('#menu-content').innerHTML=mealsHTML()});m.querySelector('[data-menu="orient"]').onclick=()=>{const btn=m.querySelector('[data-menu="orient"]');m.querySelectorAll('[data-day],[data-menu]').forEach(x=>x.classList.toggle('active',x===btn));m.querySelector('#menu-content').innerHTML='<div class="food-tip">'+esc(g.goal||'Priorize variedade, hidratação e acompanhamento profissional. Não substitua orientação individual por estimativas automáticas.')+'</div>'};}
