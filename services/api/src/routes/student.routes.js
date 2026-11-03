@@ -143,22 +143,23 @@ export async function studentRoutes(request, env, url) {
       const anam=await env.RFIT_DB.prepare("SELECT answers_json FROM anamneses WHERE user_id=? ORDER BY completed_at DESC LIMIT 1").bind(session.sub).first();
       let a={};try{a=JSON.parse(anam?.answers_json||'{}')}catch{}
       const freq=Math.max(1,Math.min(7,Number(a.training_frequency)||3)),goal=String(a.goal||'condicionamento').toLowerCase();
-      const goalLabel=a.goal||'Condicionamento físico';
+      const goalLabel=a.goal||'Melhorar saúde em geral';
+      const sex=String(a.sex||a.gender||a.sexo||'').toLowerCase(),female=/fem|mulher|f$/.test(sex);
       if(isWorkout&&Number(sub.includes_training)){
         const current=await env.RFIT_DB.prepare("SELECT id,source FROM workouts WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(session.sub).first();
         if(!current){ // GET nunca substitui nem recria uma ficha já ativa; template inicial permanece até o professor prescrever outra.
           
-          const wid=crypto.randomUUID(),sessions=freq===1?['Full body']:freq===2?['Full body A','Full body B']:freq===3?['Push','Pull','Legs']:freq===4?['Upper A','Lower A','Upper B','Lower B']:freq===5?['Push','Pull','Legs','Upper','Lower']:freq===6?['Push A','Pull A','Legs A','Push B','Pull B','Legs B']:['Push','Pull','Legs','Upper','Lower','Core + cardio','Mobilidade + recuperação'];
+          const wid=crypto.randomUUID(),sessions=freq===1?['Full body']:freq===2?['Full body A','Full body B']:freq===3?['Full body A','Full body B','Full body C']:freq===4?['Upper A','Lower A','Upper B','Lower B']:freq===5?['Upper','Lower A','Upper ênfase','Lower B','Full body']:freq===6?['Push A','Pull A','Legs A','Push B','Pull B','Legs B']:['Push','Pull','Legs','Upper','Lower','Core + cardio','Mobilidade + recuperação'];
           const catalog={
-            push:[['Supino máquina',3,'8-12',90],['Supino inclinado halteres',3,'8-12',90],['Desenvolvimento máquina',3,'10-12',60],['Elevação lateral',3,'12-15',45],['Tríceps corda',3,'10-15',60]],
+            push:female?[['Supino máquina',3,'10-12',75],['Puxada frente',3,'10-12',75],['Desenvolvimento máquina',3,'10-12',60],['Elevação lateral',3,'12-15',45],['Tríceps corda',3,'12-15',45]]:[['Supino máquina',4,'6-10',90],['Supino inclinado halteres',3,'8-12',90],['Desenvolvimento máquina',3,'8-12',75],['Elevação lateral',3,'12-15',45],['Tríceps corda',3,'10-12',60]],
             pull:[['Puxada frente',3,'8-12',90],['Remada baixa',3,'8-12',90],['Remada unilateral',3,'10-12',60],['Face pull',3,'12-15',45],['Rosca direta',3,'10-12',60]],
-            legs:[['Leg press',4,'10-12',90],['Agachamento guiado',3,'8-12',90],['Mesa flexora',3,'10-15',60],['Cadeira extensora',3,'10-15',60],['Panturrilha',4,'12-15',45]],
-            full:[['Leg press ou cadeira',3,'10-12',75],['Supino máquina',3,'8-12',75],['Puxada frente',3,'8-12',75],['Elevação pélvica',3,'10-15',60],['Desenvolvimento máquina',2,'10-12',60],['Prancha',3,'20-40 s',45]],
+            legs:female?[['Elevação pélvica',4,'8-12',90],['Agachamento guiado',3,'8-12',90],['Leg press',3,'10-12',75],['Abdução de quadril',3,'15-20',45],['Mesa flexora',3,'10-15',60],['Cadeira extensora',2,'12-15',60]]:[['Agachamento guiado',4,'6-10',90],['Leg press',3,'8-12',90],['Mesa flexora',3,'10-15',60],['Cadeira extensora',3,'10-15',60],['Panturrilha',4,'12-15',45]],
+            full:female?[['Elevação pélvica',3,'10-15',75],['Leg press',3,'10-12',75],['Puxada frente',3,'10-12',75],['Supino máquina',2,'10-12',60],['Abdução de quadril',3,'15-20',45],['Prancha',3,'30-40 s',45]]:[['Leg press',3,'10-12',75],['Supino máquina',4,'8-12',75],['Puxada frente',3,'8-12',75],['Remada baixa',3,'8-12',75],['Rosca direta',3,'10-12',60],['Prancha',3,'30-40 s',45]],
             core:[['Prancha',3,'30-45 s',45],['Dead bug',3,'10/lado',45],['Caminhada/bike leve',1,'20-30 min',0],['Mobilidade geral',1,'8-10 min',0]],
             recovery:[['Caminhada leve',1,'20-30 min',0],['Mobilidade de quadril',2,'8-10',30],['Mobilidade torácica',2,'8-10',30],['Alongamento confortável',1,'5-8 min',0]]
           };
           await env.RFIT_DB.prepare("INSERT INTO workouts(id,user_id,subscription_id,title,goal,weekly_frequency,source,status,created_by) VALUES(?,?,?,'Treino automático R-Fit',?,?, 'template','active',NULL)").bind(wid,session.sub,sub.id,goalLabel,freq).run();
-          for(let d=0;d<sessions.length;d++){const title=sessions[d],kind=/push/i.test(title)?'push':/pull/i.test(title)?'pull':/leg/i.test(title)?'legs':/core|upper|lower/i.test(title)?(d%3===0?'push':d%3===1?'pull':'legs'):/mobilidade/i.test(title)?'recovery':'full',items=catalog[kind]||catalog.full,sid=crypto.randomUUID();
+          for(let d=0;d<sessions.length;d++){const title=sessions[d],kind=/push/i.test(title)?'push':/pull/i.test(title)?'pull':/leg|lower/i.test(title)?'legs':/core|upper/i.test(title)?(female?'legs':d%2===0?'push':'pull'):/mobilidade/i.test(title)?'recovery':'full',items=catalog[kind]||catalog.full,sid=crypto.randomUUID();
             await env.RFIT_DB.prepare("INSERT INTO workout_sessions(id,workout_id,day_number,title,notes) VALUES(?,?,?,?,?)").bind(sid,wid,d+1,title,'Aquecimento 5–10 min; escolha carga que permita técnica correta; pare se houver dor. Progressão gradual e recuperação conforme orientação profissional.').run();
             for(let j=0;j<items.length;j++){const e=items[j];await env.RFIT_DB.prepare("INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),sid,e[0],e[1],e[2],e[3],j,'Movimento controlado, amplitude confortável.').run();}
           }
@@ -188,9 +189,9 @@ export async function studentRoutes(request, env, url) {
           const did=crypto.randomUUID(),kg=Number(a.weight_kg||profile.weight_kg)||70,cm=Number(a.height_cm||profile.height_cm)||170,age=Math.max(18,Math.min(90,Number(a.age)||30)),sex=String(a.sex||a.gender||'').toLowerCase();
           const bmr=10*kg+6.25*cm-5*age+(sex.includes('masc')||sex==='m'?5:sex.includes('fem')||sex==='f'?-161:-78),activity=freq<=1?1.25:freq<=3?1.45:freq<=5?1.6:1.7;
           let kcal=Math.round(bmr*activity);if(/emag|perda|redu/.test(goal))kcal=Math.round(kcal*.90);else if(/hipert|massa|ganh/.test(goal))kcal=Math.round(kcal*1.05);
-          kcal=Math.max(sex.includes('fem')?1200:1500,kcal);const protein=Math.round(kg*1.6),fat=Math.round(kcal*.25/9),carb=Math.max(0,Math.round((kcal-protein*4-fat*9)/4)),water=Math.round(kg*35/250)*250,mealsN=Math.max(3,Math.min(6,Number(a.meals_per_day||a.meal_count||a.meals)||4));
-          const mealNames=mealsN<=3?['Café da manhã','Almoço','Jantar']:mealsN===4?['Café da manhã','Almoço','Lanche','Jantar']:mealsN===5?['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar']:['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar','Ceia'];
-          const mealSlots=mealsN<=3?[0,2,4]:mealsN===4?[0,2,3,4]:mealsN===5?[0,1,2,3,4]:[0,1,2,3,4,5];
+          kcal=Math.max(sex.includes('fem')?1200:1500,kcal);const protein=Math.round(kg*1.6),fat=Math.round(kcal*.25/9),carb=Math.max(0,Math.round((kcal-protein*4-fat*9)/4)),water=Math.round(kg*35/250)*250,mealsN=Math.max(2,Math.min(6,Number(a.meals_per_day||a.meal_count||a.meals)||4));
+          const mealNames=mealsN===2?['Almoço','Jantar']:mealsN===3?['Café da manhã','Almoço','Jantar']:mealsN===4?['Café da manhã','Almoço','Lanche da tarde','Jantar']:mealsN===5?['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar']:['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar','Ceia'];
+          const mealSlots=mealsN===2?[2,4]:mealsN===3?[0,2,4]:mealsN===4?[0,2,3,4]:mealsN===5?[0,1,2,3,4]:[0,1,2,3,4,5];
           const foods=[
             ['2 ovos (100 g)','Pão integral (2 fatias/50 g)','Banana (1 un./80 g)'],
             ['Iogurte natural (170 g)','Aveia (20 g)','Morango (100 g)'],
