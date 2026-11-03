@@ -147,7 +147,14 @@ const workoutModal=$('#workout-builder-modal');
 const workoutForm=$('#workout-form');
 const closeWorkoutBuilder=()=>{workoutModal?.classList.remove('is-open');workoutModal?.setAttribute('aria-hidden','true');};
 const EXERCISE_PT={"Barbell Bench Press":"Supino reto com barra","Bench Press":"Supino reto","Incline Bench Press":"Supino inclinado","Decline Bench Press":"Supino declinado","Lat Pulldown":"Puxada frontal","Pull Up":"Barra fixa","Pull-Up":"Barra fixa","Romanian Deadlift":"Levantamento terra romeno","Deadlift":"Levantamento terra","Hip Thrust":"Elevação pélvica","Squat":"Agachamento","Leg Press":"Leg press","Leg Extension":"Cadeira extensora","Leg Curl":"Mesa flexora","Biceps Curl":"Rosca de bíceps","Barbell Curl":"Rosca direta","Dumbbell Curl":"Rosca com halteres","Triceps Pushdown":"Tríceps na polia","Lateral Raise":"Elevação lateral","Shoulder Press":"Desenvolvimento de ombros","Plank":"Prancha","Crunch":"Abdominal"};
-function exercisePt(name){const n=String(name||'');if(EXERCISE_PT[n])return EXERCISE_PT[n];return n.replace(/\bwith\b/gi,'com').replace(/\bbarbell\b/gi,'barra').replace(/\bdumbbell\b/gi,'halteres').replace(/\bcable\b/gi,'polia').replace(/\bincline\b/gi,'inclinado').replace(/\bdecline\b/gi,'declinado').replace(/\bseated\b/gi,'sentado').replace(/\blying\b/gi,'deitado').replace(/\bstanding\b/gi,'em pé');}
+function exercisePt(name){
+ let n=String(name||'').trim();if(EXERCISE_PT[n])return EXERCISE_PT[n];
+ const rules=[
+ [/\\bpress de banca\\b/gi,'supino'],[/\\bpress\\b/gi,'press'],[/\\bcon barra\\b/gi,'com barra'],[/\\bcon agarre invertido\\b/gi,'com pegada invertida'],[/\\bagarre invertido\\b/gi,'pegada invertida'],[/\\ben banco\\b/gi,'no banco'],[/\\bbanco inclinado\\b/gi,'banco inclinado'],[/\\bancho\\b/gi,'aberto'],[/\\bestiramiento\\b/gi,'alongamento'],[/\\btras la nuca\\b/gi,'atrás da nuca'],[/\\bpecho\\b/gi,'peitoral'],[/\\bespalda\\b/gi,'costas'],[/\\bpiernas?\\b/gi,'pernas'],[/\\bgluteos?\\b/gi,'glúteos'],[/\\bbiceps\\b/gi,'bíceps'],[/\\btriceps\\b/gi,'tríceps'],[/\\bdeltoides\\b/gi,'deltoides'],[/\\babdominales?\\b/gi,'abdominal'],[/\\bremo\\b/gi,'remada'],[/\\baperturas?\\b/gi,'crucifixo'],[/\\belevaciones?\\b/gi,'elevação'],[/\\bcurl\\b/gi,'rosca'],[/\\bextensiones?\\b/gi,'extensão'],[/\\bflexiones?\\b/gi,'flexão'],[/\\bjalon\\b/gi,'puxada'],[/\\bdominadas?\\b/gi,'barra fixa'],[/\\bsentado\\b/gi,'sentado'],[/\\bacostado\\b/gi,'deitado'],[/\\bde pie\\b/gi,'em pé'],[/\\bcon mancuernas\\b/gi,'com halteres'],[/\\bmancuernas?\\b/gi,'halteres'],[/\\bmaquina\\b/gi,'máquina'],[/\\bpolea\\b/gi,'polia'],[/\\bcon\\b/gi,'com'],[/\\by\\b/gi,'e'],[/\\bdel\\b/gi,'do'],[/\\bpara\\b/gi,'para']
+ ];
+ rules.forEach(([rx,to])=>n=n.replace(rx,to));
+ n=n.replace(/\\s+/g,' ').trim();return n.charAt(0).toUpperCase()+n.slice(1);
+}
 function ensureWorkoutDay(index=workoutDays.length){
  if(!workoutDays[index])workoutDays[index]={title:'Treino '+String.fromCharCode(65+index),exercises:[]};
  return workoutDays[index];
