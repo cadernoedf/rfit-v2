@@ -419,7 +419,7 @@ function openDietStudio(){
   dietStudioModal.querySelector('#diet-paste-toggle').onclick=()=>{const box=dietStudioModal.querySelector('#diet-paste-box');box.style.display=box.style.display==='grid'?'none':'grid';};
 dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  const raw=dietStudioModal.querySelector('#diet-paste-text').value.trim();if(!raw){message('Cole a tabela primeiro.','error');return;}
- const rows=raw.split(/\r?\n/).map(line=>line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(v=>v.trim().replace(/\s+/g,' '))).filter(r=>r.some(Boolean)&&!r.every(v=>/^[-: ]*$/.test(v)));
+ const rows=raw.split(/\r?\n/).map(line=>{const s=line.trim();if(!s)return [];const cells=s.includes('|')?s.replace(/^\|/,'').replace(/\|$/,'').split('|'):s.split('\t');return cells.map(v=>v.trim().replace(/\s+/g,' '));}).filter(r=>r.some(Boolean)&&!r.every(v=>/^[-: ]*$/.test(v)));
  const mealNames=/^(café(?: da manhã)?|almoço|lanche|jantar|ceia|pré[- ]?treino|pós[- ]?treino)$/i;
  const dayMeals=new Map();let sectionMeal='';
  const norm=v=>String(v||'').trim().replace(/\s+/g,' ');
