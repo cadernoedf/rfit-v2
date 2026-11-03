@@ -144,6 +144,7 @@ let exerciseCatalog=[];
 let exerciseCatalogLoaded=false;
 let exerciseFavorites=new Set(JSON.parse(localStorage.getItem('rfit-exercise-favorites')||'[]'));
 let showExerciseFavorites=false;
+let draggedWorkoutExercise=null;
 const EXERCISE_BASE='https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0';
 const workoutModal=$('#workout-builder-modal');
 const workoutForm=$('#workout-form');
@@ -167,7 +168,12 @@ function renderWorkoutDays(){
  const day=ensureWorkoutDay(selectedWorkoutDay);
  const title=$('#workout-day-title');title.value=day.title;title.oninput=()=>day.title=title.value;
  day.exercises.forEach((ex,i)=>{
-  const row=document.createElement('article');row.className='workout-selected-card';
+  const row=document.createElement('article');row.className='workout-selected-card';row.draggable=true;row.title='Arraste para reorganizar este exercício';
+  row.addEventListener('dragstart',e=>{draggedWorkoutExercise=i;row.classList.add('is-dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(i));});
+  row.addEventListener('dragend',()=>{draggedWorkoutExercise=null;row.classList.remove('is-dragging');list.querySelectorAll('.is-drop-target').forEach(el=>el.classList.remove('is-drop-target'));});
+  row.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';row.classList.add('is-drop-target');});
+  row.addEventListener('dragleave',e=>{if(!row.contains(e.relatedTarget))row.classList.remove('is-drop-target');});
+  row.addEventListener('drop',e=>{e.preventDefault();row.classList.remove('is-drop-target');const from=draggedWorkoutExercise??Number(e.dataTransfer.getData('text/plain'));const to=i;if(!Number.isInteger(from)||from<0||from>=day.exercises.length||from===to)return;const moved=day.exercises.splice(from,1)[0];day.exercises.splice(to,0,moved);renderWorkoutDays();});
   const img=document.createElement('img');img.src=ex.gifUrl||'';img.alt=ex.name;img.loading='lazy';
   const info=document.createElement('div');info.className='workout-selected-info';
   const name=document.createElement('input');name.type='text';name.className='workout-exercise-custom-name';name.setAttribute('aria-label','Nome personalizado do exercício');name.value=ex.displayName||exercisePt(ex.name);name.oninput=()=>ex.displayName=name.value;name.style.cssText='width:100%;font-weight:700;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-bottom:6px';
