@@ -96,7 +96,15 @@ export async function adminRoutes(request, env, url) {
         env.RFIT_DB.prepare('SELECT COALESCE((SELECT SUM(xp) FROM student_xp_events WHERE user_id=?),0) AS total_xp,(SELECT COUNT(*) FROM student_achievement_unlocks WHERE user_id=?) AS unlocked_count').bind(studentId,studentId).first()
       ]);
       if(!student)return Response.json({ok:false,error:'student_not_found'},{status:404,headers:noStore});
-      return Response.json({ok:true,student,measurements:measurements.results||[],workouts:workouts.results||[],diets:diets.results||[],subscription:subscription||null,checkins:checkins.results||[],anamnesis:anamnesis||null,journey_notes:journeyNotes.results||[],gamification:gamification||{total_xp:0,unlocked_count:0}},{headers:noStore});
+      const workoutRows=workouts.results||[],workoutIds=workoutRows.map(w=>w.id),workoutChildren={};
+      if(workoutIds.length){
+        const marks=workoutIds.map(()=>'?').join(',');
+        const sessions=await env.RFIT_DB.prepare(`SELECT id,workout_id,day_number,title,notes FROM workout_sessions WHERE workout_id IN (${marks}) ORDER BY day_number`).bind(...workoutIds).all();
+        const exercises=await env.RFIT_DB.prepare(`SELECT e.id,e.session_id,e.exercise_name,e.sets,e.reps,e.rest_seconds,e.order_index,e.notes FROM workout_exercises e JOIN workout_sessions ws ON ws.id=e.session_id WHERE ws.workout_id IN (${marks}) ORDER BY e.order_index`).bind(...workoutIds).all();
+        for(const day of sessions.results||[]){(workoutChildren[day.workout_id]??=[]).push({...day,exercises:(exercises.results||[]).filter(ex=>ex.session_id===day.id).map(ex=>{let meta={};try{meta=JSON.parse(ex.notes||'{}')}catch{}return {...ex,...meta,notes:meta.notes||''};})});}
+      }
+      const detailedWorkouts=workoutRows.map(w=>({...w,sessions:workoutChildren[w.id]||[]}));
+      return Response.json({ok:true,student,measurements:measurements.results||[],workouts:detailedWorkouts,diets:diets.results||[],subscription:subscription||null,checkins:checkins.results||[],anamnesis:anamnesis||null,journey_notes:journeyNotes.results||[],gamification:gamification||{total_xp:0,unlocked_count:0}},{headers:noStore});
     }
 
 
