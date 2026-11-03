@@ -419,25 +419,36 @@ function openDietStudio(){
   dietStudioModal.querySelector('#diet-paste-toggle').onclick=()=>{const box=dietStudioModal.querySelector('#diet-paste-box');box.style.display=box.style.display==='grid'?'none':'grid';};
 dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  const raw=dietStudioModal.querySelector('#diet-paste-text').value.trim();if(!raw){message('Cole a tabela primeiro.','error');return;}
- const lines=raw.split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean),clean=x=>x.replace(/^\\|/,'').replace(/\\|$/,'').split('|').map(v=>v.trim().replace(/\\s+/g,' '));
- const rows=lines.map(clean).filter(r=>!r.every(v=>/^[-: ]+$/.test(v)));
- let current='Refeição',items=[],mealName='';const found=[];
- rows.forEach(r=>{
-  if(!r.length)return;
-  if(/^refeiç/i.test(r[0])&&r.some(v=>/dia\\s*1/i.test(v)))return;
-  if(/^café|^lanche|^almoço|^jantar|^ceia|^pré|^pós/i.test(r[0])&&r.length>1&&/alimento/i.test(r[1])){current=r[0];return;}
-  if(/^alimento$/i.test(r[0]))return;
-  if(r.length>=2&&r[0]&&r[1]&&!/^(dia\\s*\\d+|quantidade)$/i.test(r[1])){
-    let food=r[0],qty=r[1],practical=r[2]||'';
-    if(/^café|^lanche|^almoço|^jantar|^ceia|^pré|^pós/i.test(food)&&(!qty||/alimento/i.test(qty))){current=food;return;}
-    if(/^(refeiç|dia\\s*\\d+)$/i.test(food))return;
-    found.push({meal:current,food,qty,practical});
+ const lines=raw.split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean);
+ const cells=line=>line.replace(/^\\|/,'').replace(/\\|$/,'').split('|').map(v=>v.trim().replace(/\\s+/g,' '));
+ const parsed=lines.map(cells).filter(r=>!r.every(v=>/^[-: ]*$/.test(v)));
+ const groups=[];let active=null;
+ for(const row of parsed){
+  const first=(row[0]||'').trim(),second=(row[1]||'').trim();
+  if(/^refeiç/i.test(first)&&/^dia\\s*\\d+/i.test(second)){active=null;continue;}
+  // Heading row: "Café da Manhã | Alimento | Quantidade | Medida prática"
+  if(row.length>=2&&/^alimento$/i.test(second)){
+    active={name:first||'Refeição',foods:[]};groups.push(active);continue;
   }
+  // Ignore repeated column headers and empty spacer lines.
+  if(/^alimento$/i.test(first)||!first||!active)continue;
+  // Food row has food, quantity, practical measure in columns 1..3.
+  active.foods.push({name:first,qty:second,measure:row[2]||''});
+ }
+ const valid=groups.filter(g=>g.foods.length);
+ if(!valid.length){message('Não reconheci a tabela. Use: Refeição | Dia 1 e depois Café da Manhã | Alimento | Quantidade | Medida prática.','error');return;}
+ const meals=$('#diet-meals');meals.replaceChildren();
+ valid.forEach(g=>{
+  const card=addDietMeal(g.name);
+  g.foods.forEach((food,i)=>{
+   if(i)card.querySelector('.diet-add-food')?.click();
+   const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;
+   row.querySelector('[data-food=name]').value=food.name+(food.measure?' · '+food.measure:'');
+   const m=food.qty.match(/([0-9]+(?:[.,][0-9]+)?)\\s*(g|kg|ml|l|un\\.?|unidade|unidades)?/i);
+   if(m&&m[1]){row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m[2]){const unit=m[2].replace(/un\\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===unit))sel.value=unit;}}
+  });
  });
- if(!found.length){message('Não reconheci alimentos nessa tabela. Cole incluindo as colunas Alimento, Quantidade e Medida prática.','error');return;}
- const groups=new Map();found.forEach(x=>{if(!groups.has(x.meal))groups.set(x.meal,[]);groups.get(x.meal).push(x);});
- $('#diet-meals').replaceChildren();groups.forEach((foods,name)=>{const card=addDietMeal(name);foods.forEach((it,i)=>{if(i)card.querySelector('.diet-add-food')?.click();const row=card.querySelectorAll('.diet-food-row')[i];if(!row)return;row.querySelector('[data-food=name]').value=it.food+(it.practical?' · '+it.practical:'');const m=it.qty.match(/([0-9]+(?:[.,][0-9]+)?)\\s*(g|kg|ml|l|un\\.?|unidade|unidades)?/i);if(m?.[1])row.querySelector('[data-food=qty]').value=m[1].replace(',','.');if(m?.[2]){const u=m[2].replace(/un\\.?/i,'unidade').toLowerCase(),sel=row.querySelector('[data-food=unit]');if([...sel.options].some(o=>o.value===u))sel.value=u;}});});
- updateDietNutrition();message('Tabela convertida em '+groups.size+' refeições. Confira e salve!','success');
+ updateDietNutrition();message('Dieta montada: '+valid.length+' refeições importadas. Confira os cards e salve.','success');
 };
 dietStudioModal.querySelector('#diet-csv-import').addEventListener('change',async e=>{
  const file=e.target.files?.[0];if(!file)return;const input=e.target,label=input.closest('label'),old=label?.firstChild?.textContent;
