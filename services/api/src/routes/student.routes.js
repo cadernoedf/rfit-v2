@@ -139,10 +139,11 @@ export async function studentRoutes(request, env, url) {
       // Cortesia libera treino e dieta mesmo que o plano comercial não inclua esses recursos.
       const included=Boolean(sub&&!expired&&(courtesy||(isWorkout?Number(sub.includes_training):Number(sub.includes_nutrition))));
       if(expired)return reply({ok:true,locked:true,reason:'expired',history:[],current:null});
-      if(!included)return reply({ok:true,locked:true,reason:'upgrade',history:[],current:null});
-      // Reconstrói fichas automáticas antigas incompletas; fichas do professor nunca são tocadas.
+      // Anamnese é requisito universal para treino e dieta; informar antes do bloqueio comercial.
       const profile=await env.RFIT_DB.prepare("SELECT anamnesis_completed_at,height_cm,weight_kg FROM student_profiles WHERE user_id=?").bind(session.sub).first();
       if(!profile?.anamnesis_completed_at)return reply({ok:true,locked:true,reason:'anamnesis_required',history:[],current:null});
+      if(!included)return reply({ok:true,locked:true,reason:'upgrade',history:[],current:null});
+      // Reconstrói fichas automáticas antigas incompletas; fichas do professor nunca são tocadas.
       const anam=await env.RFIT_DB.prepare("SELECT answers_json FROM anamneses WHERE user_id=? ORDER BY completed_at DESC LIMIT 1").bind(session.sub).first();
       let a={};try{a=JSON.parse(anam?.answers_json||'{}')}catch{}
       const freq=Math.max(1,Math.min(7,Number(a.training_frequency)||3)),goal=String(a.goal||'condicionamento').toLowerCase();
