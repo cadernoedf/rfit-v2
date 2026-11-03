@@ -236,7 +236,7 @@ export async function adminRoutes(request, env, url) {
           if(!name)continue;
           const sets=Number(exercise.sets||3),rest=Number(exercise.rest_seconds||60);
           if(!Number.isInteger(sets)||sets<1||sets>20||!Number.isInteger(rest)||rest<0||rest>1800)continue;
-          await env.RFIT_DB.prepare('INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),sessionId,name,sets,String(exercise.reps||'12').slice(0,30),rest,order,String(exercise.notes||'').slice(0,300)).run();
+          await env.RFIT_DB.prepare('INSERT INTO workout_exercises(id,session_id,exercise_name,sets,reps,rest_seconds,order_index,notes) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),sessionId,name,sets,String(exercise.reps||'12').slice(0,30),rest,order,JSON.stringify({gifUrl:String(exercise.gifUrl||'').slice(0,500),muscle:String(exercise.muscle||'').slice(0,60),equipment:String(exercise.equipment||'').slice(0,60),load:String(exercise.load||'').slice(0,30),notes:String(exercise.notes||'').slice(0,180)})).run();
         }
       }
       await env.RFIT_DB.prepare('INSERT INTO audit_log(id,actor_user_id,action,entity_type,entity_id,metadata_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),session.sub,'workout.created','student',studentId,JSON.stringify({workout_id:id,title})).run();
