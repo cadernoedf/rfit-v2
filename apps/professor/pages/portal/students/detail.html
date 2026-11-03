@@ -46,6 +46,18 @@
 .workout-builder-dialog #exercise-library-grid .exercise-library-card strong{display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important;line-height:1.25!important}
 .workout-builder-dialog #exercise-library-grid .exercise-library-card small{font-size:.64rem!important}
 @media(max-width:760px){.workout-builder-dialog .workout-builder-columns{height:auto!important;min-height:0!important}.workout-builder-dialog #exercise-library-grid{height:360px!important;flex:none!important}}
+
+/* HOTFIX biblioteca do treino: garantir altura real para os cards/GIFs */
+.workout-builder-dialog #workout-form{overflow-y:auto!important;overflow-x:hidden!important;flex:1 1 auto!important;min-height:0!important;padding-right:3px!important}
+.workout-builder-dialog .workout-builder-columns{height:auto!important;min-height:0!important;flex:none!important;grid-template-rows:auto!important;align-items:stretch!important;overflow:visible!important}
+.workout-builder-dialog .workout-library-pane{height:auto!important;min-height:0!important;overflow:visible!important;display:flex!important;flex-direction:column!important}
+.workout-builder-dialog #exercise-library-grid{display:grid!important;flex:none!important;height:360px!important;min-height:360px!important;max-height:360px!important;width:100%!important;overflow-y:auto!important;overflow-x:hidden!important;align-content:start!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:min-content!important}
+.workout-builder-dialog #exercise-library-grid .exercise-library-card{height:auto!important;min-height:150px!important}
+.workout-builder-dialog #exercise-library-grid .exercise-library-card img{height:105px!important;min-height:105px!important;max-height:105px!important;object-fit:contain!important}
+.workout-builder-dialog .workout-prescription-pane{height:auto!important;min-height:420px!important;overflow:visible!important}
+.workout-builder-dialog .workout-selected-list{max-height:440px!important}
+@media(min-width:761px){.workout-builder-dialog .workout-builder-columns{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)!important}}
+@media(max-width:760px){.workout-builder-dialog #exercise-library-grid{height:340px!important;min-height:340px!important;max-height:340px!important}.workout-builder-dialog .workout-prescription-pane{min-height:300px!important}}
 </style><style>
 /* Ficha do aluno — layout exclusivo da sessão do professor */
 .professor-student-detail .student-profile-page{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;width:100%;max-width:none;margin:20px 0 36px}
