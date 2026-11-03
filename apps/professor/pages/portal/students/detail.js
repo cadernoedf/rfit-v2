@@ -429,13 +429,13 @@ dietStudioModal.querySelector('#diet-paste-parse').onclick=()=>{
  if(dayCols.length>1){
   // Em Excel, a linha de cabeçalho "Alimento | Quantidade | Medida prática"
   // define o início real de cada trio; Dia N pode estar em coluna mesclada.
-  const foodHeader=rows.find(r=>r.filter(v=>/^alimento$/i.test(v)).length>=dayCols.length);
-  const starts=foodHeader?foodHeader.map((v,i)=>/^alimento$/i.test(v)?i:-1).filter(i=>i>=0):dayCols.map(d=>d.start);
-  const dayStarts=dayCols.map((d,i)=>({day:d.day,start:starts[i]??d.start}));
   rows.forEach(r=>{const first=norm(r[0]);if(/^refeiç/i.test(first)){sectionMeal='';return;}
+   // A primeira linha de cada refeição traz o nome da refeição na coluna A;
+   // nas linhas seguintes, o alimento do Dia 1 volta para a coluna A.
    if(mealNames.test(first)){sectionMeal=first;if(/^alimento$/i.test(r[1]||''))return;
-    dayStarts.forEach(({day,start})=>addFood(sectionMeal,day,norm(r[start]),norm(r[start+1]),norm(r[start+2])));return;}
-   if(!sectionMeal)return;dayStarts.forEach(({day,start})=>{const food=norm(r[start]),qty=norm(r[start+1]),measure=norm(r[start+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
+    dayCols.forEach(({day,start})=>{const s=start+(day===1?0:0);addFood(sectionMeal,day,norm(r[s]),norm(r[s+1]),norm(r[s+2]));});return;}
+   if(!sectionMeal)return;
+   dayCols.forEach(({day,start})=>{const s=day===1?0:start-1;const food=norm(r[s]),qty=norm(r[s+1]),measure=norm(r[s+2]);if(!/^alimento$/i.test(food))addFood(sectionMeal,day,food,qty,measure);});
   });
  }else{
   let current=null;rows.forEach(r=>{const a=norm(r[0]),b=norm(r[1]),q=norm(r[2]),m=norm(r[3]);if(/^refeiç/i.test(a)){current=null;return;}
