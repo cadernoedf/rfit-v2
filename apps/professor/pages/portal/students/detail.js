@@ -196,6 +196,7 @@ function openWorkoutBuilder(){
  workoutDays=[{title:'Treino A',exercises:[]}];selectedWorkoutDay=0;renderWorkoutDays();workoutModal.classList.add('is-open');workoutModal.setAttribute('aria-hidden','false');loadExerciseCatalog();
 }
 $('#open-workout-builder')?.addEventListener('click',openWorkoutBuilder);
+$('#duplicate-workout-day-modal')?.addEventListener('click',()=>{if(workoutDays.length>=7)return;const source=ensureWorkoutDay(selectedWorkoutDay);const copy=JSON.parse(JSON.stringify(source));copy.title=source.title+' (cópia)';workoutDays.splice(selectedWorkoutDay+1,0,copy);selectedWorkoutDay++;renderWorkoutDays();});
 $('#add-workout-day-modal')?.addEventListener('click',()=>{if(workoutDays.length>=7)return;workoutDays.push({title:'Treino '+String.fromCharCode(65+workoutDays.length),exercises:[]});selectedWorkoutDay=workoutDays.length-1;renderWorkoutDays();});
 $('#exercise-library-search')?.addEventListener('input',renderExerciseLibrary);
 $('#exercise-library-muscle')?.addEventListener('change',renderExerciseLibrary);
